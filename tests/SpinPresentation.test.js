@@ -33,3 +33,17 @@ test('short spins keep the drama without becoming longer than the mode', () => {
   assert.ok(degenerate.fakeStops <= 1);
   assert.ok(degenerate.slowdownDelays.length < turbo.slowdownDelays.length);
 });
+
+test('heartbeat presentation exposes a pulse-heavy timing plan', () => {
+  const plan = createSpinPlan(3000, 'heartbeat', fixedRandom);
+  assert.equal(plan.variant, 'heartbeat');
+  assert.ok(plan.heartbeatPulses >= 3);
+  assert.ok(plan.silenceMs >= 180);
+});
+
+test('reverse presentation includes a longer fake-result hold', () => {
+  const normal = createSpinPlan(3000, 'normal', fixedRandom);
+  const reverse = createSpinPlan(3000, 'reverse', fixedRandom);
+  assert.equal(reverse.variant, 'reverse');
+  assert.ok(reverse.fakeStopHoldMs > normal.fakeStopHoldMs);
+});

@@ -4,20 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GAMBA — Kdo platí?</title>
-  <meta name="description" content="GAMBA — přehnaný meme automat. Žádné peníze, žádné sázky, jen Agraelus vs Chatter." />
+  <meta name="description" content="GAMBA — přehnaný meme automat Agraelus vs Chatter. Žádné skutečné sázení." />
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
   <div id="app">
-
     <section id="splash" class="screen">
       <div class="splash-inner">
         <h1 class="logo-glitch" data-text="GAMBA">GAMBA</h1>
         <p class="subtitle">AGRAELUS <span class="vs">vs</span> CHATTER</p>
         <p class="tagline">KDO PLATÍ?</p>
-        <button id="pullStart" class="btn-pull">PULL <span class="kbd">SPACE</span></button>
-        <p class="disclaimer">Žádné peníze. Žádné sázky. Jen stupidně přehnaný RNG automat.</p>
+        <button id="pullStart" class="btn-pull">ZATOČIT <span class="kbd">SPACE</span></button>
+        <p class="disclaimer">Žádné peníze. Žádné sázky. Jen přehnaný meme randomizer.</p>
       </div>
     </section>
 
@@ -25,9 +24,9 @@
       <header class="topbar">
         <div class="brand">GAMBA<span class="brand-sub">Agraelus vs Chatter • kdo platí?</span></div>
         <div class="topbar-controls">
-          <button id="btnMute" class="icon-btn" title="Mute (M)">🔊</button>
-          <button id="btnFullscreen" class="icon-btn" title="Fullscreen (F)">⛶</button>
-          <button id="btnSettings" class="icon-btn" title="Settings (Esc)">⚙</button>
+          <button id="btnMute" class="icon-btn" title="Ztlumit (M)">🔊</button>
+          <button id="btnFullscreen" class="icon-btn" title="Celá obrazovka (F)">⛶</button>
+          <button id="btnSettings" class="icon-btn" title="Nastavení (Esc)">⚙</button>
         </div>
       </header>
 
@@ -40,7 +39,7 @@
           </div>
           <div class="score-vs cabinet-card center-card">
             <div class="center-title">KDO PLATÍ?</div>
-            <div id="spinCounter">SPINS: 0</div>
+            <div id="spinCounter">SPINY: 0</div>
             <div id="pureGambaBadge" class="badge hidden">PURE GAMBA</div>
           </div>
           <div class="score-box chat cabinet-card">
@@ -65,12 +64,12 @@
             </div>
 
             <div class="machine-header cabinet-header">
-              <span class="question-chip">KDO TO SCHYTÁ?</span>
+              <span class="question-chip">KDO PLATÍ?</span>
               <span id="rareLabel" class="rare-label hidden"></span>
             </div>
 
             <div class="reel-frame">
-              <div class="reel-kicker">LOSERBOARD 3000</div>
+              <div class="reel-kicker">AUTOMAT ROZHODUJE</div>
               <div class="reel-window cabinet-reel-window">
                 <div id="reelTrack" class="reel-track">
                   <div class="reel-cell">AGRAELUS</div>
@@ -85,7 +84,7 @@
             </div>
 
             <div class="marquee cabinet-marquee">
-              <div id="marqueeText" class="marquee-text">SPACE TO GAMBA</div>
+              <div id="marqueeText" class="marquee-text">SPACE = SPIN</div>
             </div>
 
             <div class="speaker left"></div>
@@ -93,7 +92,7 @@
           </div>
 
           <div class="lever-wrap cabinet-lever-wrap">
-            <div class="lever-label">PULL</div>
+            <div class="lever-label">PÁKA</div>
             <div class="lever-base"></div>
             <div id="lever" class="lever">
               <div class="lever-ball"></div>
@@ -104,7 +103,7 @@
 
         <div class="bottom-panels">
           <div class="cabinet-card status-card">
-            <div class="panel-title">STREAK</div>
+            <div class="panel-title">SÉRIE</div>
             <div class="streak-row">
               <div id="streakAgra" class="streak-tag hidden">AGRAELUS <span></span></div>
               <div id="streakChat" class="streak-tag hidden">CHATTER <span></span></div>
@@ -131,88 +130,90 @@
 
       <div id="particleLayer" class="particle-layer"></div>
       <div id="chatLayer" class="chat-layer"></div>
+      <div id="sevenTvLayer" class="seventv-layer"></div>
       <div id="flashLayer" class="flash-layer"></div>
 
       <footer class="hint-bar">
         <span><span class="kbd">SPACE</span> spin / pokračování</span>
-        <span><span class="kbd">F</span> fullscreen</span>
-        <span><span class="kbd">M</span> mute</span>
-        <span><span class="kbd">ESC</span> settings</span>
+        <span><span class="kbd">F</span> celá obrazovka</span>
+        <span><span class="kbd">M</span> ztlumit</span>
+        <span><span class="kbd">ESC</span> nastavení</span>
       </footer>
     </main>
 
     <aside id="settingsPanel" class="settings-panel hidden">
       <div class="settings-inner">
         <div class="settings-head">
-          <h2>SETTINGS</h2>
-          <button id="btnCloseSettings" class="icon-btn">✕</button>
+          <h2>NASTAVENÍ</h2>
+          <button id="btnCloseSettings" class="icon-btn" title="Zavřít">✕</button>
         </div>
 
         <div class="settings-section">
-          <h3>CHANCE TO TAKE THE L</h3>
+          <h3>ŠANCE NA VÝHRU</h3>
           <div class="odds-row">
-            <label>Agraelus L chance: <span id="agraOddsLabel">50</span>%</label>
+            <label>Agraelus: <span id="agraOddsLabel">50</span>%</label>
             <input type="range" id="agraOddsSlider" min="0" max="100" value="50" />
-            <label>Chatter L chance: <span id="chatOddsLabel">50</span>%</label>
+            <label>Chatter: <span id="chatOddsLabel">50</span>%</label>
           </div>
           <div class="custom-odds-row">
             <input type="number" id="agraOddsInput" min="0" max="100" value="50" />
-            <span>% Agraelus L / </span>
+            <span>% Agraelus / </span>
             <input type="number" id="chatOddsInput" min="0" max="100" value="50" />
-            <span>% Chatter L</span>
+            <span>% Chatter</span>
           </div>
           <div id="oddsTranscript" class="odds-transcript hidden"></div>
         </div>
 
         <div class="settings-section">
-          <h3>PRESETS</h3>
+          <h3>RYCHLÉ VOLBY</h3>
           <div class="preset-grid" id="presetGrid"></div>
         </div>
 
         <div class="settings-section">
-          <h3>SPEED</h3>
-          <label class="toggle-row"><input type="checkbox" id="turboToggle" /> Turbo Mode (1–1.5s)</label>
-          <label class="toggle-row"><input type="checkbox" id="degenToggle" /> Degenerate Mode (0.5–0.8s)</label>
+          <h3>RYCHLOST</h3>
+          <label class="toggle-row"><input type="checkbox" id="turboToggle" /> Turbo režim (1–1,5 s)</label>
+          <label class="toggle-row"><input type="checkbox" id="degenToggle" /> Degenerát režim (0,5–0,8 s)</label>
         </div>
 
         <div class="settings-section">
-          <h3>AUDIO</h3>
-          <label class="toggle-row">Master <input type="range" id="volMaster" min="0" max="100" value="80" /></label>
-          <label class="toggle-row">Music <input type="range" id="volMusic" min="0" max="100" value="60" /></label>
-          <label class="toggle-row">SFX <input type="range" id="volSfx" min="0" max="100" value="90" /></label>
-          <label class="toggle-row"><input type="checkbox" id="muteToggle" /> Mute</label>
+          <h3>ZVUK</h3>
+          <label class="toggle-row">Hlavní <input type="range" id="volMaster" min="0" max="100" value="80" /></label>
+          <label class="toggle-row">Hudba <input type="range" id="volMusic" min="0" max="100" value="60" /></label>
+          <label class="toggle-row">Efekty <input type="range" id="volSfx" min="0" max="100" value="90" /></label>
+          <label class="toggle-row"><input type="checkbox" id="muteToggle" /> Ztlumit vše</label>
         </div>
 
         <div class="settings-section">
-          <h3>VISUALS</h3>
-          <label class="toggle-row"><input type="checkbox" id="showOddsToggle" /> Show actual odds (Transparent Mode)</label>
-          <label class="toggle-row"><input type="checkbox" id="streamerToggle" /> Streamer Mode (OBS-friendly)</label>
+          <h3>VIZUÁL</h3>
+          <label class="toggle-row"><input type="checkbox" id="showOddsToggle" /> Zobrazit aktuální šance</label>
+          <label class="toggle-row"><input type="checkbox" id="streamerToggle" /> Streamer režim (OBS)</label>
           <div class="settings-subrow">
-            <label>Flash Effects</label>
+            <label>Záblesky</label>
             <select id="flashSelect">
-              <option value="off">Off</option>
-              <option value="reduced">Reduced</option>
-              <option value="full" selected>Full</option>
+              <option value="off">Vypnuto</option>
+              <option value="reduced">Omezené</option>
+              <option value="full" selected>Plné</option>
             </select>
           </div>
           <div class="settings-subrow">
-            <label>Particle Intensity</label>
+            <label>Částice</label>
             <select id="particleSelect">
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="insane" selected>INSANE</option>
+              <option value="low">Málo</option>
+              <option value="normal">Normálně</option>
+              <option value="insane" selected>ŠÍLENÉ</option>
             </select>
           </div>
-          <label class="toggle-row">Screen Shake <input type="range" id="shakeIntensity" min="0" max="100" value="100" /></label>
+          <label class="toggle-row">Otřesy obrazovky <input type="range" id="shakeIntensity" min="0" max="100" value="100" /></label>
+          <div id="sevenTvStatus" class="integration-status">7TV: načítám emotes…</div>
         </div>
 
         <div class="settings-section">
-          <h3>STATS</h3>
+          <h3>STATISTIKY</h3>
           <div id="statsBlock" class="stats-block"></div>
-          <button id="btnResetStats" class="btn-danger">RESET STATS</button>
+          <button id="btnResetStats" class="btn-danger">VYNULOVAT STATISTIKY</button>
         </div>
 
-        <p class="settings-footer">GAMBA has no money, no bets, no crypto, no real gambling. It's a meme.</p>
+        <p class="settings-footer">GAMBA neobsahuje skutečné peníze ani sázení. Je to jen meme randomizer.</p>
       </div>
     </aside>
   </div>

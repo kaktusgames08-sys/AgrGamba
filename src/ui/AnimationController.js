@@ -13,19 +13,22 @@ const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 function rollRareType() {
   const r = Math.random() * 100;
   if (r < 1.5) return 'ultra';
-  if (r < 4.5) return 'suspicious';
-  if (r < 7.5) return 'instant';
-  if (r < 9.5) return 'fakeCrash';
-  if (r < 10.5) return 'jackpot';
+  if (r < 3) return 'jackpot';
+  if (r < 7) return 'instant';
+  if (r < 11) return 'fakeCrash';
+  if (r < 18) return 'suspicious';
+  if (r < 28) return 'heartbeat';
+  if (r < 38) return 'reverse';
   return 'normal';
 }
 
 export class AnimationController {
-  constructor({ dom, audio, particles, chatSpam, settings, onShake, onFlash }) {
+  constructor({ dom, audio, particles, chatSpam, reactions, settings, onShake, onFlash }) {
     this.dom = dom;
     this.audio = audio;
     this.particles = particles;
     this.chatSpam = chatSpam;
+    this.reactions = reactions;
     this.settings = settings;
     this.onShake = onShake;
     this.onFlash = onFlash;
@@ -42,7 +45,7 @@ export class AnimationController {
 
   _kickReel(className = 'reel-kick') {
     const reel = this.dom.reelTrack;
-    reel.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock');
+    reel.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock', 'reel-reverse');
     void reel.offsetWidth;
     reel.classList.add(className);
   }
@@ -58,9 +61,11 @@ export class AnimationController {
       'loser-reveal',
       'winner-agra',
       'winner-chat',
+      'heartbeat-spin',
+      'reverse-spin',
     );
-    this.dom.machine.classList.remove('dopamine-charge', 'result-ready');
-    this.dom.reelTrack.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock');
+    this.dom.machine.classList.remove('dopamine-charge', 'result-ready', 'heartbeat-pulse');
+    this.dom.reelTrack.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock', 'reel-reverse');
   }
 
   async playSpin(result, durationMs) {
@@ -72,6 +77,8 @@ export class AnimationController {
     this.dom.revealOverlay.classList.add('hidden');
     this.dom.continueButton.classList.add('hidden');
     this.dom.game.classList.add('dopamine-spin', 'spin-chaos');
+    if (rareType === 'heartbeat') this.dom.game.classList.add('heartbeat-spin');
+    if (rareType === 'reverse') this.dom.game.classList.add('reverse-spin');
     this.dom.machine.classList.add('dopamine-charge');
     this.dom.lights.classList.add('on');
     this.dom.nearMissText.classList.add('hidden');
@@ -81,12 +88,12 @@ export class AnimationController {
     this.audio.spinLaunch();
 
     if (rareType === 'fakeCrash') {
-      this.dom.marqueeText.textContent = 'ERROR';
+      this.dom.marqueeText.textContent = 'CHYBA';
       this.onShake('shake-sm');
       await sleep(180);
       this.dom.marqueeText.textContent = '...';
       await sleep(120);
-      this.dom.marqueeText.textContent = 'nah';
+      this.dom.marqueeText.textContent = 'nic';
       await sleep(180);
     }
 
@@ -102,10 +109,14 @@ export class AnimationController {
     }
 
     this.dom.rareLabel.textContent = rareType === 'ultra'
-      ? 'HOLY FUCK'
+      ? 'TY VOLE'
       : rareType === 'jackpot'
-        ? 'JACKPOT — still worth absolutely nothing'
-        : '';
+        ? 'JACKPOT — pořád za 0 Kč'
+        : rareType === 'heartbeat'
+          ? 'HEARTBEAT SPIN'
+          : rareType === 'reverse'
+            ? 'REVERSE SPIN'
+            : '';
     if (this.dom.rareLabel.textContent) this.dom.rareLabel.classList.remove('hidden');
 
     let reelName = Math.random() > 0.5 ? AGRAELUS : CHATTER;
@@ -119,10 +130,24 @@ export class AnimationController {
       await sleep(plan.chaosIntervalMs);
     }
 
+    if (rareType === 'heartbeat') {
+      this.dom.marqueeText.textContent = 'POSLOUCHEJ...';
+      this._setRibbonSpeed('1.8s');
+      for (let i = 0; i < plan.heartbeatPulses; i += 1) {
+        this.dom.machine.classList.remove('heartbeat-pulse');
+        void this.dom.machine.offsetWidth;
+        this.dom.machine.classList.add('heartbeat-pulse');
+        this.audio.tensionPulse(0.65 + i * 0.1);
+        if (i >= 1) this.reactions?.burst(2);
+        await sleep(150 + i * 38);
+      }
+      this.dom.machine.classList.remove('heartbeat-pulse');
+    }
+
     this.dom.game.classList.remove('spin-chaos');
     this.dom.game.classList.add('spin-tension');
     this._setRibbonSpeed('1.25s');
-    const tensionWords = ['WAIT...', 'HOLD...', 'NO WAY'];
+    const tensionWords = ['POČKEJ...', 'DRŽ...', 'NEKECEJ'];
     for (let i = 0; i < plan.slowdownDelays.length; i++) {
       reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
       this._setReel(reelName);
@@ -136,26 +161,47 @@ export class AnimationController {
       await sleep(plan.slowdownDelays[i]);
     }
 
-    const fakeStopCount = rareType === 'suspicious' ? Math.max(2, plan.fakeStops) : plan.fakeStops;
-    for (let i = 0; i < fakeStopCount; i++) {
-      const fakeResult = i % 2 === 0 ? winner : loser;
-      this._setReel(fakeResult);
+    if (rareType === 'reverse') {
+      this._setReel(loser);
       this._kickReel('reel-fake-stop');
       this.dom.game.classList.add('fake-stop-beat');
-      this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
+      this.dom.marqueeText.textContent = 'HOTOVO...?';
+      this.dom.nearMissText.textContent = 'POČKAT';
       this.dom.nearMissText.classList.remove('hidden');
-      this.dom.marqueeText.textContent = i === 0 ? 'WAIT...' : 'AIN\'T NO WAY';
       this.audio.fakeStop();
-      await sleep(plan.fakeStopHoldMs + (rareType === 'suspicious' ? 90 : 0));
-      this.dom.nearMissText.classList.add('hidden');
-      this.dom.game.classList.remove('fake-stop-beat');
+      await sleep(plan.fakeStopHoldMs);
 
-      if (i < fakeStopCount - 1) {
-        reelName = fakeResult === AGRAELUS ? CHATTER : AGRAELUS;
-        this._setReel(reelName);
-        this._kickReel();
-        this.audio.reelTick();
-        await sleep(Math.max(65, plan.fakeStopHoldMs * 0.55));
+      this.dom.nearMissText.classList.add('hidden');
+      this._setReel(winner);
+      this._kickReel('reel-reverse');
+      this.dom.marqueeText.textContent = 'COŽE?!';
+      this.audio.spinLaunch();
+      this.reactions?.burst(5);
+      await sleep(220);
+      this.dom.game.classList.remove('fake-stop-beat');
+    } else {
+      const fakeStopCount = rareType === 'suspicious' ? Math.max(2, plan.fakeStops) : plan.fakeStops;
+      for (let i = 0; i < fakeStopCount; i++) {
+        const fakeResult = i % 2 === 0 ? winner : loser;
+        this._setReel(fakeResult);
+        this._kickReel('reel-fake-stop');
+        this.dom.game.classList.add('fake-stop-beat');
+        this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
+        this.dom.nearMissText.classList.remove('hidden');
+        this.dom.marqueeText.textContent = i === 0 ? 'POČKEJ...' : 'ANI NÁHODOU';
+        this.audio.fakeStop();
+        if (Math.random() < 0.65) this.reactions?.burst(3);
+        await sleep(plan.fakeStopHoldMs + (rareType === 'suspicious' ? 90 : 0));
+        this.dom.nearMissText.classList.add('hidden');
+        this.dom.game.classList.remove('fake-stop-beat');
+
+        if (i < fakeStopCount - 1) {
+          reelName = fakeResult === AGRAELUS ? CHATTER : AGRAELUS;
+          this._setReel(reelName);
+          this._kickReel();
+          this.audio.reelTick();
+          await sleep(Math.max(65, plan.fakeStopHoldMs * 0.55));
+        }
       }
     }
 
@@ -163,8 +209,9 @@ export class AnimationController {
     this._kickReel('reel-fake-stop');
     this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
     this.dom.nearMissText.classList.remove('hidden');
-    this.dom.marqueeText.textContent = 'HOLD...';
+    this.dom.marqueeText.textContent = 'DRŽ...';
     this.audio.tensionPulse(1);
+    this.reactions?.burst(4);
     await sleep(plan.nearMissHoldMs);
     this.dom.nearMissText.classList.add('hidden');
 
@@ -212,13 +259,14 @@ export class AnimationController {
     this.audio.lImpact();
     this.onShake('shake-md');
     this.onFlash('reduced');
+    this.reactions?.burst(6);
     await sleep(plan.lHoldMs);
 
     overlay.classList.add(winnerClass);
     this.dom.game.classList.remove('loser-reveal');
     this.dom.game.classList.add(winnerClass);
     this.dom.machine.classList.add('result-ready');
-    this.dom.revealWinner.textContent = `${winner.toUpperCase()} WINS`;
+    this.dom.revealWinner.textContent = `${winner.toUpperCase()} VYHRÁVÁ`;
     this.dom.revealWinner.classList.remove('hidden');
     this.audio.winnerBoom();
     if (rareType === 'ultra' || rareType === 'jackpot') this.audio.jackpotSiren();
@@ -235,10 +283,12 @@ export class AnimationController {
     this.dom.revealRandomText.classList.remove('hidden');
 
     this.chatSpam.burst(winner === AGRAELUS ? 'agra-win' : 'chat-win');
+    this.reactions?.burst(rareType === 'ultra' || rareType === 'jackpot' ? 28 : 18, 'big');
     setTimeout(() => {
       this.onShake('shake-sm');
       if (rareType === 'ultra' || rareType === 'jackpot') {
         this.chatSpam.burst(winner === AGRAELUS ? 'agra-win' : 'chat-win');
+        this.reactions?.burst(14, 'big');
       }
     }, 150);
 
@@ -257,7 +307,7 @@ export class AnimationController {
     this.dom.lights.classList.remove('on');
     this.dom.rareLabel.classList.add('hidden');
     this._clearSpinClasses();
-    this.dom.marqueeText.textContent = 'SPACE TO GAMBA AGAIN';
+    this.dom.marqueeText.textContent = 'SPACE = DALŠÍ SPIN';
     this._setRibbonSpeed('4.5s');
   }
 }

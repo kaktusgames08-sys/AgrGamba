@@ -1,5 +1,15 @@
 import { AGRAELUS, CHATTER } from '../core/SpinEngine.js';
 import { PRESETS } from '../core/SettingsManager.js';
+import { agraelusWinChanceFromLoseChance, chatterWinChanceFromAgraelusWinChance } from '../core/Odds.js';
+
+const PRESET_LABELS = {
+  fair: 'FÉROVKA',
+  'agra-advantage': 'VÝHODA AGRAELUS',
+  'chat-advantage': 'VÝHODA CHATTER',
+  'agra-propaganda': 'AGRA PROPAGANDA',
+  'chat-revolution': 'CHAT REVOLUCE',
+  'pure-gamba': 'PURE GAMBA',
+};
 
 export function queryDom() {
   const $ = (id) => document.getElementById(id);
@@ -42,6 +52,8 @@ export function queryDom() {
     particleLayer: $('particleLayer'),
     chatLayer: $('chatLayer'),
     flashLayer: $('flashLayer'),
+    sevenTvLayer: $('sevenTvLayer'),
+    sevenTvStatus: $('sevenTvStatus'),
 
     settingsPanel: $('settingsPanel'),
     btnCloseSettings: $('btnCloseSettings'),
@@ -71,7 +83,7 @@ export function queryDom() {
 export function updateScore(dom, statsSnapshot) {
   dom.scoreAgra.textContent = statsSnapshot.wins[AGRAELUS];
   dom.scoreChat.textContent = statsSnapshot.wins[CHATTER];
-  dom.spinCounter.textContent = `SPINS: ${statsSnapshot.spins}`;
+  dom.spinCounter.textContent = `SPINY: ${statsSnapshot.spins}`;
 }
 
 export function updateStreak(dom, statsSnapshot) {
@@ -81,9 +93,9 @@ export function updateStreak(dom, statsSnapshot) {
   if (!w || c < 2) return;
   const target = w === AGRAELUS ? dom.streakAgra : dom.streakChat;
   let label = `x${c}`;
-  if (c >= 10) label += ' — WHAT THE FUCK';
-  else if (c >= 5) label += ' — ON FIRE';
-  else if (c >= 3) label += ' — HEATING UP';
+  if (c >= 10) label += ' — CO TO JE';
+  else if (c >= 5) label += ' — HOŘÍ';
+  else if (c >= 3) label += ' — ROZJÍŽDÍ SE';
   target.querySelector('span').textContent = label;
   target.classList.remove('hidden');
 }
@@ -94,7 +106,7 @@ export function updateHistory(dom, statsSnapshot) {
     const tile = document.createElement('div');
     tile.className = 'history-tile ' + (winner === AGRAELUS ? 'win-agra' : 'win-chat');
     tile.textContent = winner === AGRAELUS ? 'A' : 'C';
-    tile.title = `${loser} took the L — ${winner} won`;
+    tile.title = `${loser} platí — ${winner} vyhrál`;
     dom.historyRow.appendChild(tile);
   });
 }
@@ -108,7 +120,7 @@ export function renderPresets(dom, settings, onPick) {
   PRESETS.forEach((preset) => {
     const btn = document.createElement('button');
     btn.className = 'preset-btn';
-    btn.textContent = preset.label;
+    btn.textContent = PRESET_LABELS[preset.id] ?? preset.label;
     btn.addEventListener('click', () => onPick(preset));
     dom.presetGrid.appendChild(btn);
   });
@@ -123,19 +135,18 @@ export function syncPresetActive(dom, settings) {
 }
 
 export function syncOddsUI(dom, settings) {
-  const agra = settings.get('agraelusLoseChance');
-  const chat = settings.chatterLoseChance;
-  dom.agraOddsSlider.value = agra;
-  dom.agraOddsLabel.textContent = agra;
-  dom.chatOddsLabel.textContent = chat;
-  dom.agraOddsInput.value = agra;
-  dom.chatOddsInput.value = chat;
+  const agraWin = agraelusWinChanceFromLoseChance(settings.get('agraelusLoseChance'));
+  const chatWin = chatterWinChanceFromAgraelusWinChance(agraWin);
+  dom.agraOddsSlider.value = agraWin;
+  dom.agraOddsLabel.textContent = agraWin;
+  dom.chatOddsLabel.textContent = chatWin;
+  dom.agraOddsInput.value = agraWin;
+  dom.chatOddsInput.value = chatWin;
 
   if (settings.get('showOdds')) {
     dom.oddsTranscript.classList.remove('hidden');
     dom.oddsTranscript.innerHTML =
-      `Agraelus chance to lose: ${agra}% · Chatter chance to lose: ${chat}%<br/>` +
-      `Agraelus win chance: ${chat}% · Chatter win chance: ${agra}%`;
+      `Agraelus: <b>${agraWin}%</b> šance na výhru · Chatter: <b>${chatWin}%</b> šance na výhru`;
   } else {
     dom.oddsTranscript.classList.add('hidden');
   }
@@ -160,10 +171,10 @@ export function syncSettingsForm(dom, settings) {
 export function renderStatsBlock(dom, statsSnapshot) {
   const s = statsSnapshot;
   dom.statsBlock.innerHTML = `
-    Total spins: <b>${s.spins}</b><br/>
-    Agraelus wins: <b>${s.wins[AGRAELUS]}</b> &nbsp; Chatter wins: <b>${s.wins[CHATTER]}</b><br/>
-    Agraelus L's: <b>${s.losses[AGRAELUS]}</b> &nbsp; Chatter L's: <b>${s.losses[CHATTER]}</b><br/>
-    Best Agraelus streak: <b>${s.bestStreak[AGRAELUS]}</b><br/>
-    Best Chatter streak: <b>${s.bestStreak[CHATTER]}</b>
+    Celkem spinů: <b>${s.spins}</b><br/>
+    Výhry Agraelus: <b>${s.wins[AGRAELUS]}</b> &nbsp; Výhry Chatter: <b>${s.wins[CHATTER]}</b><br/>
+    Prohry Agraelus: <b>${s.losses[AGRAELUS]}</b> &nbsp; Prohry Chatter: <b>${s.losses[CHATTER]}</b><br/>
+    Nejlepší série Agraelus: <b>${s.bestStreak[AGRAELUS]}</b><br/>
+    Nejlepší série Chatter: <b>${s.bestStreak[CHATTER]}</b>
   `;
 }

@@ -2,12 +2,15 @@ import { GameState } from './core/GameState.js';
 import { SettingsManager } from './core/SettingsManager.js';
 import { StatsManager, AGRAELUS, CHATTER } from './core/StatsManager.js';
 import { spin } from './core/SpinEngine.js';
+import { agraelusWinChanceToLoseChance, agraelusWinChanceFromLoseChance } from './core/Odds.js';
 import './audio/DopamineAudio.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { ParticleSystem } from './ui/ParticleSystem.js';
 import { ChatSpam } from './ui/ChatSpam.js';
 import { AnimationController } from './ui/AnimationController.js';
+import { SevenTVReactions } from './integrations/SevenTV.js';
 import './ui/cabinet.css';
+import './ui/cz-polish.css';
 import * as UI from './ui/UI.js';
 
 const dom = UI.queryDom();
@@ -17,11 +20,13 @@ const gameState = new GameState();
 const audio = new AudioManager(settings);
 const particles = new ParticleSystem(dom.particleLayer, settings);
 const chatSpam = new ChatSpam(dom.chatLayer);
+const sevenTv = new SevenTVReactions(dom.sevenTvLayer);
 const anim = new AnimationController({
   dom,
   audio,
   particles,
   chatSpam,
+  reactions: sevenTv,
   settings,
   onShake: (cls) => shakeMachine(cls),
   onFlash: (level) => flash(level),
@@ -72,11 +77,11 @@ function applyMuteIcon() {
 
 function checkEasterEggs(snap) {
   let msg = null;
-  if (snap.currentStreakWinner === AGRAELUS && snap.currentStreakCount >= 10) msg = 'TOTALLY FAIR';
-  if (snap.currentStreakWinner === CHATTER && snap.currentStreakCount >= 10) msg = 'MODS CHECK THE MACHINE';
-  const agraLose = settings.get('agraelusLoseChance');
-  if (agraLose === 100 && snap.spins >= 3) msg = 'surely random';
-  if (agraLose === 0 && snap.spins >= 3) msg = 'chat never had a chance';
+  if (snap.currentStreakWinner === AGRAELUS && snap.currentStreakCount >= 10) msg = 'TOTÁLNĚ FÉROVÉ';
+  if (snap.currentStreakWinner === CHATTER && snap.currentStreakCount >= 10) msg = 'MODS ZKONTROLUJTE TEN AUTOMAT';
+  const agraWin = agraelusWinChanceFromLoseChance(settings.get('agraelusLoseChance'));
+  if (agraWin === 0 && snap.spins >= 3) msg = 'určitě náhodné';
+  if (agraWin === 100 && snap.spins >= 3) msg = 'chat neměl šanci';
   if (msg && !gameState.canContinue()) dom.marqueeText.textContent = msg;
 }
 
@@ -181,30 +186,26 @@ function toggleMute() {
 }
 
 function toggleFullscreen() {
-  if (!document.fullscreenElement) {
-    document.documentElement.requestFullscreen?.();
-  } else {
-    document.exitFullscreen?.();
-  }
+  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
 }
 
 function toggleSettings() {
   dom.settingsPanel.classList.toggle('hidden');
 }
 
-function setOdds(agraLoseChance) {
-  const clamped = Math.min(100, Math.max(0, Math.round(agraLoseChance)));
-  settings.set('agraelusLoseChance', clamped);
+function setAgraelusWinChance(winChance) {
+  settings.set('agraelusLoseChance', agraelusWinChanceToLoseChance(winChance));
   UI.syncOddsUI(dom, settings);
   UI.syncPresetActive(dom, settings);
   UI.updatePureGambaBadge(dom, settings);
 }
 
-dom.agraOddsSlider.addEventListener('input', (e) => setOdds(Number(e.target.value)));
-dom.agraOddsInput.addEventListener('change', (e) => setOdds(Number(e.target.value)));
-dom.chatOddsInput.addEventListener('change', (e) => setOdds(100 - Number(e.target.value)));
+dom.agraOddsSlider.addEventListener('input', (e) => setAgraelusWinChance(Number(e.target.value)));
+dom.agraOddsInput.addEventListener('change', (e) => setAgraelusWinChance(Number(e.target.value)));
+dom.chatOddsInput.addEventListener('change', (e) => setAgraelusWinChance(100 - Number(e.target.value)));
 
-UI.renderPresets(dom, settings, (preset) => setOdds(preset.agraelusLoseChance));
+UI.renderPresets(dom, settings, (preset) => setAgraelusWinChance(100 - preset.agraelusLoseChance));
 
 dom.turboToggle.addEventListener('change', (e) => settings.set('turbo', e.target.checked));
 dom.degenToggle.addEventListener('change', (e) => settings.set('degenerate', e.target.checked));
@@ -231,3 +232,8 @@ dom.btnResetStats.addEventListener('click', () => {
 
 refreshSettingsUI();
 if (settings.get('streamerMode')) applyStreamerMode();
+
+if (dom.sevenTvStatus) dom.sevenTvStatus.textContent = '7TV: načítám emotes…';
+sevenTv.load().then((emotes) => {
+  if (dom.sevenTvStatus) dom.sevenTvStatus.textContent = emotes.length ? `7TV: ${emotes.length} emotes připraveno` : '7TV: textový fallback';
+});
