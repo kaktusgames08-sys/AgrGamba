@@ -4,11 +4,10 @@ const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 export function createVerticalReelSequence(
   finalName,
-  { cycles = 14, cellHeight = 126, nearMissPx = 6 } = {},
+  { cycles = 18, cellHeight = 126 } = {},
 ) {
-  const safeCycles = Math.max(6, Math.floor(cycles));
+  const safeCycles = Math.max(8, Math.floor(cycles));
   const safeCellHeight = Math.max(1, Math.round(cellHeight));
-  const safeNearMissPx = clamp(Math.round(nearMissPx), 2, Math.min(10, safeCellHeight - 2));
 
   const items = [];
   let current = finalName === AGRAELUS ? CHATTER : AGRAELUS;
@@ -22,23 +21,8 @@ export function createVerticalReelSequence(
     items.push(finalName);
   }
 
-  // Render the strip in reverse. The requested loser is the first cell, but the
-  // track starts far above it and physically scrolls downward until y = 0.
-  // This lets the same DOM strip stay alive for the entire spin.
   const renderedItems = [...items].reverse();
   const travelPx = Math.max(safeCellHeight, (renderedItems.length - 1) * safeCellHeight);
-
-  // Leave enough cells for a proper slowdown before the final two positions.
-  const cruiseCellsFromFinish = Math.min(
-    renderedItems.length - 3,
-    Math.max(7, Math.round(safeCycles * 0.65)),
-  );
-  const cruiseY = -(cruiseCellsFromFinish * safeCellHeight);
-
-  // Index 1 is always the opposite nick. Stopping a handful of pixels away
-  // from its exact alignment creates the "o milimetr" near miss without ever
-  // swapping the mathematically chosen result.
-  const nearMissY = -safeCellHeight + safeNearMissPx;
 
   return {
     direction: 'down',
@@ -48,10 +32,41 @@ export function createVerticalReelSequence(
     cellHeight: safeCellHeight,
     travelPx,
     startY: -travelPx,
-    cruiseY,
-    nearMissY,
-    nearMissOffsetPx: safeNearMissPx,
     settleY: 0,
     instant: false,
+  };
+}
+
+export function createSmoothReelMotion({
+  startY,
+  endY = 0,
+  durationMs = 3000,
+  samples = 180,
+  easingPower = 3.15,
+} = {}) {
+  const start = Number(startY) || 0;
+  const end = Number(endY) || 0;
+  const duration = Math.max(250, Number(durationMs) || 3000);
+  const count = Math.max(2, Math.floor(samples));
+  const power = clamp(Number(easingPower) || 3.15, 1.8, 5);
+  const distance = end - start;
+
+  const positions = Array.from({ length: count + 1 }, (_, index) => {
+    const t = index / count;
+    const eased = 1 - Math.pow(1 - t, power);
+    const value = start + distance * eased;
+    if (index === 0) return start;
+    if (index === count) return end;
+    return value;
+  });
+
+  return {
+    variant: 'clean',
+    hasFakeStops: false,
+    startY: start,
+    endY: end,
+    durationMs: duration,
+    easingPower: power,
+    positions,
   };
 }
