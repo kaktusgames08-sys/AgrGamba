@@ -4,20 +4,31 @@ export class GameState {
   constructor() {
     this.isSpinning = false;
     this.hasStarted = false;
+    this.awaitingContinue = false;
     this.lastResult = null; // { loser, winner }
   }
 
   canSpin() {
-    return !this.isSpinning;
+    return !this.isSpinning && !this.awaitingContinue;
   }
 
   beginSpin() {
     this.isSpinning = true;
     this.hasStarted = true;
+    this.awaitingContinue = false;
   }
 
   endSpin(result) {
     this.isSpinning = false;
+    this.awaitingContinue = true;
     this.lastResult = result;
+  }
+
+  canContinue() {
+    return !this.isSpinning && this.awaitingContinue;
+  }
+
+  continue() {
+    this.awaitingContinue = false;
   }
 }
