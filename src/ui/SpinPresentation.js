@@ -1,3 +1,5 @@
+import '../audio/DopamineAudio.js';
+
 const clamp01 = (value) => Math.max(0, Math.min(1, value));
 const lerp = (from, to, t) => from + (to - from) * t;
 const range = (min, max, random) => min + (max - min) * clamp01(random());
