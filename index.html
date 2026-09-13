@@ -7,6 +7,7 @@
   <meta name="description" content="GAMBA — přehnaný meme automat Agraelus vs Chatter. Žádné skutečné sázení." />
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/src/ui/result-display.css" />
 </head>
 <body>
   <div id="app">
@@ -83,6 +84,20 @@
               <div class="reel-subline">AGRAELUS • CHATTER • AGRAELUS • CHATTER</div>
             </div>
 
+            <section id="resultDisplay" class="machine-result-display is-idle" aria-live="polite">
+              <div class="result-display-topline">
+                <span class="result-display-label">VÝSLEDEK</span>
+                <span class="result-display-led"></span>
+              </div>
+              <div class="result-display-main">
+                <div id="resultPayer" class="result-payer">ČEKÁM NA SPIN</div>
+                <div id="resultL" class="result-l hidden">L</div>
+                <div id="resultWinner" class="result-winner">—</div>
+              </div>
+              <div id="resultFlavor" class="result-flavor">KDO TO DNES ZAPLATÍ?</div>
+              <button id="continueButton" class="result-continue hidden">KLIKNI PRO POKRAČOVÁNÍ <span class="kbd">SPACE</span></button>
+            </section>
+
             <div class="marquee cabinet-marquee">
               <div id="marqueeText" class="marquee-text">SPACE = SPIN</div>
             </div>
@@ -113,18 +128,6 @@
             <div class="panel-title">POSLEDNÍ SPINY</div>
             <div class="history-row" id="historyRow"></div>
           </div>
-        </div>
-      </div>
-
-      <div id="revealOverlay" class="reveal-overlay hidden">
-        <div class="result-backdrop"></div>
-        <div class="result-card">
-          <div id="revealLoserName" class="reveal-loser-name"></div>
-          <div id="revealL" class="reveal-l hidden">L</div>
-          <div id="revealLoseText" class="reveal-random-text lose hidden"></div>
-          <div id="revealWinner" class="reveal-winner hidden"></div>
-          <div id="revealRandomText" class="reveal-random-text hidden"></div>
-          <button id="continueButton" class="continue-btn hidden">KLIKNI PRO POKRAČOVÁNÍ <span class="kbd">SPACE</span></button>
         </div>
       </div>
 
