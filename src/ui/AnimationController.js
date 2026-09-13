@@ -6,7 +6,9 @@ import {
   randomOf,
 } from './Texts.js';
 import { createSpinPlan } from './SpinPresentation.js';
+import { createVerticalReelSequence } from './ReelStrip.js';
 import './dopamine.css';
+import './vertical-reel.css';
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
@@ -34,9 +36,36 @@ export class AnimationController {
     this.onFlash = onFlash;
   }
 
-  _setReel(name) {
-    this.dom.reelTrack.textContent = name;
-    this.dom.reelTrack.className = 'reel-cell ' + (name === AGRAELUS ? 'name-agraelus' : 'name-chatter');
+  _makeReelCell(name) {
+    const cell = document.createElement('div');
+    cell.className = 'reel-cell ' + (name === AGRAELUS ? 'name-agraelus' : 'name-chatter');
+    cell.textContent = name;
+    return cell;
+  }
+
+  _setReel(name, durationMs = 120) {
+    const track = this.dom.reelTrack;
+    const reelWindow = track.parentElement;
+    const cellHeight = Math.max(1, Math.round(reelWindow?.clientHeight || 150));
+    const sequence = createVerticalReelSequence(name, { cycles: 2, cellHeight });
+    const renderedItems = [...sequence.items].reverse();
+
+    track.className = 'reel-track vertical-reel-track is-spinning';
+    track.replaceChildren(...renderedItems.map((item) => this._makeReelCell(item)));
+    track.style.transition = 'none';
+    track.style.transform = `translateY(-${sequence.travelPx}px)`;
+    track.style.filter = 'blur(1.5px) saturate(1.15)';
+
+    void track.offsetHeight;
+
+    const safeDuration = Math.max(70, Math.round(durationMs));
+    track.style.transition = `transform ${safeDuration}ms cubic-bezier(.17,.82,.2,1), filter ${Math.min(170, safeDuration)}ms ease-out`;
+
+    requestAnimationFrame(() => {
+      track.style.transform = 'translateY(0px)';
+      track.style.filter = 'blur(0) saturate(1)';
+      window.setTimeout(() => track.classList.remove('is-spinning'), safeDuration);
+    });
   }
 
   _setRibbonSpeed(speed) {
@@ -65,7 +94,7 @@ export class AnimationController {
       'reverse-spin',
     );
     this.dom.machine.classList.remove('dopamine-charge', 'result-ready', 'heartbeat-pulse');
-    this.dom.reelTrack.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock', 'reel-reverse');
+    this.dom.reelTrack.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock', 'reel-reverse', 'is-spinning');
   }
 
   async playSpin(result, durationMs) {
@@ -98,12 +127,12 @@ export class AnimationController {
     }
 
     if (rareType === 'instant') {
-      this._setReel(loser);
+      this._setReel(loser, 120);
       this._kickReel('reel-lock');
       this.audio.resultLock();
       this.dom.marqueeText.textContent = 'BONK';
       this.onShake('shake-sm');
-      await sleep(90);
+      await sleep(110);
       await this._reveal(loser, winner, rareType, plan);
       return;
     }
@@ -123,7 +152,7 @@ export class AnimationController {
     const chaosEnd = performance.now() + plan.chaosMs;
     while (performance.now() < chaosEnd) {
       reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
-      this._setReel(reelName);
+      this._setReel(reelName, Math.max(88, plan.chaosIntervalMs * 1.35));
       this._kickReel();
       this.audio.reelTick();
       if (rareType === 'ultra') this.onShake('shake-sm');
@@ -150,7 +179,8 @@ export class AnimationController {
     const tensionWords = ['POČKEJ...', 'DRŽ...', 'NEKECEJ'];
     for (let i = 0; i < plan.slowdownDelays.length; i++) {
       reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
-      this._setReel(reelName);
+      const delay = plan.slowdownDelays[i];
+      this._setReel(reelName, Math.min(320, Math.max(120, delay * 0.88)));
       this._kickReel();
       const progress = (i + 1) / plan.slowdownDelays.length;
       this.audio.slowdownTick(1.18 - progress * 0.42);
@@ -158,11 +188,11 @@ export class AnimationController {
       if (i >= plan.slowdownDelays.length - 3) {
         this.dom.marqueeText.textContent = tensionWords[i - (plan.slowdownDelays.length - 3)];
       }
-      await sleep(plan.slowdownDelays[i]);
+      await sleep(delay);
     }
 
     if (rareType === 'reverse') {
-      this._setReel(loser);
+      this._setReel(loser, 190);
       this._kickReel('reel-fake-stop');
       this.dom.game.classList.add('fake-stop-beat');
       this.dom.marqueeText.textContent = 'HOTOVO...?';
@@ -172,18 +202,18 @@ export class AnimationController {
       await sleep(plan.fakeStopHoldMs);
 
       this.dom.nearMissText.classList.add('hidden');
-      this._setReel(winner);
+      this._setReel(winner, 250);
       this._kickReel('reel-reverse');
       this.dom.marqueeText.textContent = 'COŽE?!';
       this.audio.spinLaunch();
       this.reactions?.burst(5);
-      await sleep(220);
+      await sleep(240);
       this.dom.game.classList.remove('fake-stop-beat');
     } else {
       const fakeStopCount = rareType === 'suspicious' ? Math.max(2, plan.fakeStops) : plan.fakeStops;
       for (let i = 0; i < fakeStopCount; i++) {
         const fakeResult = i % 2 === 0 ? winner : loser;
-        this._setReel(fakeResult);
+        this._setReel(fakeResult, 190);
         this._kickReel('reel-fake-stop');
         this.dom.game.classList.add('fake-stop-beat');
         this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
@@ -197,7 +227,7 @@ export class AnimationController {
 
         if (i < fakeStopCount - 1) {
           reelName = fakeResult === AGRAELUS ? CHATTER : AGRAELUS;
-          this._setReel(reelName);
+          this._setReel(reelName, 120);
           this._kickReel();
           this.audio.reelTick();
           await sleep(Math.max(65, plan.fakeStopHoldMs * 0.55));
@@ -205,7 +235,7 @@ export class AnimationController {
       }
     }
 
-    this._setReel(winner);
+    this._setReel(winner, 180);
     this._kickReel('reel-fake-stop');
     this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
     this.dom.nearMissText.classList.remove('hidden');
@@ -222,7 +252,7 @@ export class AnimationController {
 
     this.dom.game.classList.remove('pre-result-silence');
     this.dom.game.classList.add('result-lock');
-    this._setReel(loser);
+    this._setReel(loser, 230);
     this._kickReel('reel-lock');
     this.audio.resultLock();
     this.onShake('shake-sm');
