@@ -143,7 +143,6 @@ dom.continueButton.addEventListener('click', (e) => {
   e.stopPropagation();
   continueAfterReveal();
 });
-dom.revealOverlay.addEventListener('click', () => continueAfterReveal());
 
 function enterGame() {
   dom.splash.classList.add('hidden');
