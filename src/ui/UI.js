@@ -23,6 +23,7 @@ export function queryDom() {
     reelTrack: $('reelTrack'),
     nearMissText: $('nearMissText'),
     marqueeText: $('marqueeText'),
+    ribbonTrack: $('ribbonTrack'),
 
     lever: $('lever'),
 
@@ -36,6 +37,7 @@ export function queryDom() {
     revealLoseText: $('revealLoseText'),
     revealWinner: $('revealWinner'),
     revealRandomText: $('revealRandomText'),
+    continueButton: $('continueButton'),
 
     particleLayer: $('particleLayer'),
     chatLayer: $('chatLayer'),
