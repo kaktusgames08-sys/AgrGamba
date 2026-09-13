@@ -8,6 +8,7 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/src/style.css" />
   <link rel="stylesheet" href="/src/ui/result-display.css" />
+  <link rel="stylesheet" href="/src/ui/cabinet-v5.css" />
 </head>
 <body>
   <div id="app">
@@ -54,19 +55,26 @@
           <div id="machine" class="machine cabinet-machine">
             <div class="lights" id="lights"></div>
 
+            <section id="machineTitleDisplay" class="machine-title-display" aria-label="Název automatu">
+              <div class="machine-title-kicker">GAMBA SYSTEM</div>
+              <div class="machine-title-main">KDO PLATÍ?</div>
+              <div class="machine-title-sub">
+                <span class="title-side agra">AGRAELUS</span>
+                <span class="title-vs">VS</span>
+                <span class="title-side chat">CHATTER</span>
+              </div>
+              <div class="machine-title-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <span id="rareLabel" class="rare-label hidden"></span>
+            </section>
+
             <div class="ticker-panel">
-              <span class="ticker-title">KDO PLATÍ</span>
+              <span class="ticker-title">LIVE</span>
               <div class="ticker-window">
                 <div id="ribbonTrack" class="ticker-track">
                   <span>AGRAELUS</span><span>CHATTER</span><span>AGRAELUS</span><span>CHATTER</span>
                   <span>AGRAELUS</span><span>CHATTER</span><span>AGRAELUS</span><span>CHATTER</span>
                 </div>
               </div>
-            </div>
-
-            <div class="machine-header cabinet-header">
-              <span class="question-chip">KDO PLATÍ?</span>
-              <span id="rareLabel" class="rare-label hidden"></span>
             </div>
 
             <div class="reel-frame">
@@ -101,11 +109,9 @@
             <div class="marquee cabinet-marquee">
               <div id="marqueeText" class="marquee-text">SPACE = SPIN</div>
             </div>
-
-            <div class="speaker left"></div>
-            <div class="speaker right"></div>
           </div>
 
+          <div class="lever-bridge" aria-hidden="true"></div>
           <div class="lever-wrap cabinet-lever-wrap">
             <div class="lever-label">PÁKA</div>
             <div class="lever-base"></div>
