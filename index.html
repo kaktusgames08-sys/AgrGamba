@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GAMBA — Who Takes the L?</title>
+  <meta name="description" content="GAMBA — a comedic, meme slot-machine randomizer. No money, no bets, no real gambling. Just Agraelus vs Chatter." />
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div id="app">
+
+    <!-- SPLASH / START SCREEN -->
+    <section id="splash" class="screen">
+      <div class="splash-inner">
+        <h1 class="logo-glitch" data-text="GAMBA">GAMBA</h1>
+        <p class="subtitle">AGRAELUS <span class="vs">vs</span> CHATTER</p>
+        <p class="tagline">WHO TAKES THE L?</p>
+        <button id="pullStart" class="btn-pull">PULL <span class="kbd">SPACE</span></button>
+        <p class="disclaimer">No money. No bets. No real gambling. Just vibes and an RNG.</p>
+      </div>
+    </section>
+
+    <!-- MAIN GAME SCREEN -->
+    <main id="game" class="screen hidden">
+
+      <header class="topbar">
+        <div class="brand">GAMBA<span class="brand-sub">who takes the L?</span></div>
+        <div class="topbar-controls">
+          <button id="btnMute" class="icon-btn" title="Mute (M)">🔊</button>
+          <button id="btnFullscreen" class="icon-btn" title="Fullscreen (F)">⛶</button>
+          <button id="btnSettings" class="icon-btn" title="Settings (Esc)">⚙</button>
+        </div>
+      </header>
+
+      <div class="stage">
+
+        <!-- score row -->
+        <div class="score-row">
+          <div class="score-box agra">
+            <div class="score-name">AGRAELUS</div>
+            <div class="score-num" id="scoreAgra">0</div>
+          </div>
+          <div class="score-vs">
+            <div id="spinCounter">SPINS: 0</div>
+            <div id="pureGambaBadge" class="badge hidden">PURE GAMBA</div>
+          </div>
+          <div class="score-box chat">
+            <div class="score-name">CHATTER</div>
+            <div class="score-num" id="scoreChat">0</div>
+          </div>
+        </div>
+
+        <!-- machine -->
+        <div class="machine-wrap">
+          <div id="machine" class="machine">
+            <div class="lights" id="lights"></div>
+
+            <div class="machine-header">
+              <span id="rareLabel" class="rare-label hidden"></span>
+            </div>
+
+            <div class="reel-window">
+              <div id="reelTrack" class="reel-track">
+                <div class="reel-cell">AGRAELUS</div>
+              </div>
+              <div class="reel-shade top"></div>
+              <div class="reel-shade bottom"></div>
+              <div id="nearMissText" class="near-miss-text hidden"></div>
+            </div>
+
+            <div class="marquee">
+              <div id="marqueeText" class="marquee-text">SPACE TO GAMBA</div>
+            </div>
+
+            <div class="speaker left"></div>
+            <div class="speaker right"></div>
+          </div>
+
+          <div class="lever-wrap">
+            <div class="lever-base"></div>
+            <div id="lever" class="lever">
+              <div class="lever-ball"></div>
+              <div class="lever-stick"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- streaks -->
+        <div class="streak-row">
+          <div id="streakAgra" class="streak-tag hidden">AGRAELUS <span></span></div>
+          <div id="streakChat" class="streak-tag hidden">CHATTER <span></span></div>
+        </div>
+
+        <!-- history -->
+        <div class="history-row" id="historyRow"></div>
+
+      </div>
+
+      <!-- overlays for reveal -->
+      <div id="revealOverlay" class="reveal-overlay hidden">
+        <div id="revealLoserName" class="reveal-loser-name"></div>
+        <div id="revealL" class="reveal-l hidden">L</div>
+        <div id="revealLoseText" class="reveal-random-text lose hidden"></div>
+        <div id="revealWinner" class="reveal-winner hidden"></div>
+        <div id="revealRandomText" class="reveal-random-text hidden"></div>
+      </div>
+
+      <div id="particleLayer" class="particle-layer"></div>
+      <div id="chatLayer" class="chat-layer"></div>
+      <div id="flashLayer" class="flash-layer"></div>
+
+      <footer class="hint-bar">
+        <span><span class="kbd">SPACE</span> spin</span>
+        <span><span class="kbd">F</span> fullscreen</span>
+        <span><span class="kbd">M</span> mute</span>
+        <span><span class="kbd">ESC</span> settings</span>
+      </footer>
+    </main>
+
+    <!-- SETTINGS PANEL -->
+    <aside id="settingsPanel" class="settings-panel hidden">
+      <div class="settings-inner">
+        <div class="settings-head">
+          <h2>SETTINGS</h2>
+          <button id="btnCloseSettings" class="icon-btn">✕</button>
+        </div>
+
+        <div class="settings-section">
+          <h3>CHANCE TO TAKE THE L</h3>
+          <div class="odds-row">
+            <label>Agraelus L chance: <span id="agraOddsLabel">50</span>%</label>
+            <input type="range" id="agraOddsSlider" min="0" max="100" value="50" />
+            <label>Chatter L chance: <span id="chatOddsLabel">50</span>%</label>
+          </div>
+          <div class="custom-odds-row">
+            <input type="number" id="agraOddsInput" min="0" max="100" value="50" />
+            <span>% Agraelus L / </span>
+            <input type="number" id="chatOddsInput" min="0" max="100" value="50" />
+            <span>% Chatter L</span>
+          </div>
+          <div id="oddsTranscript" class="odds-transcript hidden"></div>
+        </div>
+
+        <div class="settings-section">
+          <h3>PRESETS</h3>
+          <div class="preset-grid" id="presetGrid"></div>
+        </div>
+
+        <div class="settings-section">
+          <h3>SPEED</h3>
+          <label class="toggle-row"><input type="checkbox" id="turboToggle" /> Turbo Mode (1–1.5s)</label>
+          <label class="toggle-row"><input type="checkbox" id="degenToggle" /> Degenerate Mode (0.5–0.8s)</label>
+        </div>
+
+        <div class="settings-section">
+          <h3>AUDIO</h3>
+          <label class="toggle-row">Master <input type="range" id="volMaster" min="0" max="100" value="80" /></label>
+          <label class="toggle-row">Music <input type="range" id="volMusic" min="0" max="100" value="60" /></label>
+          <label class="toggle-row">SFX <input type="range" id="volSfx" min="0" max="100" value="90" /></label>
+          <label class="toggle-row"><input type="checkbox" id="muteToggle" /> Mute</label>
+        </div>
+
+        <div class="settings-section">
+          <h3>VISUALS</h3>
+          <label class="toggle-row"><input type="checkbox" id="showOddsToggle" /> Show actual odds (Transparent Mode)</label>
+          <label class="toggle-row"><input type="checkbox" id="streamerToggle" /> Streamer Mode (OBS-friendly)</label>
+          <div class="settings-subrow">
+            <label>Flash Effects</label>
+            <select id="flashSelect">
+              <option value="off">Off</option>
+              <option value="reduced">Reduced</option>
+              <option value="full" selected>Full</option>
+            </select>
+          </div>
+          <div class="settings-subrow">
+            <label>Particle Intensity</label>
+            <select id="particleSelect">
+              <option value="low">Low</option>
+              <option value="normal">Normal</option>
+              <option value="insane" selected>INSANE</option>
+            </select>
+          </div>
+          <label class="toggle-row">Screen Shake <input type="range" id="shakeIntensity" min="0" max="100" value="100" /></label>
+        </div>
+
+        <div class="settings-section">
+          <h3>STATS</h3>
+          <div id="statsBlock" class="stats-block"></div>
+          <button id="btnResetStats" class="btn-danger">RESET STATS</button>
+        </div>
+
+        <p class="settings-footer">GAMBA has no money, no bets, no crypto, no real gambling. It's a meme.</p>
+      </div>
+    </aside>
+
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
