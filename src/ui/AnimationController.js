@@ -10,7 +10,6 @@ import './dopamine.css';
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
 
-// Rare presentation flavors — cosmetic only, never touch the RNG result.
 function rollRareType() {
   const r = Math.random() * 100;
   if (r < 1.5) return 'ultra';
@@ -37,6 +36,10 @@ export class AnimationController {
     this.dom.reelTrack.className = 'reel-cell ' + (name === AGRAELUS ? 'name-agraelus' : 'name-chatter');
   }
 
+  _setRibbonSpeed(speed) {
+    this.dom.ribbonTrack?.style.setProperty('--ticker-speed', speed);
+  }
+
   _kickReel(className = 'reel-kick') {
     const reel = this.dom.reelTrack;
     reel.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock');
@@ -56,7 +59,7 @@ export class AnimationController {
       'winner-agra',
       'winner-chat',
     );
-    this.dom.machine.classList.remove('dopamine-charge');
+    this.dom.machine.classList.remove('dopamine-charge', 'result-ready');
     this.dom.reelTrack.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock');
   }
 
@@ -66,12 +69,15 @@ export class AnimationController {
     const plan = createSpinPlan(durationMs, rareType);
 
     this._clearSpinClasses();
+    this.dom.revealOverlay.classList.add('hidden');
+    this.dom.continueButton.classList.add('hidden');
     this.dom.game.classList.add('dopamine-spin', 'spin-chaos');
     this.dom.machine.classList.add('dopamine-charge');
     this.dom.lights.classList.add('on');
     this.dom.nearMissText.classList.add('hidden');
     this.dom.rareLabel.classList.add('hidden');
-    this.dom.marqueeText.textContent = 'LOCK IT IN';
+    this.dom.marqueeText.textContent = 'KDO PLATÍ???';
+    this._setRibbonSpeed('0.78s');
     this.audio.spinLaunch();
 
     if (rareType === 'fakeCrash') {
@@ -102,7 +108,6 @@ export class AnimationController {
         : '';
     if (this.dom.rareLabel.textContent) this.dom.rareLabel.classList.remove('hidden');
 
-    // CHAOS — very fast, readable alternation. The real result is already locked.
     let reelName = Math.random() > 0.5 ? AGRAELUS : CHATTER;
     const chaosEnd = performance.now() + plan.chaosMs;
     while (performance.now() < chaosEnd) {
@@ -114,9 +119,9 @@ export class AnimationController {
       await sleep(plan.chaosIntervalMs);
     }
 
-    // SLOWDOWN — each tick gets visibly and audibly heavier.
     this.dom.game.classList.remove('spin-chaos');
     this.dom.game.classList.add('spin-tension');
+    this._setRibbonSpeed('1.25s');
     const tensionWords = ['WAIT...', 'HOLD...', 'NO WAY'];
     for (let i = 0; i < plan.slowdownDelays.length; i++) {
       reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
@@ -131,7 +136,6 @@ export class AnimationController {
       await sleep(plan.slowdownDelays[i]);
     }
 
-    // One or two fake stops. They look final for a split second, then the reel escapes.
     const fakeStopCount = rareType === 'suspicious' ? Math.max(2, plan.fakeStops) : plan.fakeStops;
     for (let i = 0; i < fakeStopCount; i++) {
       const fakeResult = i % 2 === 0 ? winner : loser;
@@ -155,7 +159,6 @@ export class AnimationController {
       }
     }
 
-    // Final near miss always teases the winner as if they were about to take the L.
     this._setReel(winner);
     this._kickReel('reel-fake-stop');
     this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
@@ -165,12 +168,11 @@ export class AnimationController {
     await sleep(plan.nearMissHoldMs);
     this.dom.nearMissText.classList.add('hidden');
 
-    // The quiet beat is intentional. Pull all visual energy inward before the lock tick.
     this.dom.game.classList.add('pre-result-silence');
     this.dom.marqueeText.textContent = '...';
+    this._setRibbonSpeed('2.4s');
     await sleep(plan.silenceMs);
 
-    // TRUE RESULT — the reel selects the loser.
     this.dom.game.classList.remove('pre-result-silence');
     this.dom.game.classList.add('result-lock');
     this._setReel(loser);
@@ -196,15 +198,15 @@ export class AnimationController {
     this.dom.revealWinner.classList.add('hidden');
     this.dom.revealRandomText.classList.add('hidden');
     this.dom.revealLoseText.classList.add('hidden');
+    this.dom.continueButton.classList.add('hidden');
 
-    this.dom.revealLoserName.textContent = `${loser.toUpperCase()} TAKES THE L`;
+    this.dom.revealLoserName.textContent = `${loser.toUpperCase()} PLATÍ`;
     const loseTexts = loser === AGRAELUS ? AGRAELUS_LOSE_TEXTS : CHATTER_LOSE_TEXTS;
     this.dom.revealLoseText.textContent = randomOf(loseTexts);
     this.dom.revealLoseText.classList.remove('hidden');
     this.audio.tensionPulse(0.8);
     await sleep(plan.loserLeadMs);
 
-    // First impact: LOSER / L.
     overlay.classList.add('l-hit');
     this.dom.revealL.classList.remove('hidden');
     this.audio.lImpact();
@@ -212,10 +214,10 @@ export class AnimationController {
     this.onFlash('reduced');
     await sleep(plan.lHoldMs);
 
-    // Second, larger impact: actual winner takes over the whole screen.
     overlay.classList.add(winnerClass);
     this.dom.game.classList.remove('loser-reveal');
     this.dom.game.classList.add(winnerClass);
+    this.dom.machine.classList.add('result-ready');
     this.dom.revealWinner.textContent = `${winner.toUpperCase()} WINS`;
     this.dom.revealWinner.classList.remove('hidden');
     this.audio.winnerBoom();
@@ -240,13 +242,22 @@ export class AnimationController {
       }
     }, 150);
 
-    await sleep(plan.winnerHoldMs);
+    await sleep(Math.max(520, plan.winnerHoldMs * 0.55));
 
+    this.dom.continueButton.classList.remove('hidden');
+    this.dom.marqueeText.textContent = 'KLIKNI NEBO SPACE PRO POKRAČOVÁNÍ';
+    this._setRibbonSpeed('1.7s');
+  }
+
+  clearReveal() {
+    const overlay = this.dom.revealOverlay;
     overlay.classList.add('hidden');
-    overlay.classList.remove('dopamine-reveal', 'l-hit', winnerClass, loserClass);
+    overlay.classList.remove('dopamine-reveal', 'l-hit', 'winner-agra', 'winner-chat', 'loser-agra', 'loser-chat');
+    this.dom.continueButton.classList.add('hidden');
     this.dom.lights.classList.remove('on');
     this.dom.rareLabel.classList.add('hidden');
     this._clearSpinClasses();
     this.dom.marqueeText.textContent = 'SPACE TO GAMBA AGAIN';
+    this._setRibbonSpeed('4.5s');
   }
 }
