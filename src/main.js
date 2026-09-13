@@ -1,11 +1,13 @@
 import { GameState } from './core/GameState.js';
-import { SettingsManager, PRESETS } from './core/SettingsManager.js';
+import { SettingsManager } from './core/SettingsManager.js';
 import { StatsManager, AGRAELUS, CHATTER } from './core/StatsManager.js';
 import { spin } from './core/SpinEngine.js';
+import './audio/DopamineAudio.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { ParticleSystem } from './ui/ParticleSystem.js';
 import { ChatSpam } from './ui/ChatSpam.js';
 import { AnimationController } from './ui/AnimationController.js';
+import './ui/cabinet.css';
 import * as UI from './ui/UI.js';
 
 const dom = UI.queryDom();
@@ -25,12 +27,10 @@ const anim = new AnimationController({
   onFlash: (level) => flash(level),
 });
 
-// ---------- shake / flash ----------
 function shakeMachine(cls) {
   const intensity = settings.get('shakeIntensity') / 100;
   document.documentElement.style.setProperty('--shake', String(intensity));
   dom.machine.classList.remove('shake-sm', 'shake-md', 'shake-lg');
-  // reflow to restart animation
   void dom.machine.offsetWidth;
   dom.machine.classList.add(cls);
   setTimeout(() => dom.machine.classList.remove(cls), 700);
@@ -46,7 +46,6 @@ function flash(level) {
   setTimeout(() => el.remove(), 350);
 }
 
-// ---------- UI refresh ----------
 function refreshStatsUI() {
   const snap = stats.snapshot();
   UI.updateScore(dom, snap);
@@ -71,7 +70,6 @@ function applyMuteIcon() {
   dom.btnMute.textContent = settings.get('muted') ? '🔇' : '🔊';
 }
 
-// ---------- easter eggs ----------
 function checkEasterEggs(snap) {
   let msg = null;
   if (snap.currentStreakWinner === AGRAELUS && snap.currentStreakCount >= 10) msg = 'TOTALLY FAIR';
@@ -79,14 +77,13 @@ function checkEasterEggs(snap) {
   const agraLose = settings.get('agraelusLoseChance');
   if (agraLose === 100 && snap.spins >= 3) msg = 'surely random';
   if (agraLose === 0 && snap.spins >= 3) msg = 'chat never had a chance';
-  if (msg) dom.marqueeText.textContent = msg;
+  if (msg && !gameState.canContinue()) dom.marqueeText.textContent = msg;
 }
 
-// ---------- core spin flow ----------
 async function doSpin() {
   if (!gameState.canSpin()) return;
   gameState.beginSpin();
-  dom.marqueeText.textContent = 'SPINNING...';
+  dom.marqueeText.textContent = 'KDO PLATÍ???';
 
   const result = spin(settings.get('agraelusLoseChance'));
   const durationMs = settings.spinDurationMs();
@@ -94,17 +91,17 @@ async function doSpin() {
   await anim.playSpin(result, durationMs);
 
   gameState.endSpin(result);
-  const snap = stats.record(result);
+  stats.record(result);
   refreshStatsUI();
-  syncPureGambaAfterCheck();
-  void snap;
-}
-
-function syncPureGambaAfterCheck() {
   UI.updatePureGambaBadge(dom, settings);
 }
 
-// ---------- lever ----------
+function continueAfterReveal() {
+  if (!gameState.canContinue()) return;
+  gameState.continue();
+  anim.clearReveal();
+}
+
 let leverDragging = false;
 let leverStartY = 0;
 
@@ -136,8 +133,13 @@ window.addEventListener('mousemove', (e) => {
 });
 window.addEventListener('mouseup', () => { leverDragging = false; });
 
-// ---------- splash ----------
 dom.pullStart.addEventListener('click', enterGame);
+dom.continueButton.addEventListener('click', (e) => {
+  e.stopPropagation();
+  continueAfterReveal();
+});
+dom.revealOverlay.addEventListener('click', () => continueAfterReveal());
+
 function enterGame() {
   dom.splash.classList.add('hidden');
   dom.game.classList.remove('hidden');
@@ -145,17 +147,19 @@ function enterGame() {
   refreshSettingsUI();
 }
 
-// ---------- keyboard ----------
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
     e.preventDefault();
     if (!dom.splash.classList.contains('hidden')) {
       enterGame();
+    } else if (gameState.canContinue()) {
+      continueAfterReveal();
     } else if (dom.settingsPanel.classList.contains('hidden')) {
       pullLever();
     }
   } else if (e.key === 'r' || e.key === 'R') {
-    if (dom.settingsPanel.classList.contains('hidden')) pullLever();
+    if (gameState.canContinue()) continueAfterReveal();
+    else if (dom.settingsPanel.classList.contains('hidden')) pullLever();
   } else if (e.key === 'f' || e.key === 'F') {
     toggleFullscreen();
   } else if (e.key === 'm' || e.key === 'M') {
@@ -165,7 +169,6 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// ---------- top bar buttons ----------
 dom.btnMute.addEventListener('click', toggleMute);
 dom.btnFullscreen.addEventListener('click', toggleFullscreen);
 dom.btnSettings.addEventListener('click', toggleSettings);
@@ -189,7 +192,6 @@ function toggleSettings() {
   dom.settingsPanel.classList.toggle('hidden');
 }
 
-// ---------- settings bindings ----------
 function setOdds(agraLoseChance) {
   const clamped = Math.min(100, Math.max(0, Math.round(agraLoseChance)));
   settings.set('agraelusLoseChance', clamped);
@@ -221,13 +223,11 @@ dom.btnResetStats.addEventListener('click', () => {
   refreshStatsUI();
 });
 
-// hover/click UI feedback sounds
-[dom.btnMute, dom.btnFullscreen, dom.btnSettings, dom.btnCloseSettings, dom.btnResetStats, ...document.querySelectorAll('.preset-btn')]
+[dom.btnMute, dom.btnFullscreen, dom.btnSettings, dom.btnCloseSettings, dom.btnResetStats, dom.continueButton, ...document.querySelectorAll('.preset-btn')]
   .forEach((el) => {
     el?.addEventListener('mouseenter', () => audio.uiHover());
     el?.addEventListener('click', () => audio.uiClick());
   });
 
-// ---------- boot ----------
 refreshSettingsUI();
 if (settings.get('streamerMode')) applyStreamerMode();
