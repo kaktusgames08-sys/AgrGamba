@@ -1,13 +1,14 @@
-import { AGRAELUS, CHATTER, otherOf } from '../core/SpinEngine.js';
+import { AGRAELUS, CHATTER } from '../core/SpinEngine.js';
 import {
   AGRAELUS_WIN_TEXTS, CHATTER_WIN_TEXTS,
   AGRAELUS_LOSE_TEXTS, CHATTER_LOSE_TEXTS,
-  NEAR_MISS_TEXTS, CHAT_SPAM_WIN, CHAT_SPAM_LOSE,
+  NEAR_MISS_TEXTS,
   randomOf,
 } from './Texts.js';
+import { createSpinPlan } from './SpinPresentation.js';
+import './dopamine.css';
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
-const rand = (min, max) => min + Math.random() * (max - min);
 
 // Rare presentation flavors — cosmetic only, never touch the RNG result.
 function rollRareType() {
@@ -36,86 +37,161 @@ export class AnimationController {
     this.dom.reelTrack.className = 'reel-cell ' + (name === AGRAELUS ? 'name-agraelus' : 'name-chatter');
   }
 
+  _kickReel(className = 'reel-kick') {
+    const reel = this.dom.reelTrack;
+    reel.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock');
+    void reel.offsetWidth;
+    reel.classList.add(className);
+  }
+
+  _clearSpinClasses() {
+    this.dom.game.classList.remove(
+      'dopamine-spin',
+      'spin-chaos',
+      'spin-tension',
+      'fake-stop-beat',
+      'pre-result-silence',
+      'result-lock',
+      'loser-reveal',
+      'winner-agra',
+      'winner-chat',
+    );
+    this.dom.machine.classList.remove('dopamine-charge');
+    this.dom.reelTrack.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock');
+  }
+
   async playSpin(result, durationMs) {
     const { loser, winner } = result;
     const rareType = rollRareType();
+    const plan = createSpinPlan(durationMs, rareType);
+
+    this._clearSpinClasses();
+    this.dom.game.classList.add('dopamine-spin', 'spin-chaos');
+    this.dom.machine.classList.add('dopamine-charge');
     this.dom.lights.classList.add('on');
     this.dom.nearMissText.classList.add('hidden');
     this.dom.rareLabel.classList.add('hidden');
+    this.dom.marqueeText.textContent = 'LOCK IT IN';
+    this.audio.spinLaunch();
 
     if (rareType === 'fakeCrash') {
       this.dom.marqueeText.textContent = 'ERROR';
-      await sleep(220);
+      this.onShake('shake-sm');
+      await sleep(180);
+      this.dom.marqueeText.textContent = '...';
+      await sleep(120);
       this.dom.marqueeText.textContent = 'nah';
-      await sleep(260);
+      await sleep(180);
     }
 
     if (rareType === 'instant') {
       this._setReel(loser);
-      this.audio.reelTick();
-      await sleep(120);
+      this._kickReel('reel-lock');
+      this.audio.resultLock();
       this.dom.marqueeText.textContent = 'BONK';
       this.onShake('shake-sm');
       await sleep(90);
-      await this._reveal(loser, winner, rareType);
+      await this._reveal(loser, winner, rareType, plan);
       return;
     }
 
-    this.dom.rareLabel.textContent = rareType === 'ultra' ? 'HOLY FUCK' : rareType === 'jackpot' ? 'JACKPOT — still worth absolutely nothing' : '';
+    this.dom.rareLabel.textContent = rareType === 'ultra'
+      ? 'HOLY FUCK'
+      : rareType === 'jackpot'
+        ? 'JACKPOT — still worth absolutely nothing'
+        : '';
     if (this.dom.rareLabel.textContent) this.dom.rareLabel.classList.remove('hidden');
 
-    // --- chaos phase ---
-    const chaosMs = durationMs * 0.45;
-    const slowMs = durationMs * (rareType === 'suspicious' ? 0.30 : 0.4);
-    let elapsed = 0;
-    let interval = rareType === 'ultra' ? 35 : 45;
-    const chaosEnd = performance.now() + chaosMs;
+    // CHAOS — very fast, readable alternation. The real result is already locked.
+    let reelName = Math.random() > 0.5 ? AGRAELUS : CHATTER;
+    const chaosEnd = performance.now() + plan.chaosMs;
     while (performance.now() < chaosEnd) {
-      this._setReel(Math.random() > 0.5 ? AGRAELUS : CHATTER);
+      reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
+      this._setReel(reelName);
+      this._kickReel();
       this.audio.reelTick();
       if (rareType === 'ultra') this.onShake('shake-sm');
-      await sleep(interval);
-      elapsed += interval;
+      await sleep(plan.chaosIntervalMs);
     }
 
-    // --- slowdown phase ---
-    const ticks = 5 + Math.floor(Math.random() * 3);
-    let tickDelay = 70;
-    for (let i = 0; i < ticks; i++) {
-      this._setReel(Math.random() > 0.5 ? AGRAELUS : CHATTER);
-      this.audio.slowdownTick(1 - i * 0.05);
-      tickDelay += slowMs / ticks * 0.5;
-      await sleep(tickDelay);
+    // SLOWDOWN — each tick gets visibly and audibly heavier.
+    this.dom.game.classList.remove('spin-chaos');
+    this.dom.game.classList.add('spin-tension');
+    const tensionWords = ['WAIT...', 'HOLD...', 'NO WAY'];
+    for (let i = 0; i < plan.slowdownDelays.length; i++) {
+      reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
+      this._setReel(reelName);
+      this._kickReel();
+      const progress = (i + 1) / plan.slowdownDelays.length;
+      this.audio.slowdownTick(1.18 - progress * 0.42);
+      if (progress > 0.55) this.audio.tensionPulse(progress);
+      if (i >= plan.slowdownDelays.length - 3) {
+        this.dom.marqueeText.textContent = tensionWords[i - (plan.slowdownDelays.length - 3)];
+      }
+      await sleep(plan.slowdownDelays[i]);
     }
 
-    if (rareType === 'suspicious') {
-      this._setReel(winner); // shows the *winner* sitting on the reel, teasing a flip
-      this.dom.marqueeText.textContent = 'uh...';
-      await sleep(500);
+    // One or two fake stops. They look final for a split second, then the reel escapes.
+    const fakeStopCount = rareType === 'suspicious' ? Math.max(2, plan.fakeStops) : plan.fakeStops;
+    for (let i = 0; i < fakeStopCount; i++) {
+      const fakeResult = i % 2 === 0 ? winner : loser;
+      this._setReel(fakeResult);
+      this._kickReel('reel-fake-stop');
+      this.dom.game.classList.add('fake-stop-beat');
+      this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
+      this.dom.nearMissText.classList.remove('hidden');
+      this.dom.marqueeText.textContent = i === 0 ? 'WAIT...' : 'AIN\'T NO WAY';
+      this.audio.fakeStop();
+      await sleep(plan.fakeStopHoldMs + (rareType === 'suspicious' ? 90 : 0));
+      this.dom.nearMissText.classList.add('hidden');
+      this.dom.game.classList.remove('fake-stop-beat');
+
+      if (i < fakeStopCount - 1) {
+        reelName = fakeResult === AGRAELUS ? CHATTER : AGRAELUS;
+        this._setReel(reelName);
+        this._kickReel();
+        this.audio.reelTick();
+        await sleep(Math.max(65, plan.fakeStopHoldMs * 0.55));
+      }
     }
 
-    // --- near miss ---
-    const nearMissCandidate = winner; // tease landing on winner (i.e. loser would be the *other* side)
-    this._setReel(nearMissCandidate);
+    // Final near miss always teases the winner as if they were about to take the L.
+    this._setReel(winner);
+    this._kickReel('reel-fake-stop');
     this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
     this.dom.nearMissText.classList.remove('hidden');
-    await sleep(rand(120, 220));
+    this.dom.marqueeText.textContent = 'HOLD...';
+    this.audio.tensionPulse(1);
+    await sleep(plan.nearMissHoldMs);
     this.dom.nearMissText.classList.add('hidden');
 
-    // silence beat
-    await sleep(rand(100, 200));
+    // The quiet beat is intentional. Pull all visual energy inward before the lock tick.
+    this.dom.game.classList.add('pre-result-silence');
+    this.dom.marqueeText.textContent = '...';
+    await sleep(plan.silenceMs);
 
-    // --- tick: flips to the true loser ---
+    // TRUE RESULT — the reel selects the loser.
+    this.dom.game.classList.remove('pre-result-silence');
+    this.dom.game.classList.add('result-lock');
     this._setReel(loser);
-    this.audio.nearStopTick();
+    this._kickReel('reel-lock');
+    this.audio.resultLock();
     this.onShake('shake-sm');
+    await sleep(plan.resultLockHoldMs);
 
-    await this._reveal(loser, winner, rareType);
+    await this._reveal(loser, winner, rareType, plan);
   }
 
-  async _reveal(loser, winner, rareType) {
+  async _reveal(loser, winner, rareType, plan) {
     const overlay = this.dom.revealOverlay;
-    overlay.classList.remove('hidden');
+    const winnerClass = winner === AGRAELUS ? 'winner-agra' : 'winner-chat';
+    const loserClass = loser === AGRAELUS ? 'loser-agra' : 'loser-chat';
+
+    overlay.classList.remove('hidden', 'l-hit', 'winner-agra', 'winner-chat', 'loser-agra', 'loser-chat');
+    overlay.classList.add('dopamine-reveal', loserClass);
+    this.dom.game.classList.remove('result-lock');
+    this.dom.game.classList.add('loser-reveal');
+
     this.dom.revealL.classList.add('hidden');
     this.dom.revealWinner.classList.add('hidden');
     this.dom.revealRandomText.classList.add('hidden');
@@ -125,14 +201,21 @@ export class AnimationController {
     const loseTexts = loser === AGRAELUS ? AGRAELUS_LOSE_TEXTS : CHATTER_LOSE_TEXTS;
     this.dom.revealLoseText.textContent = randomOf(loseTexts);
     this.dom.revealLoseText.classList.remove('hidden');
-    await sleep(220);
+    this.audio.tensionPulse(0.8);
+    await sleep(plan.loserLeadMs);
 
+    // First impact: LOSER / L.
+    overlay.classList.add('l-hit');
     this.dom.revealL.classList.remove('hidden');
     this.audio.lImpact();
     this.onShake('shake-md');
     this.onFlash('reduced');
-    await sleep(280);
+    await sleep(plan.lHoldMs);
 
+    // Second, larger impact: actual winner takes over the whole screen.
+    overlay.classList.add(winnerClass);
+    this.dom.game.classList.remove('loser-reveal');
+    this.dom.game.classList.add(winnerClass);
     this.dom.revealWinner.textContent = `${winner.toUpperCase()} WINS`;
     this.dom.revealWinner.classList.remove('hidden');
     this.audio.winnerBoom();
@@ -141,17 +224,29 @@ export class AnimationController {
     this.onFlash('full');
 
     const kind = winner === AGRAELUS ? 'agra' : 'chat';
-    this.particles.burst(kind, rareType === 'ultra' || rareType === 'jackpot' ? 120 : 70);
+    const firstBurst = rareType === 'ultra' || rareType === 'jackpot' ? 170 : 105;
+    this.particles.burst(kind, firstBurst);
+    setTimeout(() => this.particles.burst(kind, Math.round(firstBurst * 0.55)), 120);
 
     const winnerTexts = winner === AGRAELUS ? AGRAELUS_WIN_TEXTS : CHATTER_WIN_TEXTS;
     this.dom.revealRandomText.textContent = randomOf(winnerTexts);
     this.dom.revealRandomText.classList.remove('hidden');
 
     this.chatSpam.burst(winner === AGRAELUS ? 'agra-win' : 'chat-win');
+    setTimeout(() => {
+      this.onShake('shake-sm');
+      if (rareType === 'ultra' || rareType === 'jackpot') {
+        this.chatSpam.burst(winner === AGRAELUS ? 'agra-win' : 'chat-win');
+      }
+    }, 150);
 
-    await sleep(900);
+    await sleep(plan.winnerHoldMs);
+
     overlay.classList.add('hidden');
+    overlay.classList.remove('dopamine-reveal', 'l-hit', winnerClass, loserClass);
     this.dom.lights.classList.remove('on');
+    this.dom.rareLabel.classList.add('hidden');
+    this._clearSpinClasses();
     this.dom.marqueeText.textContent = 'SPACE TO GAMBA AGAIN';
   }
 }
