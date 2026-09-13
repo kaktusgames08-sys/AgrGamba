@@ -10,18 +10,19 @@ import { createVerticalReelSequence } from './ReelStrip.js';
 import { formatMachineResult } from './ResultDisplay.js';
 import './dopamine.css';
 import './vertical-reel.css';
+import './reel-physics.css';
 
 const sleep = (ms) => new Promise((res) => setTimeout(res, ms));
+const randomInt = (min, max) => Math.floor(min + Math.random() * (max - min + 1));
 
 function rollRareType() {
   const r = Math.random() * 100;
   if (r < 1.5) return 'ultra';
   if (r < 3) return 'jackpot';
-  if (r < 7) return 'instant';
-  if (r < 11) return 'fakeCrash';
-  if (r < 18) return 'suspicious';
+  if (r < 8) return 'fakeCrash';
+  if (r < 16) return 'suspicious';
   if (r < 28) return 'heartbeat';
-  if (r < 38) return 'reverse';
+  if (r < 39) return 'reverse';
   return 'normal';
 }
 
@@ -44,29 +45,55 @@ export class AnimationController {
     return cell;
   }
 
-  _setReel(name, durationMs = 120) {
+  _preparePhysicalReel(finalName) {
     const track = this.dom.reelTrack;
     const reelWindow = track.parentElement;
-    const cellHeight = Math.max(1, Math.round(reelWindow?.clientHeight || 142));
-    const sequence = createVerticalReelSequence(name, { cycles: 2, cellHeight });
-    const renderedItems = [...sequence.items].reverse();
+    const cellHeight = Math.max(1, Math.round(reelWindow?.clientHeight || 150));
+    const sequence = createVerticalReelSequence(finalName, {
+      cycles: 18,
+      cellHeight,
+      nearMissPx: randomInt(4, 9),
+    });
 
-    track.className = 'reel-track vertical-reel-track is-spinning';
-    track.replaceChildren(...renderedItems.map((item) => this._makeReelCell(item)));
+    track.className = 'reel-track vertical-reel-track physical-reel is-spinning';
+    track.replaceChildren(...sequence.renderedItems.map((item) => this._makeReelCell(item)));
     track.style.transition = 'none';
-    track.style.transform = `translateY(-${sequence.travelPx}px)`;
-    track.style.filter = 'blur(1.5px) saturate(1.15)';
-
+    track.style.transform = `translateY(${sequence.startY}px)`;
+    track.style.filter = 'blur(4.2px) saturate(1.22) brightness(1.08)';
+    track.dataset.reelY = String(sequence.startY);
     void track.offsetHeight;
 
-    const safeDuration = Math.max(70, Math.round(durationMs));
-    track.style.transition = `transform ${safeDuration}ms cubic-bezier(.17,.82,.2,1), filter ${Math.min(170, safeDuration)}ms ease-out`;
+    return sequence;
+  }
 
-    requestAnimationFrame(() => {
-      track.style.transform = 'translateY(0px)';
-      track.style.filter = 'blur(0) saturate(1)';
-      window.setTimeout(() => track.classList.remove('is-spinning'), safeDuration);
-    });
+  async _moveReelTo(
+    y,
+    durationMs,
+    {
+      easing = 'linear',
+      blur = 0,
+      saturation = 1,
+      brightness = 1,
+    } = {},
+  ) {
+    const track = this.dom.reelTrack;
+    const duration = Math.max(55, Math.round(durationMs));
+    track.style.transition = [
+      `transform ${duration}ms ${easing}`,
+      `filter ${Math.min(duration, 220)}ms ease-out`,
+    ].join(', ');
+    track.style.transform = `translateY(${Math.round(y * 100) / 100}px)`;
+    track.style.filter = `blur(${blur}px) saturate(${saturation}) brightness(${brightness})`;
+    track.dataset.reelY = String(y);
+    await sleep(duration + 8);
+  }
+
+  async _tickDuring(durationMs, intervalMs, callback) {
+    const started = performance.now();
+    while (performance.now() - started < durationMs - intervalMs * 0.5) {
+      callback();
+      await sleep(intervalMs);
+    }
   }
 
   _setRibbonSpeed(speed) {
@@ -95,7 +122,14 @@ export class AnimationController {
       'reverse-spin',
     );
     this.dom.machine.classList.remove('dopamine-charge', 'result-ready', 'heartbeat-pulse');
-    this.dom.reelTrack.classList.remove('reel-kick', 'reel-fake-stop', 'reel-lock', 'reel-reverse', 'is-spinning');
+    this.dom.reelTrack.classList.remove(
+      'reel-kick',
+      'reel-fake-stop',
+      'reel-lock',
+      'reel-reverse',
+      'is-spinning',
+      'near-miss-active',
+    );
   }
 
   _resetResultDisplay({ spinning = false } = {}) {
@@ -127,28 +161,18 @@ export class AnimationController {
     this._setRibbonSpeed('0.78s');
     this.audio.spinLaunch();
 
+    const reel = this._preparePhysicalReel(loser);
+
     if (rareType === 'fakeCrash') {
       this.dom.marqueeText.textContent = 'CHYBA';
       this.dom.resultFlavor.textContent = 'NĚCO SE POSRALO...';
       this.onShake('shake-sm');
-      await sleep(180);
+      await sleep(170);
       this.dom.marqueeText.textContent = '...';
-      await sleep(120);
+      await sleep(100);
       this.dom.marqueeText.textContent = 'nic';
       this.dom.resultFlavor.textContent = 'FALEŠNÝ POPLACH';
-      await sleep(180);
-    }
-
-    if (rareType === 'instant') {
-      this._setReel(loser, 120);
-      this._kickReel('reel-lock');
-      this.audio.resultLock();
-      this.dom.marqueeText.textContent = 'BONK';
-      this.dom.resultFlavor.textContent = 'BONK';
-      this.onShake('shake-sm');
-      await sleep(110);
-      await this._reveal(loser, winner, rareType, plan);
-      return;
+      await sleep(140);
     }
 
     this.dom.rareLabel.textContent = rareType === 'ultra'
@@ -162,16 +186,21 @@ export class AnimationController {
             : '';
     if (this.dom.rareLabel.textContent) this.dom.rareLabel.classList.remove('hidden');
 
-    let reelName = Math.random() > 0.5 ? AGRAELUS : CHATTER;
-    const chaosEnd = performance.now() + plan.chaosMs;
-    while (performance.now() < chaosEnd) {
-      reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
-      this._setReel(reelName, Math.max(88, plan.chaosIntervalMs * 1.35));
-      this._kickReel();
-      this.audio.reelTick();
-      if (rareType === 'ultra') this.onShake('shake-sm');
-      await sleep(plan.chaosIntervalMs);
-    }
+    // One uninterrupted strip now travels for the entire spin. Nothing is
+    // rebuilt or replaced between ticks, so the nick visibly passes through
+    // the window instead of teleporting into it.
+    await Promise.all([
+      this._moveReelTo(reel.cruiseY, plan.chaosMs, {
+        easing: 'linear',
+        blur: rareType === 'ultra' ? 5.2 : 4.2,
+        saturation: 1.2,
+        brightness: 1.08,
+      }),
+      this._tickDuring(plan.chaosMs, Math.max(34, plan.chaosIntervalMs), () => {
+        this.audio.reelTick();
+        if (rareType === 'ultra' && Math.random() < 0.22) this.onShake('shake-sm');
+      }),
+    ]);
 
     if (rareType === 'heartbeat') {
       this.dom.marqueeText.textContent = 'POSLOUCHEJ...';
@@ -183,7 +212,7 @@ export class AnimationController {
         this.dom.machine.classList.add('heartbeat-pulse');
         this.audio.tensionPulse(0.65 + i * 0.1);
         if (i >= 1) this.reactions?.burst(2);
-        await sleep(150 + i * 38);
+        await sleep(105 + i * 28);
       }
       this.dom.machine.classList.remove('heartbeat-pulse');
     }
@@ -191,96 +220,116 @@ export class AnimationController {
     this.dom.game.classList.remove('spin-chaos');
     this.dom.game.classList.add('spin-tension');
     this._setRibbonSpeed('1.25s');
+
     const tensionWords = ['POČKEJ...', 'DRŽ...', 'NEKECEJ'];
-    for (let i = 0; i < plan.slowdownDelays.length; i += 1) {
-      reelName = reelName === AGRAELUS ? CHATTER : AGRAELUS;
+    const slowdownEndY = -(reel.cellHeight * 2.35);
+    const slowdownStartY = reel.cruiseY;
+    const slowdownCount = plan.slowdownDelays.length;
+
+    for (let i = 0; i < slowdownCount; i += 1) {
+      const progress = (i + 1) / slowdownCount;
+      const easedProgress = 1 - Math.pow(1 - progress, 1.18);
+      const targetY = slowdownStartY + (slowdownEndY - slowdownStartY) * easedProgress;
       const delay = plan.slowdownDelays[i];
-      this._setReel(reelName, Math.min(320, Math.max(120, delay * 0.88)));
+
+      await this._moveReelTo(targetY, delay, {
+        easing: 'cubic-bezier(.18,.72,.24,1)',
+        blur: Math.max(0.15, 2.8 * (1 - progress)),
+        saturation: 1.08,
+        brightness: 1.02,
+      });
+
       this._kickReel();
-      const progress = (i + 1) / plan.slowdownDelays.length;
       this.audio.slowdownTick(1.18 - progress * 0.42);
       if (progress > 0.55) this.audio.tensionPulse(progress);
-      if (i >= plan.slowdownDelays.length - 3) {
-        const word = tensionWords[i - (plan.slowdownDelays.length - 3)];
+
+      if (i >= slowdownCount - 3) {
+        const word = tensionWords[i - (slowdownCount - 3)];
         this.dom.marqueeText.textContent = word;
         this.dom.resultFlavor.textContent = word;
       }
-      await sleep(delay);
     }
 
-    if (rareType === 'reverse') {
-      this._setReel(loser, 190);
+    // First believable fake stop: the already chosen loser gets extremely
+    // close to center at index 2, but the reel never swaps DOM or jumps.
+    if (plan.fakeStops > 0 || rareType === 'suspicious' || rareType === 'reverse') {
+      const fakeStopOffset = randomInt(4, 9);
+      const fakeStopY = -(reel.cellHeight * 2) + fakeStopOffset;
+      await this._moveReelTo(fakeStopY, rareType === 'suspicious' ? 250 : 190, {
+        easing: 'cubic-bezier(.1,.86,.16,1)',
+        blur: 0,
+        brightness: 1.12,
+      });
       this._kickReel('reel-fake-stop');
       this.dom.game.classList.add('fake-stop-beat');
-      this.dom.marqueeText.textContent = 'HOTOVO...?';
-      this.dom.resultFlavor.textContent = 'HOTOVO...?';
-      this.dom.nearMissText.textContent = 'POČKAT';
+      this.dom.marqueeText.textContent = 'TO JE ONO...?';
+      this.dom.resultFlavor.textContent = 'TO JE ONO...?';
+      this.dom.nearMissText.textContent = randomOf(NEAR_MISS_TEXTS);
       this.dom.nearMissText.classList.remove('hidden');
       this.audio.fakeStop();
-      await sleep(plan.fakeStopHoldMs);
-
+      this.reactions?.burst(3);
+      await sleep(plan.fakeStopHoldMs + (rareType === 'suspicious' ? 120 : 0));
       this.dom.nearMissText.classList.add('hidden');
-      this._setReel(winner, 250);
-      this._kickReel('reel-reverse');
-      this.dom.marqueeText.textContent = 'COŽE?!';
-      this.dom.resultFlavor.textContent = 'COŽE?!';
-      this.audio.spinLaunch();
-      this.reactions?.burst(5);
-      await sleep(240);
       this.dom.game.classList.remove('fake-stop-beat');
-    } else {
-      const fakeStopCount = rareType === 'suspicious' ? Math.max(2, plan.fakeStops) : plan.fakeStops;
-      for (let i = 0; i < fakeStopCount; i += 1) {
-        const fakeResult = i % 2 === 0 ? winner : loser;
-        this._setReel(fakeResult, 190);
-        this._kickReel('reel-fake-stop');
-        this.dom.game.classList.add('fake-stop-beat');
-        const nearText = randomOf(NEAR_MISS_TEXTS);
-        this.dom.nearMissText.textContent = nearText;
-        this.dom.nearMissText.classList.remove('hidden');
-        this.dom.marqueeText.textContent = i === 0 ? 'POČKEJ...' : 'ANI NÁHODOU';
-        this.dom.resultFlavor.textContent = nearText;
-        this.audio.fakeStop();
-        if (Math.random() < 0.65) this.reactions?.burst(3);
-        await sleep(plan.fakeStopHoldMs + (rareType === 'suspicious' ? 90 : 0));
-        this.dom.nearMissText.classList.add('hidden');
-        this.dom.game.classList.remove('fake-stop-beat');
 
-        if (i < fakeStopCount - 1) {
-          reelName = fakeResult === AGRAELUS ? CHATTER : AGRAELUS;
-          this._setReel(reelName, 120);
-          this._kickReel();
-          this.audio.reelTick();
-          await sleep(Math.max(65, plan.fakeStopHoldMs * 0.55));
-        }
+      if (rareType === 'reverse') {
+        // A tiny physical rollback, not a result swap. The same reel strip
+        // moves backwards a few pixels and then continues downward.
+        await this._moveReelTo(fakeStopY - 18, 125, {
+          easing: 'cubic-bezier(.4,0,.7,1)',
+          blur: 0.8,
+          brightness: 1.08,
+        });
+        this.dom.marqueeText.textContent = 'COŽE?!';
+        this.dom.resultFlavor.textContent = 'COŽE?!';
+        this.audio.spinLaunch();
+        this.reactions?.burst(5);
       }
     }
 
-    this._setReel(winner, 180);
+    // Pixel near miss: index 1 is always the opposite nick. It reaches almost
+    // perfect alignment but deliberately misses center by only 4–9 px.
+    this.dom.reelTrack.classList.add('near-miss-active');
+    await this._moveReelTo(reel.nearMissY, Math.max(240, plan.nearMissHoldMs), {
+      easing: 'cubic-bezier(.08,.82,.14,1)',
+      blur: 0,
+      brightness: 1.16,
+    });
     this._kickReel('reel-fake-stop');
+
     const finalNearText = randomOf(NEAR_MISS_TEXTS);
     this.dom.nearMissText.textContent = finalNearText;
     this.dom.nearMissText.classList.remove('hidden');
-    this.dom.marqueeText.textContent = 'DRŽ...';
+    this.dom.marqueeText.textContent = 'O MILIMETR...';
     this.dom.resultFlavor.textContent = finalNearText;
+    this.audio.fakeStop();
     this.audio.tensionPulse(1);
     this.reactions?.burst(4);
-    await sleep(plan.nearMissHoldMs);
-    this.dom.nearMissText.classList.add('hidden');
+    await sleep(Math.max(150, plan.nearMissHoldMs * 0.75));
 
+    this.dom.nearMissText.classList.add('hidden');
     this.dom.game.classList.add('pre-result-silence');
     this.dom.marqueeText.textContent = '...';
     this.dom.resultFlavor.textContent = '...';
     this._setRibbonSpeed('2.4s');
     await sleep(plan.silenceMs);
 
+    // Final result is not snapped in. The last whole cell physically rolls
+    // down from the near-miss position and locks exactly at y = 0.
     this.dom.game.classList.remove('pre-result-silence');
     this.dom.game.classList.add('result-lock');
-    this._setReel(loser, 230);
+    const settleDuration = Math.max(280, plan.resultLockHoldMs * 3.2);
+    await this._moveReelTo(reel.settleY, settleDuration, {
+      easing: 'cubic-bezier(.1,.82,.16,1)',
+      blur: 0,
+      saturation: 1,
+      brightness: 1.12,
+    });
+    this.dom.reelTrack.classList.remove('is-spinning', 'near-miss-active');
     this._kickReel('reel-lock');
     this.audio.resultLock();
     this.onShake('shake-sm');
-    await sleep(plan.resultLockHoldMs);
+    await sleep(Math.max(70, plan.resultLockHoldMs));
 
     await this._reveal(loser, winner, rareType, plan);
   }
