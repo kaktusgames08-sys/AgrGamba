@@ -41,12 +41,11 @@ export function queryDom() {
     streakChat: $('streakChat'),
     historyRow: $('historyRow'),
 
-    revealOverlay: $('revealOverlay'),
-    revealLoserName: $('revealLoserName'),
-    revealL: $('revealL'),
-    revealLoseText: $('revealLoseText'),
-    revealWinner: $('revealWinner'),
-    revealRandomText: $('revealRandomText'),
+    resultDisplay: $('resultDisplay'),
+    resultPayer: $('resultPayer'),
+    resultL: $('resultL'),
+    resultWinner: $('resultWinner'),
+    resultFlavor: $('resultFlavor'),
     continueButton: $('continueButton'),
 
     particleLayer: $('particleLayer'),
