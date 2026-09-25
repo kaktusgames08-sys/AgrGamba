@@ -37,7 +37,7 @@ export function randomLandingRotation(
   currentRotation,
   segmentCount,
   rng = Math.random,
-  borderMarginRatio = 0.07,
+  borderMarginRatio = 0.025,
 ) {
   const slice = segmentAngle(segmentCount);
   const marginRatio = Math.max(0, Math.min(0.22, Number(borderMarginRatio) || 0));
