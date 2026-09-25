@@ -14,23 +14,37 @@ export class UI {
     this.muteButton = document.querySelector('#muteButton');
     this.fullscreenButton = document.querySelector('#fullscreenButton');
     this.wheelShell = document.querySelector('#wheelShell');
+    this.lastTotal = null;
+    this.lastSpins = null;
+    this.hideTimer = null;
   }
 
   formatMoney(value) {
     return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.round(value)) + ' Kč';
   }
 
+  bump(element, className = 'is-bumping') {
+    element.classList.remove(className);
+    void element.offsetWidth;
+    element.classList.add(className);
+  }
+
   renderState(state) {
+    const totalChanged = this.lastTotal !== null && this.lastTotal !== state.total;
+    const spinsChanged = this.lastSpins !== null && this.lastSpins !== state.spins;
+
     this.money.textContent = this.formatMoney(state.total);
     this.spins.textContent = state.spins;
     this.centerSpins.textContent = state.spins;
-    this.money.classList.remove('is-bumping');
-    this.spins.classList.remove('is-bumping');
-    this.centerSpins.classList.remove('is-bumping');
-    void this.money.offsetWidth;
-    this.money.classList.add('is-bumping');
-    this.spins.classList.add('is-bumping');
-    this.centerSpins.classList.add('is-bumping');
+
+    if (totalChanged) this.bump(this.money, 'is-money-bumping');
+    if (spinsChanged) {
+      this.bump(this.spins, 'is-spin-bumping');
+      this.bump(this.centerSpins, 'is-spin-bumping');
+    }
+
+    this.lastTotal = state.total;
+    this.lastSpins = state.spins;
     this.renderHistory(state.history);
   }
 
@@ -39,9 +53,12 @@ export class UI {
       this.history.innerHTML = '<div class="history-empty">Zatím nic</div>';
       return;
     }
+
     this.history.innerHTML = records.map((record) => {
       const label = record.type === 'multiplier' ? 'x' + record.multiplier : '+' + record.value + ' Kč';
-      const extra = record.extraSpins ? '<span>+SPIN</span>' : '<span class="history-final">FINÁLE</span>';
+      const extra = record.extraSpins
+        ? '<span>+SPIN</span>'
+        : '<span class="history-final">KONEC</span>';
       return '<div class="history-item history-item--' + record.type + '"><strong>' + label + '</strong>' + extra + '</div>';
     }).join('');
   }
@@ -52,16 +69,27 @@ export class UI {
   }
 
   showResult(record) {
+    clearTimeout(this.hideTimer);
     const isMultiplier = record.type === 'multiplier';
-    this.resultBurst.className = 'result-burst is-visible ' + (isMultiplier ? 'is-multiplier' : 'is-money');
-    this.resultMain.textContent = isMultiplier ? (record.multiplier === 3 ? 'TRIPLE!' : 'DOUBLE!') : '+' + record.value + ' Kč';
+    this.resultBurst.className = 'result-burst ' + (isMultiplier ? 'is-multiplier' : 'is-money');
+    this.resultMain.textContent = isMultiplier
+      ? (record.multiplier === 3 ? 'TRIPLE!' : 'DOUBLE!')
+      : '+' + record.value + ' Kč';
     this.resultSub.textContent = isMultiplier
       ? this.formatMoney(record.before) + ' → ' + this.formatMoney(record.after) + ' · +1 SPIN'
-      : record.extraSpins ? '+1 SPIN' : 'FINÁLNÍ POLE';
+      : record.extraSpins ? '+1 SPIN' : 'POSLEDNÍ POLÍČKO';
+
+    requestAnimationFrame(() => {
+      this.resultBurst.classList.add('is-visible');
+    });
   }
 
   hideResult() {
-    this.resultBurst.classList.remove('is-visible');
+    if (!this.resultBurst.classList.contains('is-visible')) return;
+    this.resultBurst.classList.add('is-leaving');
+    this.hideTimer = setTimeout(() => {
+      this.resultBurst.classList.remove('is-visible', 'is-leaving');
+    }, 220);
   }
 
   shake(strength = 'normal') {
@@ -79,15 +107,22 @@ export class UI {
     this.overlay.setAttribute('aria-hidden', 'false');
     this.overlay.classList.add('is-visible');
     this.finalAmount.textContent = '0 Kč';
-    const duration = 1500;
-    const start = performance.now();
+
+    const duration = 1050;
+    const startedAt = performance.now();
+
     return new Promise((resolve) => {
       const frame = (now) => {
-        const t = Math.min(1, (now - start) / duration);
-        const eased = 1 - Math.pow(1 - t, 4);
+        const t = Math.min(1, (now - startedAt) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
         this.finalAmount.textContent = this.formatMoney(total * eased);
-        if (t < 1) requestAnimationFrame(frame);
-        else resolve();
+
+        if (t < 1) {
+          requestAnimationFrame(frame);
+        } else {
+          this.bump(this.finalAmount, 'is-final-settled');
+          resolve();
+        }
       };
       requestAnimationFrame(frame);
     });
@@ -96,5 +131,11 @@ export class UI {
   hideFinal() {
     this.overlay.classList.remove('is-visible');
     this.overlay.setAttribute('aria-hidden', 'true');
+    this.finalAmount.classList.remove('is-final-settled');
+  }
+
+  resetAnimationMemory(state) {
+    this.lastTotal = state.total;
+    this.lastSpins = state.spins;
   }
 }
