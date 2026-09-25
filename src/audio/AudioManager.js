@@ -26,6 +26,7 @@ export class AudioManager {
     this.ctx = null;
     this.noiseBuffer = null;
     this.muted = localStorage.getItem('wheel-muted') === '1';
+    this.masterVolume = 0.82;
     this.samples = new Map();
     this.preloadSamples();
   }
@@ -34,7 +35,7 @@ export class AudioManager {
     for (const [name, config] of Object.entries(SAMPLE_LIBRARY)) {
       const audio = new Audio(config.url);
       audio.preload = 'auto';
-      audio.volume = config.volume;
+      audio.volume = config.volume * this.masterVolume;
       this.samples.set(name, { audio, config, failed: false });
       audio.addEventListener('error', () => {
         const sample = this.samples.get(name);
@@ -45,24 +46,29 @@ export class AudioManager {
 
   ensure() {
     if (this.muted) return null;
+
     if (!this.ctx) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return null;
       this.ctx = new AudioContext();
       this.noiseBuffer = this.createNoiseBuffer();
     }
+
     if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
   }
 
   createNoiseBuffer() {
     if (!this.ctx) return null;
+
     const length = Math.max(1, Math.floor(this.ctx.sampleRate * 0.35));
     const buffer = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
+
     for (let i = 0; i < data.length; i += 1) {
       data[i] = Math.random() * 2 - 1;
     }
+
     return buffer;
   }
 
@@ -76,14 +82,20 @@ export class AudioManager {
     return this.setMuted(!this.muted);
   }
 
+  setMasterVolume(value) {
+    this.masterVolume = Math.max(0, Math.min(1, Number(value) || 0));
+    return this.masterVolume;
+  }
+
   playSample(name, { volume = 1, playbackRate = 1 } = {}) {
-    if (this.muted) return;
+    if (this.muted || this.masterVolume <= 0) return;
+
     const sample = this.samples.get(name);
     if (!sample || sample.failed) return;
 
     try {
       const player = sample.audio.cloneNode();
-      player.volume = Math.min(1, sample.config.volume * volume);
+      player.volume = Math.min(1, sample.config.volume * volume * this.masterVolume);
       player.playbackRate = playbackRate;
       player.play().catch(() => {});
     } catch {
@@ -100,19 +112,22 @@ export class AudioManager {
     attack = 0.006,
   }) {
     const ctx = this.ensure();
-    if (!ctx) return;
+    if (!ctx || this.masterVolume <= 0) return;
+
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const amp = ctx.createGain();
+    const finalGain = Math.max(0.0001, gain * this.masterVolume);
 
     osc.type = type;
     osc.frequency.setValueAtTime(frequency, now);
+
     if (slideTo) {
       osc.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), now + duration);
     }
 
     amp.gain.setValueAtTime(0.0001, now);
-    amp.gain.exponentialRampToValueAtTime(gain, now + attack);
+    amp.gain.exponentialRampToValueAtTime(finalGain, now + attack);
     amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     osc.connect(amp).connect(ctx.destination);
@@ -122,7 +137,7 @@ export class AudioManager {
 
   noiseBurst({ duration = 0.08, gain = 0.025, frequency = 1600, type = 'bandpass' } = {}) {
     const ctx = this.ensure();
-    if (!ctx || !this.noiseBuffer) return;
+    if (!ctx || !this.noiseBuffer || this.masterVolume <= 0) return;
 
     const source = ctx.createBufferSource();
     const filter = ctx.createBiquadFilter();
@@ -133,7 +148,7 @@ export class AudioManager {
     filter.type = type;
     filter.frequency.setValueAtTime(frequency, now);
     filter.Q.setValueAtTime(0.8, now);
-    amp.gain.setValueAtTime(gain, now);
+    amp.gain.setValueAtTime(gain * this.masterVolume, now);
     amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
 
     source.connect(filter).connect(amp).connect(ctx.destination);
@@ -143,6 +158,7 @@ export class AudioManager {
 
   tick(speed = 1) {
     const s = Math.max(0.1, Math.min(1, speed));
+
     this.tone({
       frequency: 1180 + s * 560,
       duration: 0.022 + (1 - s) * 0.012,
@@ -151,6 +167,7 @@ export class AudioManager {
       slideTo: 760 + s * 320,
       attack: 0.002,
     });
+
     this.tone({
       frequency: 150 + s * 55,
       duration: 0.028,
@@ -165,6 +182,20 @@ export class AudioManager {
     this.noiseBurst({ duration: 0.18, gain: 0.018, frequency: 1200, type: 'highpass' });
     this.tone({ frequency: 82, slideTo: 180, duration: 0.28, gain: 0.052, type: 'sawtooth', attack: 0.008 });
     setTimeout(() => this.tone({ frequency: 520, slideTo: 760, duration: 0.12, gain: 0.025, type: 'triangle' }), 55);
+  }
+
+  anticipation(stage = 1) {
+    const stages = [
+      [220, 330],
+      [277.18, 415.3],
+      [329.63, 493.88],
+    ];
+    const [low, high] = stages[Math.max(0, Math.min(stages.length - 1, stage - 1))];
+
+    this.tone({ frequency: low, slideTo: high, duration: 0.18, gain: 0.018, type: 'triangle', attack: 0.004 });
+    setTimeout(() => {
+      this.tone({ frequency: high * 1.5, duration: 0.08, gain: 0.012, type: 'sine', attack: 0.003 });
+    }, 65);
   }
 
   impact() {
@@ -185,7 +216,11 @@ export class AudioManager {
   }
 
   multiplier(multiplier) {
-    this.playSample('winAlert', { volume: multiplier === 3 ? 1.15 : 0.9, playbackRate: multiplier === 3 ? 1.06 : 1 });
+    this.playSample('winAlert', {
+      volume: multiplier === 3 ? 1.15 : 0.9,
+      playbackRate: multiplier === 3 ? 1.06 : 1,
+    });
+
     if (multiplier === 3) {
       setTimeout(() => this.playSample('winAlarm', { volume: 0.7, playbackRate: 1.08 }), 180);
     }
@@ -193,8 +228,11 @@ export class AudioManager {
     const notes = multiplier === 3
       ? [330, 440, 554.37, 659.25, 880]
       : [330, 440, 554.37, 740];
-    notes.forEach((frequency, i) => {
-      setTimeout(() => this.tone({ frequency, duration: 0.2, gain: 0.045, type: 'triangle' }), i * 74);
+
+    notes.forEach((frequency, index) => {
+      setTimeout(() => {
+        this.tone({ frequency, duration: 0.2, gain: 0.045, type: 'triangle' });
+      }, index * 74);
     });
   }
 
@@ -207,8 +245,9 @@ export class AudioManager {
   lossFinale() {
     this.playSample('lose', { volume: 1.05, playbackRate: 0.94 });
     this.noiseBurst({ duration: 0.16, gain: 0.025, frequency: 700, type: 'lowpass' });
+
     const notes = [220, 174.61, 146.83, 110];
-    notes.forEach((frequency, i) => {
+    notes.forEach((frequency, index) => {
       setTimeout(() => this.tone({
         frequency,
         slideTo: frequency * 0.86,
@@ -216,7 +255,7 @@ export class AudioManager {
         gain: 0.045,
         type: 'triangle',
         attack: 0.01,
-      }), i * 145);
+      }), index * 145);
     });
   }
 }
