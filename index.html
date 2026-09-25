@@ -1,232 +1,114 @@
 <!doctype html>
 <html lang="cs">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GAMBA — Kdo platí?</title>
-  <meta name="description" content="GAMBA — přehnaný meme automat Agraelus vs Chatter. Žádné skutečné sázení." />
-  <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="/src/style.css" />
-  <link rel="stylesheet" href="/src/ui/result-display.css" />
-  <link rel="stylesheet" href="/src/ui/cabinet-v5.css" />
-</head>
-<body>
-  <div id="app">
-    <section id="splash" class="screen">
-      <div class="splash-inner">
-        <h1 class="logo-glitch" data-text="GAMBA">GAMBA</h1>
-        <p class="subtitle">AGRAELUS <span class="vs">vs</span> CHATTER</p>
-        <p class="tagline">KDO PLATÍ?</p>
-        <button id="pullStart" class="btn-pull">ZATOČIT <span class="kbd">SPACE</span></button>
-        <p class="disclaimer">Žádné peníze. Žádné sázky. Jen přehnaný meme randomizer.</p>
-      </div>
-    </section>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#130513" />
+    <meta name="description" content="Kolo štěstí — roztoč kolo, sbírej Kč, násob výhru a pokračuj díky +SPIN." />
+    <title>Kolo štěstí</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="stage-glow stage-glow--left"></div>
+      <div class="stage-glow stage-glow--right"></div>
+      <div class="starfield" aria-hidden="true"></div>
 
-    <main id="game" class="screen hidden">
       <header class="topbar">
-        <div class="brand">GAMBA<span class="brand-sub">Agraelus vs Chatter • kdo platí?</span></div>
-        <div class="topbar-controls">
-          <button id="btnMute" class="icon-btn" title="Ztlumit (M)">🔊</button>
-          <button id="btnFullscreen" class="icon-btn" title="Celá obrazovka (F)">⛶</button>
-          <button id="btnSettings" class="icon-btn" title="Nastavení (Esc)">⚙</button>
+        <div class="brand" aria-label="Kolo štěstí">
+          <span class="brand__eyebrow">VELKÁ HRA</span>
+          <h1>KOLO ŠTĚSTÍ</h1>
+          <div class="brand__stars" aria-hidden="true">★ ✦ ★</div>
+        </div>
+
+        <div class="hud" aria-live="polite">
+          <div class="hud-card hud-card--money">
+            <span class="hud-card__label">VÝHRA</span>
+            <strong id="moneyCounter">0 Kč</strong>
+          </div>
+          <div class="hud-card hud-card--spins">
+            <span class="hud-card__label">SPINY</span>
+            <strong id="spinCounter">1</strong>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <button id="muteButton" class="icon-button" type="button" aria-label="Vypnout zvuk" title="Zvuk (M)">🔊</button>
+          <button id="fullscreenButton" class="icon-button" type="button" aria-label="Celá obrazovka" title="Fullscreen (F)">⛶</button>
         </div>
       </header>
 
-      <div class="stage">
-        <div class="score-row cabinet-score-row">
-          <div class="score-box agra cabinet-card">
-            <div class="score-name">AGRAELUS</div>
-            <div class="score-num" id="scoreAgra">0</div>
-            <div class="score-sub">VÝHRY</div>
+      <main class="game-layout">
+        <aside class="history-panel" aria-label="Poslední výsledky">
+          <div class="history-panel__title">POSLEDNÍ</div>
+          <div id="history" class="history-list">
+            <div class="history-empty">Zatím nic</div>
           </div>
-          <div class="score-vs cabinet-card center-card">
-            <div class="center-title">KDO PLATÍ?</div>
-            <div id="spinCounter">SPINY: 0</div>
-            <div id="pureGambaBadge" class="badge hidden">PURE GAMBA</div>
-          </div>
-          <div class="score-box chat cabinet-card">
-            <div class="score-name">CHATTER</div>
-            <div class="score-num" id="scoreChat">0</div>
-            <div class="score-sub">VÝHRY</div>
-          </div>
-        </div>
+        </aside>
 
-        <div class="machine-wrap">
-          <div id="machine" class="machine cabinet-machine">
-            <div class="lights" id="lights"></div>
-
-            <section id="machineTitleDisplay" class="machine-title-display" aria-label="Název automatu">
-              <div class="machine-title-kicker">GAMBA SYSTEM</div>
-              <div class="machine-title-main">KDO PLATÍ?</div>
-              <div class="machine-title-sub">
-                <span class="title-side agra">AGRAELUS</span>
-                <span class="title-vs">VS</span>
-                <span class="title-side chat">CHATTER</span>
-              </div>
-              <div class="machine-title-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-              <span id="rareLabel" class="rare-label hidden"></span>
-            </section>
-
-            <div class="ticker-panel">
-              <span class="ticker-title">LIVE</span>
-              <div class="ticker-window">
-                <div id="ribbonTrack" class="ticker-track">
-                  <span>AGRAELUS</span><span>CHATTER</span><span>AGRAELUS</span><span>CHATTER</span>
-                  <span>AGRAELUS</span><span>CHATTER</span><span>AGRAELUS</span><span>CHATTER</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="reel-frame">
-              <div class="reel-kicker">AUTOMAT ROZHODUJE</div>
-              <div class="reel-window cabinet-reel-window">
-                <div id="reelTrack" class="reel-track">
-                  <div class="reel-cell">AGRAELUS</div>
-                </div>
-                <div class="reel-pointer left"></div>
-                <div class="reel-pointer right"></div>
-                <div class="reel-shade top"></div>
-                <div class="reel-shade bottom"></div>
-                <div id="nearMissText" class="near-miss-text hidden"></div>
-              </div>
-              <div class="reel-subline">AGRAELUS • CHATTER • AGRAELUS • CHATTER</div>
-            </div>
-
-            <section id="resultDisplay" class="machine-result-display is-idle" aria-live="polite">
-              <div class="result-display-topline">
-                <span class="result-display-label">VÝSLEDEK</span>
-                <span class="result-display-led"></span>
-              </div>
-              <div class="result-display-main">
-                <div id="resultPayer" class="result-payer">ČEKÁM NA SPIN</div>
-                <div id="resultL" class="result-l hidden">L</div>
-                <div id="resultWinner" class="result-winner">—</div>
-              </div>
-              <div id="resultFlavor" class="result-flavor">KDO TO DNES ZAPLATÍ?</div>
-              <button id="continueButton" class="result-continue hidden">KLIKNI PRO POKRAČOVÁNÍ <span class="kbd">SPACE</span></button>
-            </section>
-
-            <div class="marquee cabinet-marquee">
-              <div id="marqueeText" class="marquee-text">SPACE = SPIN</div>
+        <section class="machine" aria-label="Kolo štěstí">
+          <div class="machine__arch machine__arch--back" aria-hidden="true"></div>
+          <div class="pointer-wrap" aria-hidden="true">
+            <div id="pointer" class="pointer">
+              <div class="pointer__cap"></div>
+              <div class="pointer__arrow"></div>
             </div>
           </div>
 
-          <div class="lever-bridge" aria-hidden="true"></div>
-          <div class="lever-wrap cabinet-lever-wrap">
-            <div class="lever-label">PÁKA</div>
-            <div class="lever-base"></div>
-            <div id="lever" class="lever">
-              <div class="lever-ball"></div>
-              <div class="lever-stick"></div>
-            </div>
-          </div>
-        </div>
+          <div id="wheelShell" class="wheel-shell">
+            <div class="bulb-ring" aria-hidden="true"></div>
+            <div class="wheel-rim wheel-rim--outer" aria-hidden="true"></div>
+            <div class="wheel-rim wheel-rim--inner" aria-hidden="true"></div>
+            <div id="wheelMount" class="wheel-mount" aria-label="Herní kolo"></div>
 
-        <div class="bottom-panels">
-          <div class="cabinet-card status-card">
-            <div class="panel-title">SÉRIE</div>
-            <div class="streak-row">
-              <div id="streakAgra" class="streak-tag hidden">AGRAELUS <span></span></div>
-              <div id="streakChat" class="streak-tag hidden">CHATTER <span></span></div>
+            <div class="center-medallion" aria-hidden="true">
+              <span class="center-medallion__small">SPINY</span>
+              <strong id="centerSpinCounter">1</strong>
+              <span class="center-medallion__small">ZBÝVÁ</span>
             </div>
           </div>
-          <div class="cabinet-card status-card">
-            <div class="panel-title">POSLEDNÍ SPINY</div>
-            <div class="history-row" id="historyRow"></div>
+
+          <div id="resultBurst" class="result-burst" aria-live="assertive">
+            <div id="resultMain" class="result-burst__main"></div>
+            <div id="resultSub" class="result-burst__sub"></div>
           </div>
+
+          <div class="controls">
+            <button id="spinButton" class="spin-button" type="button">
+              <span class="spin-button__shine"></span>
+              <span class="spin-button__text">ROZTOČIT</span>
+              <span class="spin-button__hint">SPACE</span>
+            </button>
+          </div>
+
+          <div class="key-hints" aria-hidden="true">
+            <span><kbd>SPACE</kbd> spin</span>
+            <span><kbd>F</kbd> fullscreen</span>
+            <span><kbd>M</kbd> zvuk</span>
+          </div>
+        </section>
+
+        <aside class="prize-panel" aria-label="Pravidla">
+          <div class="prize-panel__badge">JAK TO FUNGUJE</div>
+          <p>Každé pole kromě <strong>100 Kč</strong> vrací další spin.</p>
+          <div class="mini-rule"><span>x2</span> zdvojnásobí výhru</div>
+          <div class="mini-rule"><span>x3</span> ztrojnásobí výhru</div>
+          <div class="mini-rule mini-rule--final"><span>100</span> finální pole</div>
+        </aside>
+      </main>
+
+      <div id="overlay" class="final-overlay" aria-hidden="true">
+        <div class="final-card">
+          <div class="final-card__eyebrow">KONEC KOLA</div>
+          <div class="final-card__title">VYHRÁVÁŠ</div>
+          <div id="finalAmount" class="final-card__amount">0 Kč</div>
+          <div class="final-card__sparkline" aria-hidden="true">✦ ★ ✦ ★ ✦</div>
+          <button id="restartButton" class="restart-button" type="button">HRÁT ZNOVU <span>R</span></button>
         </div>
       </div>
 
-      <div id="particleLayer" class="particle-layer"></div>
-      <div id="chatLayer" class="chat-layer"></div>
-      <div id="sevenTvLayer" class="seventv-layer"></div>
-      <div id="flashLayer" class="flash-layer"></div>
-
-      <footer class="hint-bar">
-        <span><span class="kbd">SPACE</span> spin / pokračování</span>
-        <span><span class="kbd">F</span> celá obrazovka</span>
-        <span><span class="kbd">M</span> ztlumit</span>
-        <span><span class="kbd">ESC</span> nastavení</span>
-      </footer>
-    </main>
-
-    <aside id="settingsPanel" class="settings-panel hidden">
-      <div class="settings-inner">
-        <div class="settings-head">
-          <h2>NASTAVENÍ</h2>
-          <button id="btnCloseSettings" class="icon-btn" title="Zavřít">✕</button>
-        </div>
-
-        <div class="settings-section">
-          <h3>ŠANCE NA VÝHRU</h3>
-          <div class="odds-row">
-            <label>Agraelus: <span id="agraOddsLabel">50</span>%</label>
-            <input type="range" id="agraOddsSlider" min="0" max="100" value="50" />
-            <label>Chatter: <span id="chatOddsLabel">50</span>%</label>
-          </div>
-          <div class="custom-odds-row">
-            <input type="number" id="agraOddsInput" min="0" max="100" value="50" />
-            <span>% Agraelus / </span>
-            <input type="number" id="chatOddsInput" min="0" max="100" value="50" />
-            <span>% Chatter</span>
-          </div>
-          <div id="oddsTranscript" class="odds-transcript hidden"></div>
-        </div>
-
-        <div class="settings-section">
-          <h3>RYCHLÉ VOLBY</h3>
-          <div class="preset-grid" id="presetGrid"></div>
-        </div>
-
-        <div class="settings-section">
-          <h3>RYCHLOST</h3>
-          <label class="toggle-row"><input type="checkbox" id="turboToggle" /> Turbo režim (1–1,5 s)</label>
-          <label class="toggle-row"><input type="checkbox" id="degenToggle" /> Degenerát režim (0,5–0,8 s)</label>
-        </div>
-
-        <div class="settings-section">
-          <h3>ZVUK</h3>
-          <label class="toggle-row">Hlavní <input type="range" id="volMaster" min="0" max="100" value="80" /></label>
-          <label class="toggle-row">Hudba <input type="range" id="volMusic" min="0" max="100" value="60" /></label>
-          <label class="toggle-row">Efekty <input type="range" id="volSfx" min="0" max="100" value="90" /></label>
-          <label class="toggle-row"><input type="checkbox" id="muteToggle" /> Ztlumit vše</label>
-        </div>
-
-        <div class="settings-section">
-          <h3>VIZUÁL</h3>
-          <label class="toggle-row"><input type="checkbox" id="showOddsToggle" /> Zobrazit aktuální šance</label>
-          <label class="toggle-row"><input type="checkbox" id="streamerToggle" /> Streamer režim (OBS)</label>
-          <div class="settings-subrow">
-            <label>Záblesky</label>
-            <select id="flashSelect">
-              <option value="off">Vypnuto</option>
-              <option value="reduced">Omezené</option>
-              <option value="full" selected>Plné</option>
-            </select>
-          </div>
-          <div class="settings-subrow">
-            <label>Částice</label>
-            <select id="particleSelect">
-              <option value="low">Málo</option>
-              <option value="normal">Normálně</option>
-              <option value="insane" selected>ŠÍLENÉ</option>
-            </select>
-          </div>
-          <label class="toggle-row">Otřesy obrazovky <input type="range" id="shakeIntensity" min="0" max="100" value="100" /></label>
-          <div id="sevenTvStatus" class="integration-status">7TV: načítám emotes…</div>
-        </div>
-
-        <div class="settings-section">
-          <h3>STATISTIKY</h3>
-          <div id="statsBlock" class="stats-block"></div>
-          <button id="btnResetStats" class="btn-danger">VYNULOVAT STATISTIKY</button>
-        </div>
-
-        <p class="settings-footer">GAMBA neobsahuje skutečné peníze ani sázení. Je to jen meme randomizer.</p>
-      </div>
-    </aside>
-  </div>
-
-  <script type="module" src="/src/main.js"></script>
-</body>
+      <div id="particleLayer" class="particle-layer" aria-hidden="true"></div>
+      <div id="flash" class="screen-flash" aria-hidden="true"></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
