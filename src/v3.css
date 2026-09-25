@@ -192,6 +192,10 @@ body.settings-open {
   position: relative;
 }
 
+.history-panel { grid-column: 1; }
+.machine { grid-column: 2; }
+.session-panel { grid-column: 3; }
+
 .history-panel,
 .session-panel {
   position: relative;
@@ -1254,6 +1258,12 @@ body.settings-open {
 }
 
 @media (max-width: 1080px) {
+  .history-panel,
+  .machine,
+  .session-panel {
+    grid-column: 1;
+  }
+
   .session-panel {
     display: none;
   }
