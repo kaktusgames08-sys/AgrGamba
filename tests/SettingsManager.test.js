@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_SETTINGS,
   SettingsManager,
+  applyPresentationPreset,
   normalizeSettings,
 } from '../src/core/SettingsManager.js';
 
@@ -68,4 +69,34 @@ test('SettingsManager persists custom wheel settings', () => {
   assert.equal(reloaded.spinDurationMs, 4100);
   assert.equal(reloaded.masterVolume, 0.64);
   assert.equal(reloaded.showHistory, false);
+});
+
+
+test('presentation presets map to predictable effect profiles', () => {
+  const clean = applyPresentationPreset(DEFAULT_SETTINGS, 'clean');
+  const arcade = applyPresentationPreset(DEFAULT_SETTINGS, 'arcade');
+  const max = applyPresentationPreset(DEFAULT_SETTINGS, 'max');
+
+  assert.equal(clean.presentationPreset, 'clean');
+  assert.equal(clean.effects, 'low');
+  assert.equal(clean.ambientMotion, false);
+
+  assert.equal(arcade.presentationPreset, 'arcade');
+  assert.equal(arcade.effects, 'medium');
+  assert.equal(arcade.ambientMotion, true);
+
+  assert.equal(max.presentationPreset, 'max');
+  assert.equal(max.effects, 'high');
+  assert.equal(max.ambientMotion, true);
+});
+
+test('normalizeSettings keeps explicit v4 presentation preset', () => {
+  const settings = normalizeSettings({
+    ...DEFAULT_SETTINGS,
+    presentationPreset: 'arcade',
+    effects: 'medium',
+  });
+
+  assert.equal(settings.presentationPreset, 'arcade');
+  assert.equal(settings.effects, 'medium');
 });
