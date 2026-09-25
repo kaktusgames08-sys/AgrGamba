@@ -1,6 +1,6 @@
-# KOLO ŠTĚSTÍ
+# KOLO NEŠTĚSTÍ
 
-High-energy browserové kolo štěstí pro stream, OBS nebo GitHub Pages.
+High-energy browserové kolo pro stream, OBS nebo GitHub Pages.
 
 ## Pravidla
 
@@ -8,11 +8,12 @@ Hra začíná s `0 Kč` a `1 spinem`.
 
 - každý spin nejdřív odebere 1 spin,
 - peněžní pole přidá částku,
-- `x2` a `x3` násobí aktuální celkovou výhru,
+- `x2` a `x3` násobí aktuální částku,
 - každé pole kromě `100 Kč` vrátí `+1 spin`,
-- `100 Kč` je jediné pole bez extra spinu, takže při jeho dopadu hra skončí a ukáže finální částku.
+- `100 Kč` je jediné pole bez extra spinu,
+- jakmile po vyhodnocení nezbývá žádný spin, zobrazí se **PROHRÁL JSI** a výsledná částka.
 
-Výsledek je vybrán právě jednou na začátku spinu. Animace už pouze fyzicky dojede na zvolený segment.
+Výsledek je vybrán právě jednou na začátku spinu. Animace už pouze dojede na předem zvolený segment.
 
 ## Ovládání
 
@@ -70,13 +71,28 @@ Každý fyzický segment má stejnou pravděpodobnost. Pokud přidáš stejnou h
 
 - `src/core/WheelConfig.js` — segmenty a parametry spinu
 - `src/core/WheelEngine.js` — RNG a výpočet cílové rotace
-- `src/core/GameState.js` — Kč, spiny, historie a konec hry
-- `src/audio/AudioManager.js` — WebAudio SFX
-- `src/ui/WheelRenderer.js` — SVG kolo, fyzická rotace a pointer ticks
+- `src/core/GameState.js` — částka, spiny, historie a konec hry
+- `src/audio/AudioManager.js` — WebAudio vrstvy + volitelné Mixkit casino SFX
+- `src/ui/WheelRenderer.js` — SVG kolo, zpomalování, pointer ticks a jemné dosednutí
 - `src/ui/ParticleSystem.js` — částice a flash efekty
-- `src/ui/UI.js` — HUD, historie a finální overlay
-- `src/main.js` — propojení hry
-- `src/style.css` — celý game-show vizuál
+- `src/ui/UI.js` — HUD, historie, výsledky a finální overlay
+- `src/style.css` — základní game-show vizuál
+- `src/polish.css` — jemnější motion, finální loss styl a polish
+
+## Zvuky
+
+Hra používá vlastní WebAudio vrstvy a několik vzdálených SFX z Mixkit jako doplňkovou vrstvu. Když se externí sample nenačte, WebAudio fallback dál funguje.
+
+Použité Mixkit SFX:
+
+- Gold coin prize
+- Coins sound
+- Slot machine win alert
+- Slot machine win alarm
+- Failure arcade alert notification
+
+Zdroj: https://mixkit.co/free-sound-effects/
+Licence: https://mixkit.co/license/
 
 ## Vývoj
 
@@ -99,10 +115,8 @@ npm run build
 
 ## GitHub Pages
 
-Projekt zachovává Vite `base: './'`. Existující workflow v `.github/workflows/deploy.yml` sestaví `dist/` a nasadí ho na GitHub Pages po pushi do `main`.
-
-V nastavení repozitáře musí být jednou zapnuté **Settings → Pages → Source → GitHub Actions**.
+Projekt zachovává Vite `base: './'`. Workflow v `.github/workflows/deploy.yml` sestaví `dist/` a nasadí ho na GitHub Pages po pushi do `main`.
 
 ## OBS
 
-Stránka používá čisté browser API a funguje jako OBS Browser Source. Fullscreen UI je responzivní a hlavní ovládací prvky jsou čitelné i na streamu.
+Stránka používá čisté browser API a funguje jako OBS Browser Source.

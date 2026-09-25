@@ -1,7 +1,46 @@
+const SAMPLE_LIBRARY = {
+  coin: {
+    url: 'https://assets.mixkit.co/active_storage/sfx/1999/1999-preview.mp3',
+    volume: 0.34,
+  },
+  coins: {
+    url: 'https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3',
+    volume: 0.28,
+  },
+  winAlert: {
+    url: 'https://assets.mixkit.co/active_storage/sfx/1931/1931-preview.mp3',
+    volume: 0.26,
+  },
+  winAlarm: {
+    url: 'https://assets.mixkit.co/active_storage/sfx/1995/1995-preview.mp3',
+    volume: 0.18,
+  },
+  lose: {
+    url: 'https://assets.mixkit.co/active_storage/sfx/240/240-preview.mp3',
+    volume: 0.32,
+  },
+};
+
 export class AudioManager {
   constructor() {
     this.ctx = null;
+    this.noiseBuffer = null;
     this.muted = localStorage.getItem('wheel-muted') === '1';
+    this.samples = new Map();
+    this.preloadSamples();
+  }
+
+  preloadSamples() {
+    for (const [name, config] of Object.entries(SAMPLE_LIBRARY)) {
+      const audio = new Audio(config.url);
+      audio.preload = 'auto';
+      audio.volume = config.volume;
+      this.samples.set(name, { audio, config, failed: false });
+      audio.addEventListener('error', () => {
+        const sample = this.samples.get(name);
+        if (sample) sample.failed = true;
+      }, { once: true });
+    }
   }
 
   ensure() {
@@ -10,9 +49,21 @@ export class AudioManager {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return null;
       this.ctx = new AudioContext();
+      this.noiseBuffer = this.createNoiseBuffer();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
+  }
+
+  createNoiseBuffer() {
+    if (!this.ctx) return null;
+    const length = Math.max(1, Math.floor(this.ctx.sampleRate * 0.35));
+    const buffer = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i += 1) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
   }
 
   setMuted(value) {
@@ -25,56 +76,147 @@ export class AudioManager {
     return this.setMuted(!this.muted);
   }
 
-  tone({ frequency = 440, duration = 0.08, gain = 0.045, type = 'sine', detune = 0, slideTo = null }) {
+  playSample(name, { volume = 1, playbackRate = 1 } = {}) {
+    if (this.muted) return;
+    const sample = this.samples.get(name);
+    if (!sample || sample.failed) return;
+
+    try {
+      const player = sample.audio.cloneNode();
+      player.volume = Math.min(1, sample.config.volume * volume);
+      player.playbackRate = playbackRate;
+      player.play().catch(() => {});
+    } catch {
+      // Synth layers below keep the game audible if a remote sample is unavailable.
+    }
+  }
+
+  tone({
+    frequency = 440,
+    duration = 0.08,
+    gain = 0.045,
+    type = 'sine',
+    slideTo = null,
+    attack = 0.006,
+  }) {
     const ctx = this.ensure();
     if (!ctx) return;
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
     const amp = ctx.createGain();
+
     osc.type = type;
     osc.frequency.setValueAtTime(frequency, now);
-    osc.detune.setValueAtTime(detune, now);
-    if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration);
+    if (slideTo) {
+      osc.frequency.exponentialRampToValueAtTime(Math.max(1, slideTo), now + duration);
+    }
+
     amp.gain.setValueAtTime(0.0001, now);
-    amp.gain.exponentialRampToValueAtTime(gain, now + 0.006);
+    amp.gain.exponentialRampToValueAtTime(gain, now + attack);
     amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
     osc.connect(amp).connect(ctx.destination);
     osc.start(now);
-    osc.stop(now + duration + 0.02);
+    osc.stop(now + duration + 0.03);
+  }
+
+  noiseBurst({ duration = 0.08, gain = 0.025, frequency = 1600, type = 'bandpass' } = {}) {
+    const ctx = this.ensure();
+    if (!ctx || !this.noiseBuffer) return;
+
+    const source = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const amp = ctx.createGain();
+    const now = ctx.currentTime;
+
+    source.buffer = this.noiseBuffer;
+    filter.type = type;
+    filter.frequency.setValueAtTime(frequency, now);
+    filter.Q.setValueAtTime(0.8, now);
+    amp.gain.setValueAtTime(gain, now);
+    amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
+    source.connect(filter).connect(amp).connect(ctx.destination);
+    source.start(now);
+    source.stop(now + duration);
   }
 
   tick(speed = 1) {
-    this.tone({ frequency: 680 + Math.min(1, speed) * 260, duration: 0.035, gain: 0.022, type: 'square' });
+    const s = Math.max(0.1, Math.min(1, speed));
+    this.tone({
+      frequency: 1180 + s * 560,
+      duration: 0.022 + (1 - s) * 0.012,
+      gain: 0.014 + s * 0.008,
+      type: 'triangle',
+      slideTo: 760 + s * 320,
+      attack: 0.002,
+    });
+    this.tone({
+      frequency: 150 + s * 55,
+      duration: 0.028,
+      gain: 0.018,
+      type: 'sine',
+      slideTo: 105,
+      attack: 0.002,
+    });
   }
 
   spinStart() {
-    this.tone({ frequency: 110, slideTo: 260, duration: 0.32, gain: 0.06, type: 'sawtooth' });
+    this.noiseBurst({ duration: 0.18, gain: 0.018, frequency: 1200, type: 'highpass' });
+    this.tone({ frequency: 82, slideTo: 180, duration: 0.28, gain: 0.052, type: 'sawtooth', attack: 0.008 });
+    setTimeout(() => this.tone({ frequency: 520, slideTo: 760, duration: 0.12, gain: 0.025, type: 'triangle' }), 55);
   }
 
   impact() {
-    this.tone({ frequency: 95, slideTo: 55, duration: 0.22, gain: 0.09, type: 'sine' });
-    setTimeout(() => this.tone({ frequency: 420, duration: 0.11, gain: 0.055, type: 'triangle' }), 35);
+    this.noiseBurst({ duration: 0.055, gain: 0.038, frequency: 2100, type: 'bandpass' });
+    this.tone({ frequency: 92, slideTo: 48, duration: 0.24, gain: 0.09, type: 'sine', attack: 0.003 });
+    setTimeout(() => this.tone({ frequency: 610, slideTo: 510, duration: 0.15, gain: 0.045, type: 'triangle' }), 24);
   }
 
   money(value = 10) {
-    const base = 720 + Math.min(100, value) * 2;
-    this.tone({ frequency: base, duration: 0.12, gain: 0.055, type: 'triangle' });
-    setTimeout(() => this.tone({ frequency: base * 1.25, duration: 0.15, gain: 0.05, type: 'triangle' }), 85);
+    this.playSample(value >= 50 ? 'coins' : 'coin', {
+      volume: value >= 75 ? 1.15 : 1,
+      playbackRate: value >= 60 ? 1.04 : 1,
+    });
+
+    const base = 660 + Math.min(100, value) * 2.2;
+    this.tone({ frequency: base, duration: 0.11, gain: 0.034, type: 'triangle' });
+    setTimeout(() => this.tone({ frequency: base * 1.28, duration: 0.18, gain: 0.035, type: 'sine' }), 70);
   }
 
   multiplier(multiplier) {
-    const notes = multiplier === 3 ? [330, 495, 660, 990] : [330, 495, 740];
-    notes.forEach((frequency, i) => setTimeout(() => this.tone({ frequency, duration: 0.16, gain: 0.07, type: 'sawtooth' }), i * 90));
+    this.playSample('winAlert', { volume: multiplier === 3 ? 1.15 : 0.9, playbackRate: multiplier === 3 ? 1.06 : 1 });
+    if (multiplier === 3) {
+      setTimeout(() => this.playSample('winAlarm', { volume: 0.7, playbackRate: 1.08 }), 180);
+    }
+
+    const notes = multiplier === 3
+      ? [330, 440, 554.37, 659.25, 880]
+      : [330, 440, 554.37, 740];
+    notes.forEach((frequency, i) => {
+      setTimeout(() => this.tone({ frequency, duration: 0.2, gain: 0.045, type: 'triangle' }), i * 74);
+    });
   }
 
   extraSpin() {
-    this.tone({ frequency: 520, duration: 0.09, gain: 0.04, type: 'triangle' });
-    setTimeout(() => this.tone({ frequency: 780, duration: 0.13, gain: 0.05, type: 'triangle' }), 65);
+    this.playSample('coin', { volume: 0.6, playbackRate: 1.24 });
+    this.tone({ frequency: 620, duration: 0.08, gain: 0.026, type: 'triangle' });
+    setTimeout(() => this.tone({ frequency: 930, duration: 0.15, gain: 0.035, type: 'sine' }), 52);
   }
 
-  finale() {
-    [392, 523.25, 659.25, 783.99, 1046.5].forEach((frequency, i) => {
-      setTimeout(() => this.tone({ frequency, duration: 0.3, gain: 0.065, type: 'triangle' }), i * 120);
+  lossFinale() {
+    this.playSample('lose', { volume: 1.05, playbackRate: 0.94 });
+    this.noiseBurst({ duration: 0.16, gain: 0.025, frequency: 700, type: 'lowpass' });
+    const notes = [220, 174.61, 146.83, 110];
+    notes.forEach((frequency, i) => {
+      setTimeout(() => this.tone({
+        frequency,
+        slideTo: frequency * 0.86,
+        duration: 0.34,
+        gain: 0.045,
+        type: 'triangle',
+        attack: 0.01,
+      }), i * 145);
     });
   }
 }
