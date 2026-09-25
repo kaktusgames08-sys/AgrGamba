@@ -1,4 +1,5 @@
 import './style.css';
+import './polish.css';
 import { WHEEL_SEGMENTS } from './core/WheelConfig.js';
 import { pickSegmentIndex } from './core/WheelEngine.js';
 import { GameState } from './core/GameState.js';
@@ -33,6 +34,7 @@ function updateControls() {
 
 async function spin() {
   if (busy || !state.canSpin()) return;
+
   audio.ensure();
   busy = true;
   state.beginSpin();
@@ -44,33 +46,49 @@ async function spin() {
   const segment = WHEEL_SEGMENTS[index];
 
   await wheel.spinTo(index);
+
   const record = state.resolve(segment);
   ui.renderState(state);
   ui.showResult(record);
 
   if (record.type === 'multiplier') {
     audio.multiplier(record.multiplier);
-    particles.burst({ count: record.multiplier === 3 ? 92 : 66, intense: true });
-    particles.screenFlash(record.multiplier === 3 ? 'strong' : 'normal');
-    ui.shake(record.multiplier === 3 ? 'heavy' : 'normal');
+    particles.burst({
+      count: record.multiplier === 3 ? 62 : 46,
+      intense: true,
+      variant: 'reward',
+    });
+    particles.screenFlash(record.multiplier === 3 ? 'strong' : 'normal', 'reward');
+    ui.shake(record.multiplier === 3 ? 'normal' : 'soft');
   } else {
     audio.money(record.value);
-    particles.burst({ count: Math.min(70, 24 + record.value / 2), intense: record.value >= 60 });
-    if (record.value >= 50) particles.screenFlash(record.value >= 75 ? 'strong' : 'normal');
-    if (record.value >= 60) ui.shake('normal');
+    particles.burst({
+      count: Math.min(42, 18 + Math.round(record.value / 4)),
+      intense: record.value >= 60,
+      variant: 'reward',
+    });
+
+    if (record.value >= 60) {
+      particles.screenFlash(record.value >= 75 ? 'strong' : 'normal', 'reward');
+      ui.shake('soft');
+    }
   }
 
   if (record.extraSpins) {
-    setTimeout(() => audio.extraSpin(), 260);
+    setTimeout(() => audio.extraSpin(), 220);
   }
 
-  await wait(segment.finale ? 1200 : 950);
+  await wait(segment.finale ? 820 : 780);
 
   if (state.isEnded()) {
-    audio.finale();
-    particles.screenFlash('strong');
-    particles.burst({ count: 110, intense: true });
-    ui.shake('heavy');
+    ui.hideResult();
+    await wait(120);
+
+    audio.lossFinale();
+    particles.screenFlash('strong', 'loss');
+    particles.burst({ count: 48, intense: true, variant: 'loss' });
+    ui.shake('normal');
+
     await ui.showFinal(state.total);
   } else {
     ui.hideResult();
@@ -82,18 +100,23 @@ async function spin() {
 
 function restart() {
   if (busy) return;
+
   state.reset();
   wheel.clearWinner();
   ui.hideFinal();
   ui.hideResult();
+  ui.resetAnimationMemory(state);
   ui.renderState(state);
   updateControls();
 }
 
 async function toggleFullscreen() {
   try {
-    if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
-    else await document.exitFullscreen();
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen();
+    } else {
+      await document.exitFullscreen();
+    }
   } catch {
     // Browser/OBS environments can deny fullscreen; gameplay should keep working.
   }
@@ -106,6 +129,7 @@ ui.fullscreenButton.addEventListener('click', toggleFullscreen);
 
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
+
   if (event.code === 'Space') {
     event.preventDefault();
     spin();
