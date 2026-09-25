@@ -1,7 +1,7 @@
 {
-  "name": "gamba",
-  "version": "1.0.0",
-  "description": "GAMBA — Agraelus vs Chatter meme randomizer. No real gambling, no money, just a dopamine-cannon slot machine that decides who takes the L.",
+  "name": "kolo-stesti",
+  "version": "2.0.0",
+  "description": "Kolo štěstí — high-energy browser wheel game built for GitHub Pages and OBS.",
   "type": "module",
   "scripts": {
     "dev": "vite",
