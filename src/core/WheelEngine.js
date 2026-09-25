@@ -18,10 +18,22 @@ export function segmentAngle(segmentCount) {
 export function landingRotation(currentRotation, index, segmentCount, rng = Math.random) {
   const slice = segmentAngle(segmentCount);
   const normalized = ((currentRotation % 360) + 360) % 360;
-  const targetNormalized = ((360 - index * slice) % 360 + 360) % 360;
+
+  // Pick a real landing position inside the already-selected segment instead of
+  // snapping every result to its exact center. Keeping a small safety margin
+  // avoids ambiguous border landings while still allowing convincing close calls.
+  const landingRandom = Math.min(0.999999999999, Math.max(0, rng()));
+  const maxOffset = slice * 0.44;
+  const landingOffset = (landingRandom * 2 - 1) * maxOffset;
+
+  const targetAngle = index * slice + landingOffset;
+  const targetNormalized = ((360 - targetAngle) % 360 + 360) % 360;
   const alignmentDelta = (targetNormalized - normalized + 360) % 360;
-  const extraTurns = Math.floor(Math.min(0.999999999999, Math.max(0, rng())) * (MAX_EXTRA_TURNS + 1));
+
+  const turnRandom = Math.min(0.999999999999, Math.max(0, rng()));
+  const extraTurns = Math.floor(turnRandom * (MAX_EXTRA_TURNS + 1));
   const turns = MIN_FULL_TURNS + extraTurns;
+
   return currentRotation + turns * 360 + alignmentDelta;
 }
 
