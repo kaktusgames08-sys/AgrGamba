@@ -5,6 +5,7 @@ import {
   DEFAULT_SETTINGS,
   SettingsManager,
   applyPresentationPreset,
+  migrateBalancedExits,
   normalizeSettings,
 } from '../src/core/SettingsManager.js';
 
@@ -99,4 +100,74 @@ test('normalizeSettings keeps explicit v4 presentation preset', () => {
 
   assert.equal(settings.presentationPreset, 'arcade');
   assert.equal(settings.effects, 'medium');
+});
+
+
+test('default wheel has two 100 Kč exit segments', () => {
+  const exits = DEFAULT_SETTINGS.segments.filter((segment) =>
+    segment.type === 'money'
+      && segment.value === 100
+      && segment.extraSpins === 0
+  );
+
+  assert.equal(exits.length, 2);
+});
+
+test('legacy v4 wheel with one exit is migrated to two 100 Kč exits', () => {
+  const oldSegments = DEFAULT_SETTINGS.segments.map((segment, index) =>
+    index === 15
+      ? {
+          label: '75 Kč + SPIN',
+          type: 'money',
+          value: 75,
+          extraSpins: 1,
+          tone: 'orange',
+        }
+      : segment
+  );
+
+  const migrated = migrateBalancedExits({
+    ...DEFAULT_SETTINGS,
+    segments: oldSegments,
+  });
+
+  const exits = migrated.segments.filter((segment) =>
+    segment.type === 'money'
+      && Number(segment.value) === 100
+      && Number(segment.extraSpins) === 0
+  );
+
+  assert.equal(exits.length, 2);
+  assert.equal(migrated.segments[15].value, 100);
+  assert.equal(migrated.segments[15].extraSpins, 0);
+});
+
+test('SettingsManager automatically migrates stored v4 balance once', () => {
+  const storage = new MemoryStorage();
+  const legacy = {
+    ...DEFAULT_SETTINGS,
+    segments: DEFAULT_SETTINGS.segments.map((segment, index) =>
+      index === 15
+        ? {
+            label: '75 Kč + SPIN',
+            type: 'money',
+            value: 75,
+            extraSpins: 1,
+            tone: 'orange',
+          }
+        : segment
+    ),
+  };
+
+  storage.setItem('kolo-nestesti-settings-v4', JSON.stringify(legacy));
+
+  const loaded = new SettingsManager(storage).get();
+  const exits = loaded.segments.filter((segment) =>
+    segment.type === 'money'
+      && segment.value === 100
+      && segment.extraSpins === 0
+  );
+
+  assert.equal(exits.length, 2);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.1'));
 });
