@@ -9,6 +9,7 @@ test('money + spin continues the game', () => {
   assert.equal(state.total, 20);
   assert.equal(state.spins, 1);
   assert.equal(state.phase, 'ready');
+  assert.equal(state.spinCount, 1);
 });
 
 test('multiplier applies to current total and returns a spin', () => {
@@ -27,4 +28,18 @@ test('100 Kč without extra spin ends the game', () => {
   assert.equal(state.total, 100);
   assert.equal(state.spins, 0);
   assert.equal(state.phase, 'ended');
+});
+
+test('starting spins can be configured and survive reset', () => {
+  const state = new GameState(4);
+  assert.equal(state.spins, 4);
+
+  state.beginSpin();
+  assert.equal(state.spins, 3);
+
+  state.setStartingSpins(2);
+  state.reset();
+
+  assert.equal(state.spins, 2);
+  assert.equal(state.spinCount, 0);
 });
