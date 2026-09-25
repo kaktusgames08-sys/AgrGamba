@@ -3,7 +3,6 @@ import './polish.css';
 import './v3.css';
 import './v4.css';
 
-import { pickSegmentIndex } from './core/WheelEngine.js';
 import { GameState } from './core/GameState.js';
 import { SettingsManager } from './core/SettingsManager.js';
 import { AudioManager } from './audio/AudioManager.js';
@@ -74,13 +73,6 @@ function impactStrength(tier) {
   return 'soft';
 }
 
-function freezeDuration(tier) {
-  if (tier === 'multiplier3' || tier === 'final') return 88;
-  if (tier === 'big' || tier === 'multiplier2') return 72;
-  if (tier === 'medium') return 60;
-  return 48;
-}
-
 function applyPresentationSettings(nextSettings) {
   audio.setMasterVolume(nextSettings.masterVolume);
   particles.setEffectLevel(nextSettings.effects);
@@ -129,10 +121,6 @@ const settingsPanel = new SettingsPanel({
 });
 
 async function revealLanding(index, tier) {
-  ui.microFreeze(true);
-  await wait(freezeDuration(tier));
-  ui.microFreeze(false);
-
   wheel.revealWinner(index);
   ledRing.flashWinner();
 
@@ -213,10 +201,9 @@ async function spin() {
   ui.hideResult();
   ui.setGameOverVisual(false);
 
-  const index = pickSegmentIndex(settings.segments);
+  const landing = await wheel.spinRandom();
+  const index = landing.index;
   const segment = settings.segments[index];
-
-  await wheel.spinTo(index);
 
   const previewRecord = {
     type: segment.type,
