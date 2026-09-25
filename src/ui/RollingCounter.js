@@ -3,7 +3,7 @@ function digitsOnly(value) {
 }
 
 function buildTrack() {
-  return Array.from({ length: 20 }, (_, index) =>
+  return Array.from({ length: 30 }, (_, index) =>
     '<span>' + (index % 10) + '</span>',
   ).join('');
 }
@@ -68,9 +68,10 @@ export class RollingCounter {
       group.appendChild(viewport);
 
       requestAnimationFrame(() => {
-        const extraLoops = 10 + (length - index) * 10;
-        track.style.transition = 'transform ' + duration + 'ms cubic-bezier(.12,.72,.2,1)';
-        track.style.transform = 'translateY(-' + (extraLoops + toDigit) + 'em)';
+        const targetDigit = 20 + toDigit;
+        const columnDuration = Math.max(420, duration - index * 24);
+        track.style.transition = 'transform ' + columnDuration + 'ms cubic-bezier(.12,.72,.2,1)';
+        track.style.transform = 'translateY(-' + targetDigit + 'em)';
       });
     }
 
