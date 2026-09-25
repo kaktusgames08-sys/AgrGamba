@@ -1,0 +1,328 @@
+/* Kolo neštěstí — animation/audio polish layer.
+   Loaded after style.css so it can refine motion without bloating the base theme. */
+
+.brand h1 {
+  max-width: 520px;
+  font-size: clamp(23px, 3vw, 45px);
+  letter-spacing: -0.06em;
+}
+
+.hud-card--money .hud-card__label {
+  color: #ffd784;
+}
+
+.is-money-bumping {
+  animation: moneyBump 340ms cubic-bezier(.18,.86,.28,1);
+}
+
+.is-spin-bumping {
+  animation: spinBump 330ms cubic-bezier(.2,.9,.28,1);
+}
+
+@keyframes moneyBump {
+  0% { transform: scale(1); filter: brightness(1); }
+  42% { transform: scale(1.075); filter: brightness(1.25) drop-shadow(0 0 8px rgba(255,205,83,.45)); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes spinBump {
+  0% { transform: translateY(0) scale(1); }
+  44% { transform: translateY(-2px) scale(1.09); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.wheel-segment.is-winner .wheel-label {
+  animation: winnerGlow 520ms ease-in-out 2 alternate;
+  filter: drop-shadow(0 0 6px rgba(255,255,255,.86));
+}
+
+@keyframes winnerGlow {
+  from {
+    opacity: .92;
+    filter: drop-shadow(0 0 4px rgba(255,255,255,.45));
+  }
+  to {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 8px rgba(255,255,255,.95))
+      drop-shadow(0 0 14px rgba(255,205,73,.72));
+  }
+}
+
+.pointer.is-ticking {
+  animation: pointerTick 92ms cubic-bezier(.2,.72,.32,1);
+}
+
+@keyframes pointerTick {
+  0% { transform: rotate(0deg); }
+  45% { transform: rotate(4deg); }
+  72% { transform: rotate(-.7deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.result-burst {
+  min-width: min(470px, 84vw);
+  padding: 16px 22px 18px;
+  border-radius: 24px;
+  transform: translate(-50%, calc(-50% + 14px)) scale(.95);
+  filter: blur(4px);
+  opacity: 0;
+  transition:
+    opacity 180ms ease,
+    transform 280ms cubic-bezier(.2,.9,.3,1),
+    filter 220ms ease;
+  box-shadow:
+    0 0 0 4px rgba(99,31,12,.82),
+    0 14px 44px rgba(0,0,0,.48),
+    0 0 28px rgba(255,190,56,.32);
+}
+
+.result-burst.is-visible {
+  opacity: 1;
+  filter: blur(0);
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.result-burst.is-leaving {
+  opacity: 0;
+  filter: blur(2px);
+  transform: translate(-50%, calc(-50% - 8px)) scale(.985);
+  transition-duration: 190ms;
+}
+
+.result-burst__main {
+  text-shadow:
+    0 4px 0 #6a2209,
+    0 0 20px rgba(255,214,82,.48);
+}
+
+.result-burst.is-multiplier .result-burst__main {
+  text-shadow:
+    0 4px 0 #4d105e,
+    0 0 24px rgba(222,95,255,.58);
+}
+
+.screen-flash {
+  background:
+    radial-gradient(circle, rgba(255,249,204,.64), rgba(255,187,47,.14) 46%, transparent 72%);
+}
+
+.screen-flash[data-variant="loss"] {
+  background:
+    radial-gradient(circle, rgba(255,136,98,.35), rgba(128,20,31,.2) 44%, transparent 72%);
+}
+
+.screen-flash.is-active {
+  animation: screenFlash 360ms ease-out;
+}
+
+.screen-flash[data-strength="strong"].is-active {
+  animation-duration: 480ms;
+}
+
+@keyframes screenFlash {
+  0% { opacity: 0; }
+  18% { opacity: .72; }
+  100% { opacity: 0; }
+}
+
+.shake-soft {
+  animation: shakeSoft 220ms ease-out;
+}
+
+.shake-normal {
+  animation: shakeNormal 270ms ease-out;
+}
+
+.shake-heavy {
+  animation: shakeHeavy 340ms ease-out;
+}
+
+@keyframes shakeSoft {
+  30% { transform: translate3d(-1.5px, .5px, 0); }
+  60% { transform: translate3d(1.5px, -.5px, 0); }
+  100% { transform: translate3d(0,0,0); }
+}
+
+@keyframes shakeNormal {
+  20% { transform: translate3d(-3px, 1px, 0); }
+  40% { transform: translate3d(3px, -1px, 0); }
+  62% { transform: translate3d(-2px, .5px, 0); }
+  82% { transform: translate3d(1px, 0, 0); }
+  100% { transform: translate3d(0,0,0); }
+}
+
+@keyframes shakeHeavy {
+  15% { transform: translate3d(-4px, 1.5px, 0); }
+  32% { transform: translate3d(4px, -1.5px, 0); }
+  50% { transform: translate3d(-3px, 1px, 0); }
+  68% { transform: translate3d(2px, -.5px, 0); }
+  84% { transform: translate3d(-1px, 0, 0); }
+  100% { transform: translate3d(0,0,0); }
+}
+
+.particle {
+  width: 8px;
+  height: 13px;
+  border-radius: 2px;
+  animation: particleFly 920ms cubic-bezier(.12,.68,.24,1) var(--delay) forwards;
+}
+
+.particle--reward:nth-child(4n+1) { background: #ff6a9c; }
+.particle--reward:nth-child(4n+2) { background: #89ff9b; }
+.particle--reward:nth-child(4n+3) { background: #9b83ff; }
+
+.particle--loss,
+.particle--loss:nth-child(4n+1),
+.particle--loss:nth-child(4n+2),
+.particle--loss:nth-child(4n+3) {
+  background: #ff674f;
+  box-shadow: 0 0 8px rgba(255,70,50,.52);
+}
+
+.particle--loss:nth-child(3n+2) {
+  background: #b92c3d;
+}
+
+.particle--loss:nth-child(3n) {
+  background: #ffd181;
+}
+
+@keyframes particleFly {
+  0% {
+    transform: translate(-50%,-50%) scale(calc(.45 * var(--particle-scale))) rotate(0);
+    opacity: 0;
+  }
+  12% { opacity: 1; }
+  100% {
+    transform:
+      translate(calc(-50% + var(--x)), calc(-50% + var(--y)))
+      scale(var(--particle-scale))
+      rotate(var(--r));
+    opacity: 0;
+  }
+}
+
+.final-overlay {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(153,28,43,.32), rgba(29,4,22,.94) 52%, rgba(7,1,7,.985));
+  transition: opacity 260ms ease, visibility 260ms ease;
+}
+
+.final-card {
+  transform: scale(.94) translateY(12px);
+  transition:
+    transform 320ms cubic-bezier(.2,.82,.3,1),
+    opacity 260ms ease;
+}
+
+.final-overlay.is-visible .final-card {
+  transform: scale(1) translateY(0);
+}
+
+.final-card--loss {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,168,92,.17), transparent 34%),
+    linear-gradient(145deg, #68152a, #2c0b22 55%, #11050f);
+  border-color: #ef9d39;
+  box-shadow:
+    inset 0 0 0 5px #661e12,
+    inset 0 0 72px rgba(255,95,49,.09),
+    0 30px 90px rgba(0,0,0,.62),
+    0 0 54px rgba(223,59,45,.23);
+}
+
+.final-card::before,
+.final-card::after {
+  animation: none;
+  opacity: .58;
+}
+
+.final-card__eyebrow {
+  color: #ffb75b;
+}
+
+.final-card__title {
+  color: #ff755d;
+  -webkit-text-stroke: 1px rgba(94,17,20,.7);
+  text-shadow:
+    0 5px 0 #60191a,
+    0 0 24px rgba(255,77,60,.32);
+}
+
+.final-card__label {
+  margin-top: 22px;
+  font-size: 11px;
+  font-weight: 1000;
+  letter-spacing: .23em;
+  color: rgba(255,231,190,.66);
+}
+
+.final-card__amount {
+  margin-top: 4px;
+  color: #ffe7a0;
+  -webkit-text-stroke: 2px #7a3213;
+  text-shadow:
+    0 6px 0 #5b220f,
+    0 0 28px rgba(255,186,67,.32);
+}
+
+.final-card__amount.is-final-settled {
+  animation: finalSettle 300ms cubic-bezier(.2,.9,.3,1);
+}
+
+@keyframes finalSettle {
+  0% { transform: scale(.985); }
+  45% { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+.final-card__message {
+  margin-top: 10px;
+  color: rgba(255,230,212,.7);
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.final-card__sparkline {
+  margin-top: 18px;
+  color: #db6b4d;
+  opacity: .72;
+}
+
+.restart-button {
+  background: linear-gradient(180deg,#ffd990,#ed8c2b);
+  box-shadow:
+    inset 0 2px rgba(255,255,255,.5),
+    0 5px 0 #7b2b12,
+    0 11px 24px rgba(0,0,0,.32);
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.restart-button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+
+.spin-button {
+  transition: transform 120ms ease, filter 160ms ease, box-shadow 160ms ease;
+}
+
+.spin-button.is-busy {
+  filter: saturate(.75) brightness(.9);
+}
+
+@media (max-width: 620px) {
+  .brand h1 {
+    font-size: 26px;
+    white-space: nowrap;
+  }
+
+  .final-card__label {
+    margin-top: 16px;
+  }
+
+  .final-card__message {
+    font-size: 12px;
+  }
+}
