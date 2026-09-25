@@ -93,9 +93,14 @@ export class UI {
   }
 
   shake(strength = 'normal') {
-    this.wheelShell.classList.remove('shake-normal', 'shake-heavy');
+    this.wheelShell.classList.remove('shake-soft', 'shake-normal', 'shake-heavy');
     void this.wheelShell.offsetWidth;
-    this.wheelShell.classList.add(strength === 'heavy' ? 'shake-heavy' : 'shake-normal');
+    const className = strength === 'heavy'
+      ? 'shake-heavy'
+      : strength === 'soft'
+        ? 'shake-soft'
+        : 'shake-normal';
+    this.wheelShell.classList.add(className);
   }
 
   setMuted(muted) {
