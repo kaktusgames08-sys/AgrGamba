@@ -190,7 +190,7 @@
 
 @keyframes particleFly {
   0% {
-    transform: translate(-50%,-50%) scale(calc(.45 * var(--particle-scale))) rotate(0);
+    transform: translate(-50%,-50%) scale(.45) rotate(0);
     opacity: 0;
   }
   12% { opacity: 1; }
