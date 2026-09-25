@@ -16,6 +16,10 @@ export class LedRing {
     for (let i = 0; i < this.count; i += 1) {
       const bulb = document.createElement('i');
       bulb.className = 'led-ring__bulb';
+
+      const angle = (i / this.count) * Math.PI * 2 - Math.PI / 2;
+      bulb.style.left = (50 + Math.cos(angle) * 48.1) + '%';
+      bulb.style.top = (50 + Math.sin(angle) * 48.1) + '%';
       bulb.style.setProperty('--led-angle', (i * 360 / this.count) + 'deg');
       bulb.style.setProperty('--led-index', i);
       fragment.appendChild(bulb);
