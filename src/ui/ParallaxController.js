@@ -44,8 +44,12 @@ export class ParallaxController {
       this.current.x += (this.pointer.x - this.current.x) * ease;
       this.current.y += (this.pointer.y - this.current.y) * ease;
 
+      const xPx = this.current.x * 4.5;
+      const yPx = this.current.y * 3.2;
       this.root?.style.setProperty('--parallax-x', this.current.x.toFixed(4));
       this.root?.style.setProperty('--parallax-y', this.current.y.toFixed(4));
+      this.root?.style.setProperty('--stage-x', xPx.toFixed(2) + 'px');
+      this.root?.style.setProperty('--stage-y', yPx.toFixed(2) + 'px');
 
       const moving = Math.abs(this.current.x - this.pointer.x) > 0.002
         || Math.abs(this.current.y - this.pointer.y) > 0.002;
