@@ -1,4 +1,5 @@
 import {
+  DEFAULT_SETTINGS,
   TONE_OPTIONS,
   makeSegmentLabel,
   normalizeSegment,
@@ -64,7 +65,7 @@ export class SettingsPanel {
 
     this.applyButton?.addEventListener('click', () => this.apply());
     this.resetButton?.addEventListener('click', () => {
-      this.draft = this.manager.reset();
+      this.draft = JSON.parse(JSON.stringify(DEFAULT_SETTINGS));
       this.render();
       this.showError('');
     });
