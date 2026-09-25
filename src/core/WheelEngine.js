@@ -1,37 +1,97 @@
 import { MAX_EXTRA_TURNS, MIN_FULL_TURNS } from './WheelConfig.js';
 
+function clampRandom(value) {
+  return Math.min(0.999999999999, Math.max(0, Number(value) || 0));
+}
+
+function normalizeDegrees(value) {
+  return ((value % 360) + 360) % 360;
+}
+
+function normalizeIndex(index, count) {
+  return ((index % count) + count) % count;
+}
+
 export function pickSegmentIndex(segments, rng = Math.random) {
   if (!Array.isArray(segments) || segments.length === 0) {
     throw new Error('Wheel requires at least one segment.');
   }
-  const value = Math.min(0.999999999999, Math.max(0, rng()));
-  return Math.floor(value * segments.length);
+
+  return Math.floor(clampRandom(rng()) * segments.length);
 }
 
 export function segmentAngle(segmentCount) {
   if (!Number.isInteger(segmentCount) || segmentCount <= 0) {
     throw new Error('segmentCount must be a positive integer.');
   }
+
   return 360 / segmentCount;
 }
 
-export function landingRotation(currentRotation, index, segmentCount, rng = Math.random) {
+export function segmentIndexForRotation(rotation, segmentCount) {
   const slice = segmentAngle(segmentCount);
-  const normalized = ((currentRotation % 360) + 360) % 360;
+  return normalizeIndex(Math.round(-rotation / slice), segmentCount);
+}
 
-  // Pick a real landing position inside the already-selected segment instead of
-  // snapping every result to its exact center. Keeping a small safety margin
-  // avoids ambiguous border landings while still allowing convincing close calls.
-  const landingRandom = Math.min(0.999999999999, Math.max(0, rng()));
-  const maxOffset = slice * 0.44;
-  const landingOffset = (landingRandom * 2 - 1) * maxOffset;
+export function randomLandingRotation(
+  currentRotation,
+  segmentCount,
+  rng = Math.random,
+  borderMarginRatio = 0.07,
+) {
+  const slice = segmentAngle(segmentCount);
+  const marginRatio = Math.max(0, Math.min(0.22, Number(borderMarginRatio) || 0));
+  const safeHalf = slice * (0.5 - marginRatio);
+  const safeWidth = safeHalf * 2;
 
+  // One continuous random position over the union of every safe segment interior.
+  // Border strips are the only forbidden area, so the wheel never stops exactly
+  // between two results while every physical segment keeps equal probability.
+  const safePosition = clampRandom(rng()) * segmentCount * safeWidth;
+  const index = Math.min(
+    segmentCount - 1,
+    Math.floor(safePosition / safeWidth),
+  );
+  const offset = safePosition - index * safeWidth - safeHalf;
+  const targetAngle = index * slice + offset;
+
+  const normalized = normalizeDegrees(currentRotation);
+  const targetNormalized = normalizeDegrees(360 - targetAngle);
+  const alignmentDelta = normalizeDegrees(targetNormalized - normalized);
+
+  const extraTurns = Math.floor(
+    clampRandom(rng()) * (MAX_EXTRA_TURNS + 1),
+  );
+  const turns = MIN_FULL_TURNS + extraTurns;
+  const rotation = currentRotation + turns * 360 + alignmentDelta;
+
+  return {
+    rotation,
+    index,
+    targetAngle,
+    offset,
+    turns,
+  };
+}
+
+// Kept for compatibility with older callers/tests. This still lands randomly
+// inside the requested segment rather than snapping to the label center.
+export function landingRotation(
+  currentRotation,
+  index,
+  segmentCount,
+  rng = Math.random,
+) {
+  const slice = segmentAngle(segmentCount);
+  const normalized = normalizeDegrees(currentRotation);
+  const landingOffset = (clampRandom(rng()) * 2 - 1) * slice * 0.43;
   const targetAngle = index * slice + landingOffset;
-  const targetNormalized = ((360 - targetAngle) % 360 + 360) % 360;
-  const alignmentDelta = (targetNormalized - normalized + 360) % 360;
+  const targetNormalized = normalizeDegrees(360 - targetAngle);
+  const alignmentDelta = normalizeDegrees(targetNormalized - normalized);
 
-  const turnRandom = Math.min(0.999999999999, Math.max(0, rng()));
-  const extraTurns = Math.floor(turnRandom * (MAX_EXTRA_TURNS + 1));
+  const extraTurns = Math.floor(
+    clampRandom(rng()) * (MAX_EXTRA_TURNS + 1),
+  );
   const turns = MIN_FULL_TURNS + extraTurns;
 
   return currentRotation + turns * 360 + alignmentDelta;

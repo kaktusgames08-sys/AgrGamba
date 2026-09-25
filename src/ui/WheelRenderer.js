@@ -1,4 +1,7 @@
-import { landingRotation, segmentAngle } from '../core/WheelEngine.js';
+import {
+  randomLandingRotation,
+  segmentAngle,
+} from '../core/WheelEngine.js';
 import { SPIN_DURATION_MS } from '../core/WheelConfig.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -39,22 +42,30 @@ function wedgePath(cx, cy, radius, startAngle, endAngle) {
 
 function spinProgress(t) {
   const clamped = Math.min(1, Math.max(0, t));
-
-  // Move immediately after the click instead of easing from zero velocity.
-  // Keep most of the speed until later in the spin, then decelerate smoothly.
-  const cruiseEnd = 0.52;
-  const cruiseDistance = 0.603;
+  const cruiseEnd = 0.66;
+  const cruiseSpeed = 1.05;
 
   if (clamped <= cruiseEnd) {
-    return cruiseDistance * (clamped / cruiseEnd);
+    return cruiseSpeed * clamped;
   }
 
-  const u = (clamped - cruiseEnd) / (1 - cruiseEnd);
-  const decelExponent = 1.4;
+  // C2-continuous quintic deceleration. Velocity and acceleration both join
+  // cleanly at cruiseEnd, then velocity reaches exactly zero at t=1.
+  const span = 1 - cruiseEnd;
+  const u = (clamped - cruiseEnd) / span;
+  const startPosition = cruiseSpeed * cruiseEnd;
+  const startSlope = cruiseSpeed * span;
+  const remainder = 1 - startPosition - startSlope;
 
-  return cruiseDistance
-    + (1 - cruiseDistance)
-      * (1 - Math.pow(1 - u, decelExponent));
+  const a3 = 10 * remainder + 4 * startSlope;
+  const a4 = -15 * remainder - 7 * startSlope;
+  const a5 = 6 * remainder + 3 * startSlope;
+
+  return startPosition
+    + startSlope * u
+    + a3 * Math.pow(u, 3)
+    + a4 * Math.pow(u, 4)
+    + a5 * Math.pow(u, 5);
 }
 
 function normalizeIndex(index, count) {
@@ -342,21 +353,23 @@ export class WheelRenderer {
     this.pointer.classList.add('is-ticking');
   }
 
-  spinTo(index, rng = Math.random) {
+  spinRandom(rng = Math.random) {
     this.clearWinner();
 
     const startRotation = this.rotation;
-    const targetRotation = landingRotation(
+    const landing = randomLandingRotation(
       startRotation,
-      index,
       this.segments.length,
       rng,
     );
+    const targetRotation = landing.rotation;
+    const index = landing.index;
     const distance = targetRotation - startRotation;
     const slice = segmentAngle(this.segments.length);
+    const durationJitter = 0.94 + Math.min(0.999999999999, Math.max(0, rng())) * 0.12;
+    const duration = this.spinDurationMs * durationJitter;
     const startedAt = performance.now();
     let lastBoundary = Math.floor(startRotation / slice);
-    let anticipationStage = 0;
 
     this.shell?.classList.add('is-spinning');
     this.setPhase('spinning');
@@ -364,7 +377,7 @@ export class WheelRenderer {
 
     return new Promise((resolve) => {
       const frame = (now) => {
-        const t = Math.min(1, (now - startedAt) / this.spinDurationMs);
+        const t = Math.min(1, (now - startedAt) / duration);
         const progress = spinProgress(t);
         const current = startRotation + distance * progress;
 
@@ -379,34 +392,21 @@ export class WheelRenderer {
         const boundary = Math.floor(current / slice);
 
         if (boundary !== lastBoundary) {
-          const speed = Math.max(0.08, Math.min(1, (1 - t) * 1.22));
+          const speed = Math.max(0.06, Math.min(1, Math.abs(boundary - lastBoundary) * (1 - t) * 1.15));
           this.audio.tick(speed);
           this.bouncePointer();
           lastBoundary = boundary;
         }
 
-        if (t > 0.82) {
-          this.shell?.classList.add('is-anticipating');
+        // Don't telegraph the outcome early. Only light the physical segment
+        // under the pointer during the very last part of the natural slowdown.
+        if (t > 0.94) {
           this.updatePointerHighlight(current);
         }
 
-        let nextStage = 0;
-
-        if (t > 0.975) {
-          nextStage = 3;
+        if (t > 0.97) {
           this.shell?.classList.add('is-settling');
           this.setPhase('settling');
-        } else if (t > 0.925) {
-          nextStage = 2;
-          this.setPhase('anticipation-2');
-        } else if (t > 0.84) {
-          nextStage = 1;
-          this.setPhase('anticipation-1');
-        }
-
-        if (nextStage > anticipationStage) {
-          anticipationStage = nextStage;
-          this.audio.anticipation(nextStage);
         }
 
         if (t < 1) {
@@ -419,15 +419,15 @@ export class WheelRenderer {
         this.shell?.classList.remove('is-spinning', 'is-anticipating');
         this.shell?.classList.add('is-settling');
         this.updatePointerHighlight(targetRotation);
-        this.setPhase('freeze');
+        this.setPhase('settling');
 
         resolve({
           index,
           rotation: targetRotation,
+          landingOffset: landing.offset,
         });
       };
 
       requestAnimationFrame(frame);
     });
-  }
-}
+  }}

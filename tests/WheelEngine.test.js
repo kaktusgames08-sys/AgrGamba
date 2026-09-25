@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { landingRotation, pickSegmentIndex, segmentAngle } from '../src/core/WheelEngine.js';
+import {
+  pickSegmentIndex,
+  randomLandingRotation,
+  segmentAngle,
+  segmentIndexForRotation,
+} from '../src/core/WheelEngine.js';
 
 const segments = Array.from({ length: 18 }, (_, index) => ({ index }));
 
@@ -10,32 +15,44 @@ test('pickSegmentIndex maps equal slices uniformly by index', () => {
   assert.equal(pickSegmentIndex(segments, () => 0.999999), 17);
 });
 
-test('landingRotation lands inside requested segment with randomized offset', () => {
-  const slice = segmentAngle(18);
+test('randomLandingRotation produces a valid segment from the physical stop angle', () => {
   const values = [0.5, 0];
-  const target = landingRotation(0, 5, 18, () => values.shift());
-  const normalized = ((target % 360) + 360) % 360;
-  const expectedCenter = (360 - 5 * slice) % 360;
+  const landing = randomLandingRotation(0, 18, () => values.shift());
 
-  assert.ok(Math.abs(normalized - expectedCenter) < 1e-9);
-  assert.ok(target >= 7 * 360);
+  assert.equal(
+    segmentIndexForRotation(landing.rotation, 18),
+    landing.index,
+  );
+  assert.ok(landing.rotation >= 7 * 360);
 });
 
-test('landingRotation can create close calls without crossing segment borders', () => {
+test('random landing never stops in forbidden border strips', () => {
   const slice = segmentAngle(18);
+  const safeHalf = slice * 0.43;
+  const samples = [0, 0.01, 0.125, 0.499, 0.5, 0.875, 0.999999];
 
-  const nearLeftValues = [0, 0];
-  const nearLeft = landingRotation(0, 5, 18, () => nearLeftValues.shift());
-  const leftNormalized = ((360 - (nearLeft % 360)) % 360 + 360) % 360;
-  const leftOffset = leftNormalized - 5 * slice;
+  for (const sample of samples) {
+    const values = [sample, 0];
+    const landing = randomLandingRotation(0, 18, () => values.shift());
 
-  const nearRightValues = [0.999999, 0];
-  const nearRight = landingRotation(0, 5, 18, () => nearRightValues.shift());
-  const rightNormalized = ((360 - (nearRight % 360)) % 360 + 360) % 360;
-  const rightOffset = rightNormalized - 5 * slice;
+    assert.ok(Math.abs(landing.offset) <= safeHalf + 1e-9);
+    assert.ok(Math.abs(landing.offset) < slice / 2);
+    assert.equal(
+      segmentIndexForRotation(landing.rotation, 18),
+      landing.index,
+    );
+  }
+});
 
-  assert.ok(leftOffset > -slice / 2);
-  assert.ok(rightOffset < slice / 2);
-  assert.ok(Math.abs(leftOffset) > slice * 0.4);
-  assert.ok(Math.abs(rightOffset) > slice * 0.4);
+test('safe random space gives every physical segment the same width', () => {
+  const seen = new Set();
+
+  for (let i = 0; i < 18; i += 1) {
+    const sample = (i + 0.5) / 18;
+    const values = [sample, 0];
+    const landing = randomLandingRotation(0, 18, () => values.shift());
+    seen.add(landing.index);
+  }
+
+  assert.equal(seen.size, 18);
 });
