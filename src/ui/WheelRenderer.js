@@ -367,7 +367,7 @@ export class WheelRenderer {
         const current = startRotation + distance * progress;
 
         this.rotor.style.transform = 'rotate(' + current + 'deg)';
-        this.audio.updateSpinSound(t, this.spinDurationMs);
+        this.audio.updateSpinBed(t);
         this.onProgress?.({
           timeProgress: t,
           wheelProgress: progress,
@@ -415,7 +415,7 @@ export class WheelRenderer {
 
         this.rotation = targetRotation;
         this.rotor.style.transform = 'rotate(' + targetRotation + 'deg)';
-        this.audio.stopSpinSound();
+        this.audio.stopSpinBed(0.06);
 
         this.shell?.classList.remove('is-spinning', 'is-anticipating');
         this.shell?.classList.add('is-settling');
