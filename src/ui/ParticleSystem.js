@@ -1,11 +1,23 @@
+const EFFECT_MULTIPLIERS = {
+  low: 0.42,
+  medium: 0.72,
+  high: 1,
+};
+
 export class ParticleSystem {
   constructor(layer, flash) {
     this.layer = layer;
     this.flash = flash;
+    this.effectLevel = 'high';
+  }
+
+  setEffectLevel(level) {
+    this.effectLevel = EFFECT_MULTIPLIERS[level] ? level : 'high';
   }
 
   burst({ count = 30, intense = false, variant = 'reward' } = {}) {
-    const amount = Math.min(90, count);
+    const multiplier = EFFECT_MULTIPLIERS[this.effectLevel] ?? 1;
+    const amount = Math.max(4, Math.min(90, Math.round(count * multiplier)));
 
     for (let i = 0; i < amount; i += 1) {
       const particle = document.createElement('i');
@@ -30,6 +42,8 @@ export class ParticleSystem {
   }
 
   screenFlash(strength = 'normal', variant = 'reward') {
+    if (this.effectLevel === 'low' && strength !== 'strong') return;
+
     this.flash.dataset.strength = strength;
     this.flash.dataset.variant = variant;
     this.flash.classList.remove('is-active');

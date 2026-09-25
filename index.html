@@ -3,43 +3,51 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#130513" />
-    <meta name="description" content="Kolo neštěstí — roztoč kolo, sbírej částku, násob ji a čekej, kdy tě zastaví finální pole." />
+    <meta name="theme-color" content="#11030f" />
+    <meta name="description" content="Kolo neštěstí — arkádové kolo s částkami, násobiči, +SPIN a plně nastavitelnými poli." />
     <title>Kolo neštěstí</title>
   </head>
   <body>
-    <div id="app">
+    <div id="app" data-effects="high" data-motion="on">
       <div class="stage-glow stage-glow--left"></div>
       <div class="stage-glow stage-glow--right"></div>
       <div class="starfield" aria-hidden="true"></div>
+      <div class="casino-grid" aria-hidden="true"></div>
+      <div class="ambient-orb ambient-orb--a" aria-hidden="true"></div>
+      <div class="ambient-orb ambient-orb--b" aria-hidden="true"></div>
 
       <header class="topbar">
         <div class="brand" aria-label="Kolo neštěstí">
           <span class="brand__eyebrow">VELKÁ PROHRA</span>
           <h1>KOLO NEŠTĚSTÍ</h1>
-          <div class="brand__stars" aria-hidden="true">★ ✦ ★</div>
+          <div class="brand__subtitle">KAŽDÝ SPIN TĚ MŮŽE ZASTAVIT</div>
         </div>
 
         <div class="hud" aria-live="polite">
           <div class="hud-card hud-card--money">
+            <div class="hud-card__glint" aria-hidden="true"></div>
             <span class="hud-card__label">ČÁSTKA</span>
             <strong id="moneyCounter">0 Kč</strong>
           </div>
+
           <div class="hud-card hud-card--spins">
+            <div class="hud-card__glint" aria-hidden="true"></div>
             <span class="hud-card__label">SPINY</span>
             <strong id="spinCounter">1</strong>
           </div>
         </div>
 
         <div class="top-actions">
+          <button id="settingsButton" class="icon-button" type="button" aria-label="Nastavení kola" title="Nastavení kola">⚙</button>
           <button id="muteButton" class="icon-button" type="button" aria-label="Vypnout zvuk" title="Zvuk (M)">🔊</button>
           <button id="fullscreenButton" class="icon-button" type="button" aria-label="Celá obrazovka" title="Fullscreen (F)">⛶</button>
         </div>
       </header>
 
       <main class="game-layout">
-        <aside class="history-panel" aria-label="Poslední výsledky">
-          <div class="history-panel__title">POSLEDNÍ</div>
+        <aside id="historyPanel" class="history-panel" aria-label="Poslední výsledky">
+          <div class="side-panel__cap"></div>
+          <div class="history-panel__title">HISTORIE</div>
           <div id="history" class="history-list">
             <div class="history-empty">Zatím nic</div>
           </div>
@@ -47,6 +55,11 @@
 
         <section class="machine" aria-label="Kolo neštěstí">
           <div class="machine__arch machine__arch--back" aria-hidden="true"></div>
+          <div class="wheel-aura" aria-hidden="true"></div>
+          <div class="marquee-sparks" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+
           <div class="pointer-wrap" aria-hidden="true">
             <div id="pointer" class="pointer">
               <div class="pointer__cap"></div>
@@ -55,6 +68,7 @@
           </div>
 
           <div id="wheelShell" class="wheel-shell">
+            <div class="wheel-sheen" aria-hidden="true"></div>
             <div class="bulb-ring" aria-hidden="true"></div>
             <div class="wheel-rim wheel-rim--outer" aria-hidden="true"></div>
             <div class="wheel-rim wheel-rim--inner" aria-hidden="true"></div>
@@ -68,12 +82,19 @@
           </div>
 
           <div id="resultBurst" class="result-burst" aria-live="assertive">
+            <div class="result-burst__eyebrow" id="resultEyebrow">VÝSLEDEK</div>
             <div id="resultMain" class="result-burst__main"></div>
             <div id="resultSub" class="result-burst__sub"></div>
           </div>
 
+          <div id="gameStatus" class="game-status" aria-live="polite">
+            <span class="game-status__dot"></span>
+            <span id="gameStatusText">PŘIPRAVENO</span>
+          </div>
+
           <div class="controls">
             <button id="spinButton" class="spin-button" type="button">
+              <span class="spin-button__halo"></span>
               <span class="spin-button__shine"></span>
               <span class="spin-button__text">ROZTOČIT</span>
               <span class="spin-button__hint">SPACE</span>
@@ -87,12 +108,17 @@
           </div>
         </section>
 
-        <aside class="prize-panel" aria-label="Pravidla">
-          <div class="prize-panel__badge">JAK TO FUNGUJE</div>
-          <p>Každé pole kromě <strong>100 Kč</strong> vrací další spin.</p>
-          <div class="mini-rule"><span>x2</span> zdvojnásobí částku</div>
-          <div class="mini-rule"><span>x3</span> ztrojnásobí částku</div>
-          <div class="mini-rule mini-rule--final"><span>100</span> konec hry</div>
+        <aside class="session-panel" aria-label="Průběh hry">
+          <div class="side-panel__cap"></div>
+          <div class="session-panel__eyebrow">SÉRIE</div>
+          <strong id="spinRunCounter" class="session-panel__count">0</strong>
+          <div class="session-panel__label">odehraných spinů</div>
+
+          <div class="session-rules">
+            <div><span class="rule-chip rule-chip--x2">x2</span><b>zdvojnásobí částku</b></div>
+            <div><span class="rule-chip rule-chip--x3">x3</span><b>ztrojnásobí částku</b></div>
+            <div><span class="rule-chip rule-chip--end">END</span><b>pole bez +SPIN končí hru</b></div>
+          </div>
         </aside>
       </main>
 
@@ -108,9 +134,100 @@
         </div>
       </div>
 
+      <div id="settingsModal" class="settings-modal" aria-hidden="true">
+        <div id="settingsBackdrop" class="settings-backdrop"></div>
+
+        <section class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+          <header class="settings-sheet__header">
+            <div>
+              <span class="settings-kicker">CUSTOMIZE</span>
+              <h2 id="settingsTitle">NASTAVENÍ KOLA</h2>
+              <p>Každé viditelné políčko má stejnou šanci. Měníš přímo obsah kola.</p>
+            </div>
+            <button id="settingsCloseButton" class="settings-close" type="button" aria-label="Zavřít nastavení">×</button>
+          </header>
+
+          <div class="settings-sheet__body">
+            <section class="settings-block settings-block--compact">
+              <div class="settings-block__heading">
+                <div>
+                  <span>HRA</span>
+                  <h3>Průběh a prezentace</h3>
+                </div>
+              </div>
+
+              <div class="settings-grid">
+                <label class="setting-field">
+                  <span>Počáteční spiny</span>
+                  <input id="settingStartingSpins" type="number" min="1" max="10" step="1" />
+                </label>
+
+                <label class="setting-field setting-field--range">
+                  <span>Rychlost spinu <b id="settingSpinDurationValue">5.2 s</b></span>
+                  <input id="settingSpinDuration" type="range" min="3200" max="8000" step="100" />
+                </label>
+
+                <label class="setting-field setting-field--range">
+                  <span>Hlasitost <b id="settingVolumeValue">82 %</b></span>
+                  <input id="settingVolume" type="range" min="0" max="1" step="0.01" />
+                </label>
+
+                <label class="setting-field">
+                  <span>Intenzita efektů</span>
+                  <select id="settingEffects">
+                    <option value="low">Nízká</option>
+                    <option value="medium">Střední</option>
+                    <option value="high">Vysoká</option>
+                  </select>
+                </label>
+
+                <label class="setting-switch">
+                  <input id="settingAmbientMotion" type="checkbox" />
+                  <span class="switch"></span>
+                  <span>Ambient animace</span>
+                </label>
+
+                <label class="setting-switch">
+                  <input id="settingShowHistory" type="checkbox" />
+                  <span class="switch"></span>
+                  <span>Zobrazit historii</span>
+                </label>
+              </div>
+            </section>
+
+            <section class="settings-block">
+              <div class="settings-block__heading settings-block__heading--segments">
+                <div>
+                  <span>KOLO</span>
+                  <h3>Políčka</h3>
+                </div>
+                <strong id="segmentCount" class="segment-count">18 polí</strong>
+              </div>
+
+              <div id="segmentEditorList" class="segment-editor-list"></div>
+
+              <div class="segment-actions">
+                <button id="addMoneySegment" type="button">+ PENÍZE</button>
+                <button id="addX2Segment" type="button">+ X2</button>
+                <button id="addX3Segment" type="button">+ X3</button>
+              </div>
+            </section>
+          </div>
+
+          <div id="settingsError" class="settings-error" role="alert"></div>
+
+          <footer class="settings-sheet__footer">
+            <button id="settingsResetButton" class="settings-button settings-button--ghost" type="button">OBNOVIT VÝCHOZÍ</button>
+            <button id="settingsApplyButton" class="settings-button settings-button--primary" type="button">POUŽÍT NASTAVENÍ</button>
+          </footer>
+        </section>
+      </div>
+
+      <div id="rewardFlightLayer" class="reward-flight-layer" aria-hidden="true"></div>
       <div id="particleLayer" class="particle-layer" aria-hidden="true"></div>
       <div id="flash" class="screen-flash" aria-hidden="true"></div>
     </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

@@ -1,19 +1,53 @@
-# KOLO NEŠTĚSTÍ
+# KOLO NEŠTĚSTÍ v3
 
-High-energy browserové kolo pro stream, OBS nebo GitHub Pages.
+Browserové kolo pro stream / OBS / GitHub Pages. V3 přidává výrazně uhlazenější game-show prezentaci a kompletní nastavení kola přímo ve hře.
 
-## Pravidla
+## Co je ve v3
+
+- plynulejší spin s krátkou akcelerací, dlouhým dojezdem a skutečným pointer tickem,
+- live zvýraznění segmentu, který je opravdu pod pointerem při zpomalování,
+- žádné falešné near-miss změny výsledku — výsledek se vybere jednou před animací,
+- nové ambientní světlo, wheel sheen, marquee spark efekty a živější HUD,
+- animované dopočítávání částky,
+- +Kč / x2 / +SPIN badge, který vizuálně letí do HUD,
+- stavový pill **PŘIPRAVENO / ROZTÁČÍM / +SPIN / KONEC**,
+- panel série odehraných spinů,
+- nastavitelná intenzita efektů, hlasitost a délka spinu,
+- editor všech segmentů přímo v browseru,
+- nastavení se ukládá do `localStorage`.
+
+## Nastavení kola
+
+Klikni na **⚙** vpravo nahoře.
+
+Lze změnit:
+
+- počet počátečních spinů,
+- délku animace spinu,
+- hlasitost,
+- intenzitu efektů,
+- ambient animace,
+- historii výsledků,
+- počet polí kola,
+- typ každého pole: peníze / násobič,
+- částku nebo hodnotu násobiče,
+- barvu pole,
+- zda pole dává `+SPIN`.
+
+Kolo musí mít alespoň jedno pole bez `+SPIN`, jinak by hra neměla konec. Editor to hlídá.
+
+Každé **viditelné fyzické políčko má stejnou pravděpodobnost**. Pokud nějakou hodnotu na kolo přidáš vícekrát, zvýšíš tím její celkovou šanci.
+
+## Výchozí pravidla
 
 Hra začíná s `0 Kč` a `1 spinem`.
 
-- každý spin nejdřív odebere 1 spin,
+- při startu spinu se odečte 1 spin,
 - peněžní pole přidá částku,
-- `x2` a `x3` násobí aktuální částku,
-- každé pole kromě `100 Kč` vrátí `+1 spin`,
-- `100 Kč` je jediné pole bez extra spinu,
-- jakmile po vyhodnocení nezbývá žádný spin, zobrazí se **PROHRÁL JSI** a výsledná částka.
-
-Výsledek je vybrán právě jednou na začátku spinu. Animace už pouze dojede na předem zvolený segment.
+- `x2` / `x3` násobí aktuální částku,
+- pole s `+SPIN` vrátí další spin,
+- pole bez `+SPIN` ukončí hru, pokud už žádný spin nezbývá,
+- konec zobrazí **PROHRÁL JSI** a výslednou částku.
 
 ## Ovládání
 
@@ -21,102 +55,34 @@ Výsledek je vybrán právě jednou na začátku spinu. Animace už pouze dojede
 - `R` — restart po konci hry
 - `F` — fullscreen
 - `M` — mute
-
-## Úprava hodnot kola
-
-Všechna pole jsou na jednom místě:
-
-`src/core/WheelConfig.js`
-
-Peníze:
-
-```js
-{
-  label: '20 Kč + SPIN',
-  type: 'money',
-  value: 20,
-  extraSpins: 1,
-  tone: 'violet'
-}
-```
-
-Násobič:
-
-```js
-{
-  label: 'x2 + SPIN',
-  type: 'multiplier',
-  multiplier: 2,
-  extraSpins: 1,
-  tone: 'purple'
-}
-```
-
-Finální pole:
-
-```js
-{
-  label: '100 Kč',
-  type: 'money',
-  value: 100,
-  extraSpins: 0,
-  tone: 'final',
-  finale: true
-}
-```
-
-Každý fyzický segment má stejnou pravděpodobnost. Pokud přidáš stejnou hodnotu vícekrát, její celková pravděpodobnost se tím přirozeně zvýší.
+- `S` — nastavení
 
 ## Architektura
 
-- `src/core/WheelConfig.js` — segmenty a parametry spinu
-- `src/core/WheelEngine.js` — RNG a výpočet cílové rotace
-- `src/core/GameState.js` — částka, spiny, historie a konec hry
-- `src/audio/AudioManager.js` — WebAudio vrstvy + volitelné Mixkit casino SFX
-- `src/ui/WheelRenderer.js` — SVG kolo, zpomalování, pointer ticks a jemné dosednutí
-- `src/ui/ParticleSystem.js` — částice a flash efekty
-- `src/ui/UI.js` — HUD, historie, výsledky a finální overlay
-- `src/style.css` — základní game-show vizuál
-- `src/polish.css` — jemnější motion, finální loss styl a polish
+- `src/core/WheelConfig.js` — výchozí segmenty
+- `src/core/WheelEngine.js` — RNG a cílová rotace
+- `src/core/GameState.js` — částka, spiny, historie, série
+- `src/core/SettingsManager.js` — validace a persist nastavení
+- `src/audio/AudioManager.js` — WebAudio + Mixkit vrstvy
+- `src/ui/WheelRenderer.js` — SVG kolo a spin motion
+- `src/ui/SettingsPanel.js` — editor kola
+- `src/ui/ParticleSystem.js` — částice / flash
+- `src/ui/UI.js` — HUD, counters, reward flight, finale
+- `src/style.css`, `src/polish.css`, `src/v3.css` — vizuální vrstvy
 
 ## Zvuky
 
-Hra používá vlastní WebAudio vrstvy a několik vzdálených SFX z Mixkit jako doplňkovou vrstvu. Když se externí sample nenačte, WebAudio fallback dál funguje.
+Hra používá vlastní WebAudio vrstvy a jako doplněk několik free SFX z Mixkitu. Pokud se externí sample nenačte, WebAudio fallback dál funguje.
 
-Použité Mixkit SFX:
-
-- Gold coin prize
-- Coins sound
-- Slot machine win alert
-- Slot machine win alarm
-- Failure arcade alert notification
-
-Zdroj: https://mixkit.co/free-sound-effects/
+Zdroj: https://mixkit.co/free-sound-effects/  
 Licence: https://mixkit.co/license/
 
 ## Vývoj
 
 ```bash
 npm install
-npm run dev
-```
-
-Testy:
-
-```bash
 npm test
-```
-
-Production build:
-
-```bash
 npm run build
 ```
 
-## GitHub Pages
-
-Projekt zachovává Vite `base: './'`. Workflow v `.github/workflows/deploy.yml` sestaví `dist/` a nasadí ho na GitHub Pages po pushi do `main`.
-
-## OBS
-
-Stránka používá čisté browser API a funguje jako OBS Browser Source.
+GitHub Pages deploy běží z `main` přes existující workflow.
