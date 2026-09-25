@@ -28,6 +28,7 @@ export class AudioManager {
     this.muted = localStorage.getItem('wheel-muted') === '1';
     this.masterVolume = 0.82;
     this.samples = new Map();
+    this.spinBed = null;
     this.preloadSamples();
   }
 
@@ -37,6 +38,7 @@ export class AudioManager {
       audio.preload = 'auto';
       audio.volume = config.volume * this.masterVolume;
       this.samples.set(name, { audio, config, failed: false });
+
       audio.addEventListener('error', () => {
         const sample = this.samples.get(name);
         if (sample) sample.failed = true;
@@ -61,7 +63,7 @@ export class AudioManager {
   createNoiseBuffer() {
     if (!this.ctx) return null;
 
-    const length = Math.max(1, Math.floor(this.ctx.sampleRate * 0.35));
+    const length = Math.max(1, Math.floor(this.ctx.sampleRate * 0.5));
     const buffer = this.ctx.createBuffer(1, length, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
 
@@ -75,6 +77,8 @@ export class AudioManager {
   setMuted(value) {
     this.muted = Boolean(value);
     localStorage.setItem('wheel-muted', this.muted ? '1' : '0');
+
+    if (this.muted) this.stopSpinBed(0.03);
     return this.muted;
   }
 
@@ -135,7 +139,12 @@ export class AudioManager {
     osc.stop(now + duration + 0.03);
   }
 
-  noiseBurst({ duration = 0.08, gain = 0.025, frequency = 1600, type = 'bandpass' } = {}) {
+  noiseBurst({
+    duration = 0.08,
+    gain = 0.025,
+    frequency = 1600,
+    type = 'bandpass',
+  } = {}) {
     const ctx = this.ensure();
     if (!ctx || !this.noiseBuffer || this.masterVolume <= 0) return;
 
@@ -156,32 +165,135 @@ export class AudioManager {
     source.stop(now + duration);
   }
 
+  startSpinBed() {
+    const ctx = this.ensure();
+    if (!ctx || !this.noiseBuffer || this.spinBed) return;
+
+    const now = ctx.currentTime;
+
+    const motor = ctx.createOscillator();
+    const motorGain = ctx.createGain();
+    motor.type = 'sawtooth';
+    motor.frequency.setValueAtTime(58, now);
+    motorGain.gain.setValueAtTime(0.0001, now);
+    motorGain.gain.exponentialRampToValueAtTime(0.018 * this.masterVolume, now + 0.18);
+
+    const noise = ctx.createBufferSource();
+    const filter = ctx.createBiquadFilter();
+    const noiseGain = ctx.createGain();
+    noise.buffer = this.noiseBuffer;
+    noise.loop = true;
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(760, now);
+    filter.Q.setValueAtTime(0.65, now);
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.008 * this.masterVolume, now + 0.2);
+
+    motor.connect(motorGain).connect(ctx.destination);
+    noise.connect(filter).connect(noiseGain).connect(ctx.destination);
+
+    motor.start(now);
+    noise.start(now);
+
+    this.spinBed = {
+      motor,
+      motorGain,
+      noise,
+      noiseGain,
+      filter,
+    };
+  }
+
+  updateSpinBed(progress = 0) {
+    if (!this.spinBed || !this.ctx) return;
+
+    const p = Math.max(0, Math.min(1, progress));
+    const now = this.ctx.currentTime;
+    const speedShape = p < 0.18
+      ? p / 0.18
+      : Math.max(0.08, 1 - (p - 0.18) / 0.82);
+
+    this.spinBed.motor.frequency.setTargetAtTime(52 + speedShape * 72, now, 0.035);
+    this.spinBed.filter.frequency.setTargetAtTime(420 + speedShape * 1700, now, 0.03);
+    this.spinBed.motorGain.gain.setTargetAtTime(
+      (0.008 + speedShape * 0.017) * this.masterVolume,
+      now,
+      0.045,
+    );
+    this.spinBed.noiseGain.gain.setTargetAtTime(
+      (0.003 + speedShape * 0.009) * this.masterVolume,
+      now,
+      0.045,
+    );
+  }
+
+  stopSpinBed(fade = 0.09) {
+    if (!this.spinBed || !this.ctx) return;
+
+    const bed = this.spinBed;
+    this.spinBed = null;
+
+    const now = this.ctx.currentTime;
+    const end = now + Math.max(0.02, fade);
+
+    bed.motorGain.gain.cancelScheduledValues(now);
+    bed.noiseGain.gain.cancelScheduledValues(now);
+    bed.motorGain.gain.setValueAtTime(Math.max(0.0001, bed.motorGain.gain.value), now);
+    bed.noiseGain.gain.setValueAtTime(Math.max(0.0001, bed.noiseGain.gain.value), now);
+    bed.motorGain.gain.exponentialRampToValueAtTime(0.0001, end);
+    bed.noiseGain.gain.exponentialRampToValueAtTime(0.0001, end);
+
+    try {
+      bed.motor.stop(end + 0.03);
+      bed.noise.stop(end + 0.03);
+    } catch {
+      // Nodes may already be stopped.
+    }
+  }
+
   tick(speed = 1) {
     const s = Math.max(0.1, Math.min(1, speed));
 
     this.tone({
-      frequency: 1180 + s * 560,
-      duration: 0.022 + (1 - s) * 0.012,
-      gain: 0.014 + s * 0.008,
+      frequency: 1120 + s * 620,
+      duration: 0.021 + (1 - s) * 0.016,
+      gain: 0.013 + s * 0.009,
       type: 'triangle',
-      slideTo: 760 + s * 320,
+      slideTo: 720 + s * 350,
       attack: 0.002,
     });
 
     this.tone({
-      frequency: 150 + s * 55,
-      duration: 0.028,
-      gain: 0.018,
+      frequency: 142 + s * 68,
+      duration: 0.032,
+      gain: 0.016 + (1 - s) * 0.005,
       type: 'sine',
-      slideTo: 105,
+      slideTo: 96,
       attack: 0.002,
     });
   }
 
   spinStart() {
+    this.startSpinBed();
     this.noiseBurst({ duration: 0.18, gain: 0.018, frequency: 1200, type: 'highpass' });
-    this.tone({ frequency: 82, slideTo: 180, duration: 0.28, gain: 0.052, type: 'sawtooth', attack: 0.008 });
-    setTimeout(() => this.tone({ frequency: 520, slideTo: 760, duration: 0.12, gain: 0.025, type: 'triangle' }), 55);
+    this.tone({
+      frequency: 82,
+      slideTo: 190,
+      duration: 0.28,
+      gain: 0.052,
+      type: 'sawtooth',
+      attack: 0.008,
+    });
+
+    setTimeout(() => {
+      this.tone({
+        frequency: 520,
+        slideTo: 780,
+        duration: 0.12,
+        gain: 0.025,
+        type: 'triangle',
+      });
+    }, 55);
   }
 
   anticipation(stage = 1) {
@@ -190,72 +302,167 @@ export class AudioManager {
       [277.18, 415.3],
       [329.63, 493.88],
     ];
-    const [low, high] = stages[Math.max(0, Math.min(stages.length - 1, stage - 1))];
 
-    this.tone({ frequency: low, slideTo: high, duration: 0.18, gain: 0.018, type: 'triangle', attack: 0.004 });
+    const [low, high] = stages[
+      Math.max(0, Math.min(stages.length - 1, stage - 1))
+    ];
+
+    this.tone({
+      frequency: low,
+      slideTo: high,
+      duration: 0.22,
+      gain: 0.021,
+      type: 'triangle',
+      attack: 0.004,
+    });
+
     setTimeout(() => {
-      this.tone({ frequency: high * 1.5, duration: 0.08, gain: 0.012, type: 'sine', attack: 0.003 });
-    }, 65);
+      this.tone({
+        frequency: high * 1.5,
+        duration: 0.09,
+        gain: 0.014,
+        type: 'sine',
+        attack: 0.003,
+      });
+    }, 70);
   }
 
-  impact() {
-    this.noiseBurst({ duration: 0.055, gain: 0.038, frequency: 2100, type: 'bandpass' });
-    this.tone({ frequency: 92, slideTo: 48, duration: 0.24, gain: 0.09, type: 'sine', attack: 0.003 });
-    setTimeout(() => this.tone({ frequency: 610, slideTo: 510, duration: 0.15, gain: 0.045, type: 'triangle' }), 24);
+  impact(strength = 'normal') {
+    const heavy = strength === 'heavy';
+    const gain = heavy ? 0.12 : strength === 'soft' ? 0.065 : 0.09;
+
+    this.noiseBurst({
+      duration: heavy ? 0.075 : 0.055,
+      gain: heavy ? 0.052 : 0.038,
+      frequency: heavy ? 1750 : 2100,
+      type: 'bandpass',
+    });
+
+    this.tone({
+      frequency: heavy ? 78 : 92,
+      slideTo: heavy ? 38 : 48,
+      duration: heavy ? 0.31 : 0.24,
+      gain,
+      type: 'sine',
+      attack: 0.003,
+    });
+
+    setTimeout(() => {
+      this.tone({
+        frequency: heavy ? 720 : 610,
+        slideTo: heavy ? 540 : 510,
+        duration: 0.15,
+        gain: heavy ? 0.055 : 0.045,
+        type: 'triangle',
+      });
+    }, 24);
   }
 
-  money(value = 10) {
+  money(value = 10, tier = 'small') {
     this.playSample(value >= 50 ? 'coins' : 'coin', {
-      volume: value >= 75 ? 1.15 : 1,
+      volume: tier === 'big' ? 1.18 : 1,
       playbackRate: value >= 60 ? 1.04 : 1,
     });
 
     const base = 660 + Math.min(100, value) * 2.2;
-    this.tone({ frequency: base, duration: 0.11, gain: 0.034, type: 'triangle' });
-    setTimeout(() => this.tone({ frequency: base * 1.28, duration: 0.18, gain: 0.035, type: 'sine' }), 70);
+    this.tone({
+      frequency: base,
+      duration: 0.11,
+      gain: tier === 'big' ? 0.043 : 0.034,
+      type: 'triangle',
+    });
+
+    setTimeout(() => {
+      this.tone({
+        frequency: base * 1.28,
+        duration: tier === 'big' ? 0.23 : 0.18,
+        gain: tier === 'big' ? 0.044 : 0.035,
+        type: 'sine',
+      });
+    }, 70);
   }
 
   multiplier(multiplier) {
     this.playSample('winAlert', {
-      volume: multiplier === 3 ? 1.15 : 0.9,
-      playbackRate: multiplier === 3 ? 1.06 : 1,
+      volume: multiplier >= 3 ? 1.15 : 0.9,
+      playbackRate: multiplier >= 3 ? 1.06 : 1,
     });
 
-    if (multiplier === 3) {
-      setTimeout(() => this.playSample('winAlarm', { volume: 0.7, playbackRate: 1.08 }), 180);
+    if (multiplier >= 3) {
+      setTimeout(() => {
+        this.playSample('winAlarm', {
+          volume: 0.7,
+          playbackRate: 1.08,
+        });
+      }, 180);
     }
 
-    const notes = multiplier === 3
+    const notes = multiplier >= 3
       ? [330, 440, 554.37, 659.25, 880]
       : [330, 440, 554.37, 740];
 
     notes.forEach((frequency, index) => {
       setTimeout(() => {
-        this.tone({ frequency, duration: 0.2, gain: 0.045, type: 'triangle' });
+        this.tone({
+          frequency,
+          duration: 0.2,
+          gain: 0.045,
+          type: 'triangle',
+        });
       }, index * 74);
     });
   }
 
   extraSpin() {
-    this.playSample('coin', { volume: 0.6, playbackRate: 1.24 });
-    this.tone({ frequency: 620, duration: 0.08, gain: 0.026, type: 'triangle' });
-    setTimeout(() => this.tone({ frequency: 930, duration: 0.15, gain: 0.035, type: 'sine' }), 52);
+    this.playSample('coin', {
+      volume: 0.6,
+      playbackRate: 1.24,
+    });
+
+    this.tone({
+      frequency: 620,
+      duration: 0.08,
+      gain: 0.026,
+      type: 'triangle',
+    });
+
+    setTimeout(() => {
+      this.tone({
+        frequency: 930,
+        duration: 0.15,
+        gain: 0.035,
+        type: 'sine',
+      });
+    }, 52);
   }
 
   lossFinale() {
-    this.playSample('lose', { volume: 1.05, playbackRate: 0.94 });
-    this.noiseBurst({ duration: 0.16, gain: 0.025, frequency: 700, type: 'lowpass' });
+    this.stopSpinBed(0.04);
+    this.playSample('lose', {
+      volume: 1.05,
+      playbackRate: 0.94,
+    });
+
+    this.noiseBurst({
+      duration: 0.16,
+      gain: 0.025,
+      frequency: 700,
+      type: 'lowpass',
+    });
 
     const notes = [220, 174.61, 146.83, 110];
+
     notes.forEach((frequency, index) => {
-      setTimeout(() => this.tone({
-        frequency,
-        slideTo: frequency * 0.86,
-        duration: 0.34,
-        gain: 0.045,
-        type: 'triangle',
-        attack: 0.01,
-      }), index * 145);
+      setTimeout(() => {
+        this.tone({
+          frequency,
+          slideTo: frequency * 0.86,
+          duration: 0.34,
+          gain: 0.045,
+          type: 'triangle',
+          attack: 0.01,
+        });
+      }, index * 145);
     });
   }
 }

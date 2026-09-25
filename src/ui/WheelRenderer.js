@@ -67,6 +67,8 @@ export class WheelRenderer {
     audio,
     segments,
     spinDurationMs = SPIN_DURATION_MS,
+    onProgress = null,
+    onPhaseChange = null,
   }) {
     this.mount = mount;
     this.pointer = pointer;
@@ -74,12 +76,17 @@ export class WheelRenderer {
     this.audio = audio;
     this.segments = segments;
     this.spinDurationMs = spinDurationMs;
+    this.onProgress = onProgress;
+    this.onPhaseChange = onPhaseChange;
+
     this.rotation = 0;
     this.svg = null;
     this.rotor = null;
     this.segmentNodes = [];
     this.lastPointerTickAt = 0;
     this.hotIndex = null;
+    this.phase = 'idle';
+
     this.render();
   }
 
@@ -87,11 +94,22 @@ export class WheelRenderer {
     this.segments = segments;
     this.rotation = 0;
     this.hotIndex = null;
+    this.phase = 'idle';
     this.render();
   }
 
   setSpinDuration(durationMs) {
-    this.spinDurationMs = Math.max(3200, Math.min(8000, Number(durationMs) || SPIN_DURATION_MS));
+    this.spinDurationMs = Math.max(
+      3200,
+      Math.min(8000, Number(durationMs) || SPIN_DURATION_MS),
+    );
+  }
+
+  setPhase(phase) {
+    if (phase === this.phase) return;
+    this.phase = phase;
+    this.shell?.setAttribute('data-spin-phase', phase);
+    this.onPhaseChange?.(phase);
   }
 
   render() {
@@ -106,7 +124,10 @@ export class WheelRenderer {
     svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
     svg.setAttribute('class', 'wheel-svg');
     svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', 'Kolo neštěstí s peněžními částkami a násobiči');
+    svg.setAttribute(
+      'aria-label',
+      'Kolo neštěstí s peněžními částkami a násobiči',
+    );
 
     const defs = document.createElementNS(SVG_NS, 'defs');
 
@@ -133,11 +154,17 @@ export class WheelRenderer {
       const endAngle = centerAngle + slice / 2;
 
       const group = document.createElementNS(SVG_NS, 'g');
-      group.setAttribute('class', 'wheel-segment wheel-segment--' + segment.tone);
+      group.setAttribute(
+        'class',
+        'wheel-segment wheel-segment--' + segment.tone,
+      );
       group.dataset.index = String(index);
 
       const path = document.createElementNS(SVG_NS, 'path');
-      path.setAttribute('d', wedgePath(center, center, radius, startAngle, endAngle));
+      path.setAttribute(
+        'd',
+        wedgePath(center, center, radius, startAngle, endAngle),
+      );
       path.setAttribute('fill', 'url(#grad-' + index + ')');
       path.setAttribute('stroke', 'rgba(255,244,199,.7)');
       path.setAttribute('stroke-width', '2');
@@ -176,7 +203,16 @@ export class WheelRenderer {
       text.setAttribute('class', 'wheel-label');
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('dominant-baseline', 'middle');
-      text.setAttribute('transform', 'rotate(' + centerAngle + ' ' + labelPoint.x + ' ' + labelPoint.y + ')');
+      text.setAttribute(
+        'transform',
+        'rotate('
+          + centerAngle
+          + ' '
+          + labelPoint.x
+          + ' '
+          + labelPoint.y
+          + ')',
+      );
 
       if (segment.type === 'multiplier') {
         const big = document.createElementNS(SVG_NS, 'tspan');
@@ -231,19 +267,42 @@ export class WheelRenderer {
       node.classList.toggle('is-winner', currentIndex === index);
       node.classList.remove('is-under-pointer');
     });
+
     this.hotIndex = null;
+  }
+
+  revealWinner(index) {
+    this.setWinner(index);
+    this.shell?.classList.remove('is-settling');
+    this.shell?.classList.add('has-landed');
+    this.setPhase('landed');
+
+    setTimeout(() => {
+      this.shell?.classList.remove('has-landed');
+    }, 460);
   }
 
   clearWinner() {
     this.segmentNodes.forEach((node) => {
       node.classList.remove('is-winner', 'is-under-pointer');
     });
+
     this.hotIndex = null;
+    this.shell?.classList.remove(
+      'is-spinning',
+      'is-anticipating',
+      'is-settling',
+      'has-landed',
+    );
+    this.setPhase('idle');
   }
 
   updatePointerHighlight(rotation) {
     const slice = segmentAngle(this.segments.length);
-    const index = normalizeIndex(Math.round(-rotation / slice), this.segments.length);
+    const index = normalizeIndex(
+      Math.round(-rotation / slice),
+      this.segments.length,
+    );
 
     if (index === this.hotIndex) return;
 
@@ -285,7 +344,12 @@ export class WheelRenderer {
     this.clearWinner();
 
     const startRotation = this.rotation;
-    const targetRotation = landingRotation(startRotation, index, this.segments.length, rng);
+    const targetRotation = landingRotation(
+      startRotation,
+      index,
+      this.segments.length,
+      rng,
+    );
     const distance = targetRotation - startRotation;
     const slice = segmentAngle(this.segments.length);
     const startedAt = performance.now();
@@ -293,6 +357,7 @@ export class WheelRenderer {
     let anticipationStage = 0;
 
     this.shell?.classList.add('is-spinning');
+    this.setPhase('spinning');
     this.audio.spinStart();
 
     return new Promise((resolve) => {
@@ -302,8 +367,16 @@ export class WheelRenderer {
         const current = startRotation + distance * progress;
 
         this.rotor.style.transform = 'rotate(' + current + 'deg)';
+        this.audio.updateSpinBed(t);
+        this.onProgress?.({
+          timeProgress: t,
+          wheelProgress: progress,
+          rotation: current,
+          targetIndex: index,
+        });
 
         const boundary = Math.floor(current / slice);
+
         if (boundary !== lastBoundary) {
           const speed = Math.max(0.08, Math.min(1, (1 - t) * 1.22));
           this.audio.tick(speed);
@@ -316,11 +389,20 @@ export class WheelRenderer {
           this.updatePointerHighlight(current);
         }
 
-        if (t > 0.91) {
+        let nextStage = 0;
+
+        if (t > 0.93) {
+          nextStage = 3;
           this.shell?.classList.add('is-settling');
+          this.setPhase('settling');
+        } else if (t > 0.84) {
+          nextStage = 2;
+          this.setPhase('anticipation-2');
+        } else if (t > 0.7) {
+          nextStage = 1;
+          this.setPhase('anticipation-1');
         }
 
-        const nextStage = t > 0.91 ? 3 : t > 0.82 ? 2 : t > 0.7 ? 1 : 0;
         if (nextStage > anticipationStage) {
           anticipationStage = nextStage;
           this.audio.anticipation(nextStage);
@@ -333,16 +415,17 @@ export class WheelRenderer {
 
         this.rotation = targetRotation;
         this.rotor.style.transform = 'rotate(' + targetRotation + 'deg)';
+        this.audio.stopSpinBed(0.06);
+
         this.shell?.classList.remove('is-spinning', 'is-anticipating');
-        this.shell?.classList.add('has-landed');
-        this.setWinner(index);
-        this.audio.impact();
+        this.shell?.classList.add('is-settling');
+        this.updatePointerHighlight(targetRotation);
+        this.setPhase('freeze');
 
-        setTimeout(() => {
-          this.shell?.classList.remove('is-settling', 'has-landed');
-        }, 420);
-
-        resolve();
+        resolve({
+          index,
+          rotation: targetRotation,
+        });
       };
 
       requestAnimationFrame(frame);

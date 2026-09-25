@@ -4,7 +4,8 @@ import {
   SPIN_DURATION_MS,
 } from './WheelConfig.js';
 
-const STORAGE_KEY = 'kolo-nestesti-settings-v3';
+const STORAGE_KEY = 'kolo-nestesti-settings-v4';
+const LEGACY_STORAGE_KEY = 'kolo-nestesti-settings-v3';
 
 export const TONE_OPTIONS = [
   'amber',
@@ -19,7 +20,29 @@ export const TONE_OPTIONS = [
   'final',
 ];
 
+export const PRESENTATION_PRESETS = {
+  clean: {
+    id: 'clean',
+    label: 'CLEAN',
+    effects: 'low',
+    ambientMotion: false,
+  },
+  arcade: {
+    id: 'arcade',
+    label: 'ARCADE',
+    effects: 'medium',
+    ambientMotion: true,
+  },
+  max: {
+    id: 'max',
+    label: 'MAX FX',
+    effects: 'high',
+    ambientMotion: true,
+  },
+};
+
 const EFFECT_LEVELS = new Set(['low', 'medium', 'high']);
+const PRESET_LEVELS = new Set(Object.keys(PRESENTATION_PRESETS));
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -55,6 +78,23 @@ export function normalizeSegment(segment, index = 0) {
   return normalized;
 }
 
+function inferPreset(input) {
+  if (PRESET_LEVELS.has(input.presentationPreset)) return input.presentationPreset;
+  if (input.effects === 'low' && input.ambientMotion === false) return 'clean';
+  if (input.effects === 'medium') return 'arcade';
+  return 'max';
+}
+
+export function applyPresentationPreset(settings, presetId) {
+  const preset = PRESENTATION_PRESETS[presetId] ?? PRESENTATION_PRESETS.arcade;
+  return {
+    ...settings,
+    presentationPreset: preset.id,
+    effects: preset.effects,
+    ambientMotion: preset.ambientMotion,
+  };
+}
+
 export function normalizeSettings(input = {}) {
   const rawSegments = Array.isArray(input.segments) ? input.segments.slice(0, 24) : [];
   const segments = (rawSegments.length >= 6 ? rawSegments : clone(WHEEL_SEGMENTS))
@@ -75,6 +115,7 @@ export function normalizeSettings(input = {}) {
     effects: EFFECT_LEVELS.has(input.effects) ? input.effects : 'high',
     ambientMotion: input.ambientMotion !== false,
     showHistory: input.showHistory !== false,
+    presentationPreset: inferPreset(input),
   };
 }
 
@@ -86,6 +127,7 @@ export const DEFAULT_SETTINGS = normalizeSettings({
   effects: 'high',
   ambientMotion: true,
   showHistory: true,
+  presentationPreset: 'max',
 });
 
 export class SettingsManager {
@@ -96,7 +138,8 @@ export class SettingsManager {
 
   load() {
     try {
-      const raw = this.storage?.getItem(STORAGE_KEY);
+      const raw = this.storage?.getItem(STORAGE_KEY)
+        ?? this.storage?.getItem(LEGACY_STORAGE_KEY);
       if (!raw) return clone(DEFAULT_SETTINGS);
       return normalizeSettings(JSON.parse(raw));
     } catch {
@@ -122,6 +165,7 @@ export class SettingsManager {
     this.settings = clone(DEFAULT_SETTINGS);
     try {
       this.storage?.removeItem(STORAGE_KEY);
+      this.storage?.removeItem(LEGACY_STORAGE_KEY);
     } catch {
       // Ignore restricted storage environments.
     }

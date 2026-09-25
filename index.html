@@ -8,7 +8,7 @@
     <title>Kolo neštěstí</title>
   </head>
   <body>
-    <div id="app" data-effects="high" data-motion="on">
+    <div id="app" data-effects="high" data-motion="on" data-preset="max">
       <div class="stage-glow stage-glow--left"></div>
       <div class="stage-glow stage-glow--right"></div>
       <div class="starfield" aria-hidden="true"></div>
@@ -53,7 +53,7 @@
           </div>
         </aside>
 
-        <section class="machine" aria-label="Kolo neštěstí">
+        <section id="machineStage" class="machine" aria-label="Kolo neštěstí">
           <div class="machine__arch machine__arch--back" aria-hidden="true"></div>
           <div class="wheel-aura" aria-hidden="true"></div>
           <div class="marquee-sparks" aria-hidden="true">
@@ -69,19 +69,22 @@
 
           <div id="wheelShell" class="wheel-shell">
             <div class="wheel-sheen" aria-hidden="true"></div>
-            <div class="bulb-ring" aria-hidden="true"></div>
+            <div id="ledRing" class="led-ring" aria-hidden="true"></div>
+            <div class="bulb-ring bulb-ring--legacy" aria-hidden="true"></div>
             <div class="wheel-rim wheel-rim--outer" aria-hidden="true"></div>
             <div class="wheel-rim wheel-rim--inner" aria-hidden="true"></div>
             <div id="wheelMount" class="wheel-mount" aria-label="Herní kolo"></div>
 
-            <div class="center-medallion" aria-hidden="true">
-              <span class="center-medallion__small">SPINY</span>
-              <strong id="centerSpinCounter">1</strong>
-              <span class="center-medallion__small">ZBÝVÁ</span>
+            <div id="centerMedallion" class="center-medallion" aria-hidden="true" data-mode="idle">
+              <div class="center-medallion__pulse"></div>
+              <span id="centerTop" class="center-medallion__small">SPINY</span>
+              <strong id="centerValue">1</strong>
+              <span id="centerBottom" class="center-medallion__small">ZBÝVÁ</span>
             </div>
           </div>
 
-          <div id="resultBurst" class="result-burst" aria-live="assertive">
+          <div id="resultBurst" class="result-burst result-burst--stage" aria-live="assertive">
+            <div class="result-burst__rays" aria-hidden="true"></div>
             <div class="result-burst__eyebrow" id="resultEyebrow">VÝSLEDEK</div>
             <div id="resultMain" class="result-burst__main"></div>
             <div id="resultSub" class="result-burst__sub"></div>
@@ -154,6 +157,21 @@
                   <span>HRA</span>
                   <h3>Průběh a prezentace</h3>
                 </div>
+              </div>
+
+              <div class="preset-picker" role="group" aria-label="Preset prezentace">
+                <button type="button" class="preset-card" data-preset="clean">
+                  <span class="preset-card__name">CLEAN</span>
+                  <span class="preset-card__desc">Minimum pohybu, čistý stream look</span>
+                </button>
+                <button type="button" class="preset-card" data-preset="arcade">
+                  <span class="preset-card__name">ARCADE</span>
+                  <span class="preset-card__desc">Vyvážené světla, punch a animace</span>
+                </button>
+                <button type="button" class="preset-card" data-preset="max">
+                  <span class="preset-card__name">MAX FX</span>
+                  <span class="preset-card__desc">Plný game-show režim</span>
+                </button>
               </div>
 
               <div class="settings-grid">

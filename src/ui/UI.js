@@ -1,19 +1,29 @@
+import { RollingCounter } from './RollingCounter.js';
+
 export class UI {
   constructor() {
     this.app = document.querySelector('#app');
+    this.machineStage = document.querySelector('#machineStage');
     this.money = document.querySelector('#moneyCounter');
     this.spins = document.querySelector('#spinCounter');
-    this.centerSpins = document.querySelector('#centerSpinCounter');
     this.spinRun = document.querySelector('#spinRunCounter');
     this.history = document.querySelector('#history');
     this.historyPanel = document.querySelector('#historyPanel');
     this.spinButton = document.querySelector('#spinButton');
+
+    this.centerMedallion = document.querySelector('#centerMedallion');
+    this.centerTop = document.querySelector('#centerTop');
+    this.centerValue = document.querySelector('#centerValue');
+    this.centerBottom = document.querySelector('#centerBottom');
+
     this.resultBurst = document.querySelector('#resultBurst');
     this.resultEyebrow = document.querySelector('#resultEyebrow');
     this.resultMain = document.querySelector('#resultMain');
     this.resultSub = document.querySelector('#resultSub');
+
     this.gameStatus = document.querySelector('#gameStatus');
     this.gameStatusText = document.querySelector('#gameStatusText');
+
     this.overlay = document.querySelector('#overlay');
     this.finalAmount = document.querySelector('#finalAmount');
     this.restartButton = document.querySelector('#restartButton');
@@ -22,15 +32,18 @@ export class UI {
     this.wheelShell = document.querySelector('#wheelShell');
     this.rewardFlightLayer = document.querySelector('#rewardFlightLayer');
 
+    this.moneyRoller = new RollingCounter(this.money, { suffix: ' Kč' });
+
     this.lastTotal = null;
     this.lastSpins = null;
     this.lastSpinCount = null;
     this.hideTimer = null;
-    this.moneyAnimationFrame = null;
   }
 
   formatMoney(value) {
-    return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.round(value)) + ' Kč';
+    return new Intl.NumberFormat('cs-CZ', {
+      maximumFractionDigits: 0,
+    }).format(Math.round(value)) + ' Kč';
   }
 
   bump(element, className = 'is-bumping') {
@@ -40,49 +53,31 @@ export class UI {
     element.classList.add(className);
   }
 
-  animateMoney(from, to, duration = 520) {
-    if (this.moneyAnimationFrame) cancelAnimationFrame(this.moneyAnimationFrame);
-
-    const startedAt = performance.now();
-    const start = Number(from) || 0;
-    const end = Number(to) || 0;
-
-    const frame = (now) => {
-      const t = Math.min(1, (now - startedAt) / duration);
-      const eased = 1 - Math.pow(1 - t, 3);
-      this.money.textContent = this.formatMoney(start + (end - start) * eased);
-
-      if (t < 1) {
-        this.moneyAnimationFrame = requestAnimationFrame(frame);
-      } else {
-        this.moneyAnimationFrame = null;
-        this.money.textContent = this.formatMoney(end);
-        this.bump(this.money, 'is-money-bumping');
-      }
-    };
-
-    this.moneyAnimationFrame = requestAnimationFrame(frame);
-  }
-
   renderState(state, { animateTotalFrom = null } = {}) {
     const totalChanged = this.lastTotal !== null && this.lastTotal !== state.total;
     const spinsChanged = this.lastSpins !== null && this.lastSpins !== state.spins;
     const spinCountChanged = this.lastSpinCount !== null && this.lastSpinCount !== state.spinCount;
 
     if (animateTotalFrom !== null && animateTotalFrom !== state.total) {
-      this.animateMoney(animateTotalFrom, state.total);
+      this.moneyRoller.value = Math.max(0, Math.round(Number(animateTotalFrom) || 0));
+      this.moneyRoller.set(state.total, { animate: true, duration: 700 });
     } else {
-      this.money.textContent = this.formatMoney(state.total);
+      this.moneyRoller.set(state.total, { animate: false });
       if (totalChanged) this.bump(this.money, 'is-money-bumping');
     }
 
     this.spins.textContent = state.spins;
-    this.centerSpins.textContent = state.spins;
     this.spinRun.textContent = state.spinCount;
+
+    if (this.centerMedallion?.dataset.mode === 'idle' || this.centerMedallion?.dataset.mode === 'ready') {
+      this.setCenterMode('idle', { spins: state.spins });
+    }
 
     if (spinsChanged) {
       this.bump(this.spins, 'is-spin-bumping');
-      this.bump(this.centerSpins, 'is-spin-bumping');
+      if (this.centerValue?.textContent === String(state.spins)) {
+        this.bump(this.centerValue, 'is-spin-bumping');
+      }
     }
 
     if (spinCountChanged) {
@@ -105,6 +100,7 @@ export class UI {
       const label = record.type === 'multiplier'
         ? 'x' + record.multiplier
         : '+' + record.value + ' Kč';
+
       const extra = record.extraSpins
         ? '<span>+SPIN</span>'
         : '<span class="history-final">KONEC</span>';
@@ -130,24 +126,100 @@ export class UI {
     this.gameStatus.classList.add('is-pulsing');
   }
 
-  showResult(record) {
+  setSpinPhase(phase) {
+    this.app.dataset.spinPhase = phase;
+    this.machineStage.dataset.phase = phase;
+
+    if (phase === 'spinning') {
+      this.setCenterMode('spinning');
+    } else if (phase === 'anticipation-1') {
+      this.setCenterMode('anticipating', { stage: 1 });
+    } else if (phase === 'anticipation-2') {
+      this.setCenterMode('anticipating', { stage: 2 });
+    } else if (phase === 'anticipation-3' || phase === 'settling') {
+      this.setCenterMode('anticipating', { stage: 3 });
+    }
+  }
+
+  setCenterMode(mode, payload = {}) {
+    if (!this.centerMedallion) return;
+
+    this.centerMedallion.dataset.mode = mode;
+
+    if (mode === 'idle') {
+      this.centerTop.textContent = 'SPINY';
+      this.centerValue.textContent = payload.spins ?? this.lastSpins ?? 0;
+      this.centerBottom.textContent = 'ZBÝVÁ';
+      return;
+    }
+
+    if (mode === 'spinning') {
+      this.centerTop.textContent = 'TOČÍM';
+      this.centerValue.textContent = '?';
+      this.centerBottom.textContent = '…';
+      return;
+    }
+
+    if (mode === 'anticipating') {
+      const stage = payload.stage ?? 1;
+      this.centerTop.textContent = stage >= 3 ? 'TEĎ' : 'POZOR';
+      this.centerValue.textContent = stage === 1 ? '···' : stage === 2 ? '•••' : '!';
+      this.centerBottom.textContent = stage >= 3 ? '!' : '…';
+      return;
+    }
+
+    if (mode === 'result') {
+      const record = payload.record;
+      this.centerTop.textContent = payload.isEnding ? 'KONEC' : 'PADLO';
+      this.centerValue.textContent = record?.type === 'multiplier'
+        ? 'x' + record.multiplier
+        : '+' + record.value;
+      this.centerBottom.textContent = record?.type === 'money' ? 'KČ' : record?.extraSpins ? '+ SPIN' : 'BEZ SPINU';
+      return;
+    }
+
+    if (mode === 'loss') {
+      this.centerTop.textContent = 'STOP';
+      this.centerValue.textContent = '×';
+      this.centerBottom.textContent = 'KONEC';
+    }
+  }
+
+  showResult(record, tier = 'small') {
     clearTimeout(this.hideTimer);
 
     const isMultiplier = record.type === 'multiplier';
-    const isFinal = !record.extraSpins;
+    const isFinal = tier === 'final';
 
-    this.resultBurst.className = 'result-burst '
+    this.resultBurst.className = 'result-burst result-burst--stage '
       + (isMultiplier ? 'is-multiplier ' : 'is-money ')
-      + (isFinal ? 'is-final-result' : '');
+      + (isFinal ? 'is-final-result ' : '')
+      + 'reward-tier-' + tier;
 
-    this.resultEyebrow.textContent = isFinal ? 'POSLEDNÍ POLÍČKO' : isMultiplier ? 'NÁSOBIČ' : 'PŘIČÍTÁM';
+    this.resultEyebrow.textContent = isFinal
+      ? 'POSLEDNÍ POLÍČKO'
+      : isMultiplier
+        ? 'NÁSOBIČ'
+        : tier === 'big'
+          ? 'VELKÝ HIT'
+          : 'PŘIČÍTÁM';
+
     this.resultMain.textContent = isMultiplier
-      ? (record.multiplier === 3 ? 'TRIPLE!' : record.multiplier === 2 ? 'DOUBLE!' : 'x' + record.multiplier)
+      ? (record.multiplier === 3
+        ? 'TRIPLE!'
+        : record.multiplier === 2
+          ? 'DOUBLE!'
+          : 'x' + record.multiplier)
       : '+' + record.value + ' Kč';
 
     this.resultSub.textContent = isMultiplier
-      ? this.formatMoney(record.before) + ' → ' + this.formatMoney(record.after) + (record.extraSpins ? ' · +1 SPIN' : '')
-      : record.extraSpins ? '+1 SPIN · JEDEME DÁL' : 'BEZ +SPIN';
+      ? this.formatMoney(record.before) + ' → ' + this.formatMoney(record.after)
+        + (record.extraSpins ? ' · +1 SPIN' : '')
+      : record.extraSpins
+        ? '+1 SPIN · JEDEME DÁL'
+        : isFinal
+          ? 'BEZ +SPIN · KONEC'
+          : 'BEZ +SPIN';
 
     requestAnimationFrame(() => {
       this.resultBurst.classList.add('is-visible');
@@ -160,7 +232,7 @@ export class UI {
     this.resultBurst.classList.add('is-leaving');
     this.hideTimer = setTimeout(() => {
       this.resultBurst.classList.remove('is-visible', 'is-leaving');
-    }, 220);
+    }, 230);
   }
 
   flyReward(record) {
@@ -169,7 +241,6 @@ export class UI {
     const source = this.wheelShell.getBoundingClientRect();
     const sourceX = source.left + source.width / 2;
     const sourceY = source.top + source.height * 0.46;
-
     const flights = [];
 
     if (record.type === 'money' && record.value > 0) {
@@ -214,11 +285,33 @@ export class UI {
       node.style.setProperty('--flight-delay', flight.delay + 'ms');
 
       this.rewardFlightLayer.appendChild(node);
+
       node.addEventListener('animationend', () => {
         node.remove();
-        this.bump(flight.target, flight.className.includes('spin') ? 'is-spin-bumping' : 'is-money-bumping');
+        this.bump(
+          flight.target,
+          flight.className.includes('spin')
+            ? 'is-spin-bumping'
+            : 'is-money-bumping',
+        );
       }, { once: true });
     });
+  }
+
+  microFreeze(active = true) {
+    this.app.classList.toggle('is-micro-freeze', active);
+  }
+
+  cameraPunchClass(strength = 'normal') {
+    this.machineStage.classList.remove('camera-punch-soft', 'camera-punch-normal', 'camera-punch-heavy');
+    void this.machineStage.offsetWidth;
+    this.machineStage.classList.add(
+      strength === 'heavy'
+        ? 'camera-punch-heavy'
+        : strength === 'soft'
+          ? 'camera-punch-soft'
+          : 'camera-punch-normal',
+    );
   }
 
   shake(strength = 'normal') {
@@ -242,7 +335,13 @@ export class UI {
   applyPresentationSettings(settings) {
     this.app.dataset.effects = settings.effects;
     this.app.dataset.motion = settings.ambientMotion ? 'on' : 'off';
+    this.app.dataset.preset = settings.presentationPreset ?? 'arcade';
     this.historyPanel.hidden = !settings.showHistory;
+  }
+
+  setGameOverVisual(active) {
+    this.app.classList.toggle('is-game-over', active);
+    if (active) this.setCenterMode('loss');
   }
 
   async showFinal(total) {
@@ -275,16 +374,15 @@ export class UI {
     this.overlay.classList.remove('is-visible');
     this.overlay.setAttribute('aria-hidden', 'true');
     this.finalAmount.classList.remove('is-final-settled');
+    this.setGameOverVisual(false);
   }
 
   resetAnimationMemory(state) {
-    if (this.moneyAnimationFrame) {
-      cancelAnimationFrame(this.moneyAnimationFrame);
-      this.moneyAnimationFrame = null;
-    }
-
     this.lastTotal = state.total;
     this.lastSpins = state.spins;
     this.lastSpinCount = state.spinCount;
+    this.moneyRoller.value = state.total;
+    this.setCenterMode('idle', { spins: state.spins });
+    this.setSpinPhase('idle');
   }
 }
