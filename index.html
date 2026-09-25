@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#130513" />
-    <meta name="description" content="Kolo štěstí — roztoč kolo, sbírej Kč, násob výhru a pokračuj díky +SPIN." />
-    <title>Kolo štěstí</title>
+    <meta name="description" content="Kolo neštěstí — roztoč kolo, sbírej částku, násob ji a čekej, kdy tě zastaví finální pole." />
+    <title>Kolo neštěstí</title>
   </head>
   <body>
     <div id="app">
@@ -14,15 +14,15 @@
       <div class="starfield" aria-hidden="true"></div>
 
       <header class="topbar">
-        <div class="brand" aria-label="Kolo štěstí">
-          <span class="brand__eyebrow">VELKÁ HRA</span>
-          <h1>KOLO ŠTĚSTÍ</h1>
+        <div class="brand" aria-label="Kolo neštěstí">
+          <span class="brand__eyebrow">VELKÁ PROHRA</span>
+          <h1>KOLO NEŠTĚSTÍ</h1>
           <div class="brand__stars" aria-hidden="true">★ ✦ ★</div>
         </div>
 
         <div class="hud" aria-live="polite">
           <div class="hud-card hud-card--money">
-            <span class="hud-card__label">VÝHRA</span>
+            <span class="hud-card__label">ČÁSTKA</span>
             <strong id="moneyCounter">0 Kč</strong>
           </div>
           <div class="hud-card hud-card--spins">
@@ -45,7 +45,7 @@
           </div>
         </aside>
 
-        <section class="machine" aria-label="Kolo štěstí">
+        <section class="machine" aria-label="Kolo neštěstí">
           <div class="machine__arch machine__arch--back" aria-hidden="true"></div>
           <div class="pointer-wrap" aria-hidden="true">
             <div id="pointer" class="pointer">
@@ -90,17 +90,19 @@
         <aside class="prize-panel" aria-label="Pravidla">
           <div class="prize-panel__badge">JAK TO FUNGUJE</div>
           <p>Každé pole kromě <strong>100 Kč</strong> vrací další spin.</p>
-          <div class="mini-rule"><span>x2</span> zdvojnásobí výhru</div>
-          <div class="mini-rule"><span>x3</span> ztrojnásobí výhru</div>
-          <div class="mini-rule mini-rule--final"><span>100</span> finální pole</div>
+          <div class="mini-rule"><span>x2</span> zdvojnásobí částku</div>
+          <div class="mini-rule"><span>x3</span> ztrojnásobí částku</div>
+          <div class="mini-rule mini-rule--final"><span>100</span> konec hry</div>
         </aside>
       </main>
 
       <div id="overlay" class="final-overlay" aria-hidden="true">
-        <div class="final-card">
-          <div class="final-card__eyebrow">KONEC KOLA</div>
-          <div class="final-card__title">VYHRÁVÁŠ</div>
+        <div class="final-card final-card--loss">
+          <div class="final-card__eyebrow">KONEC HRY</div>
+          <div class="final-card__title">PROHRÁL JSI</div>
+          <div class="final-card__label">VÝSLEDNÁ ČÁSTKA</div>
           <div id="finalAmount" class="final-card__amount">0 Kč</div>
+          <div class="final-card__message">Kolo neštěstí tě dostalo.</div>
           <div class="final-card__sparkline" aria-hidden="true">✦ ★ ✦ ★ ✦</div>
           <button id="restartButton" class="restart-button" type="button">HRÁT ZNOVU <span>R</span></button>
         </div>
