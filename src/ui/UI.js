@@ -170,7 +170,7 @@ export class UI {
 
     if (mode === 'result') {
       const record = payload.record;
-      this.centerTop.textContent = record?.extraSpins ? 'PADLO' : 'KONEC';
+      this.centerTop.textContent = payload.isEnding ? 'KONEC' : 'PADLO';
       this.centerValue.textContent = record?.type === 'multiplier'
         ? 'x' + record.multiplier
         : '+' + record.value;
@@ -189,7 +189,7 @@ export class UI {
     clearTimeout(this.hideTimer);
 
     const isMultiplier = record.type === 'multiplier';
-    const isFinal = !record.extraSpins;
+    const isFinal = tier === 'final';
 
     this.resultBurst.className = 'result-burst result-burst--stage '
       + (isMultiplier ? 'is-multiplier ' : 'is-money ')
@@ -217,7 +217,9 @@ export class UI {
         + (record.extraSpins ? ' · +1 SPIN' : '')
       : record.extraSpins
         ? '+1 SPIN · JEDEME DÁL'
-        : 'BEZ +SPIN';
+        : isFinal
+          ? 'BEZ +SPIN · KONEC'
+          : 'BEZ +SPIN';
 
     requestAnimationFrame(() => {
       this.resultBurst.classList.add('is-visible');
