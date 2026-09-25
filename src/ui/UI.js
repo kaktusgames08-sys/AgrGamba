@@ -1,179 +1,100 @@
-import { AGRAELUS, CHATTER } from '../core/SpinEngine.js';
-import { PRESETS } from '../core/SettingsManager.js';
-import { agraelusWinChanceFromLoseChance, chatterWinChanceFromAgraelusWinChance } from '../core/Odds.js';
-
-const PRESET_LABELS = {
-  fair: 'FÉROVKA',
-  'agra-advantage': 'VÝHODA AGRAELUS',
-  'chat-advantage': 'VÝHODA CHATTER',
-  'agra-propaganda': 'AGRA PROPAGANDA',
-  'chat-revolution': 'CHAT REVOLUCE',
-  'pure-gamba': 'PURE GAMBA',
-};
-
-export function queryDom() {
-  const $ = (id) => document.getElementById(id);
-  return {
-    splash: $('splash'),
-    pullStart: $('pullStart'),
-    game: $('game'),
-
-    btnMute: $('btnMute'),
-    btnFullscreen: $('btnFullscreen'),
-    btnSettings: $('btnSettings'),
-
-    scoreAgra: $('scoreAgra'),
-    scoreChat: $('scoreChat'),
-    spinCounter: $('spinCounter'),
-    pureGambaBadge: $('pureGambaBadge'),
-
-    machine: $('machine'),
-    lights: $('lights'),
-    rareLabel: $('rareLabel'),
-    reelTrack: $('reelTrack'),
-    nearMissText: $('nearMissText'),
-    marqueeText: $('marqueeText'),
-    ribbonTrack: $('ribbonTrack'),
-
-    lever: $('lever'),
-
-    streakAgra: $('streakAgra'),
-    streakChat: $('streakChat'),
-    historyRow: $('historyRow'),
-
-    resultDisplay: $('resultDisplay'),
-    resultPayer: $('resultPayer'),
-    resultL: $('resultL'),
-    resultWinner: $('resultWinner'),
-    resultFlavor: $('resultFlavor'),
-    continueButton: $('continueButton'),
-
-    particleLayer: $('particleLayer'),
-    chatLayer: $('chatLayer'),
-    flashLayer: $('flashLayer'),
-    sevenTvLayer: $('sevenTvLayer'),
-    sevenTvStatus: $('sevenTvStatus'),
-
-    settingsPanel: $('settingsPanel'),
-    btnCloseSettings: $('btnCloseSettings'),
-    agraOddsSlider: $('agraOddsSlider'),
-    agraOddsLabel: $('agraOddsLabel'),
-    chatOddsLabel: $('chatOddsLabel'),
-    agraOddsInput: $('agraOddsInput'),
-    chatOddsInput: $('chatOddsInput'),
-    oddsTranscript: $('oddsTranscript'),
-    presetGrid: $('presetGrid'),
-    turboToggle: $('turboToggle'),
-    degenToggle: $('degenToggle'),
-    volMaster: $('volMaster'),
-    volMusic: $('volMusic'),
-    volSfx: $('volSfx'),
-    muteToggle: $('muteToggle'),
-    showOddsToggle: $('showOddsToggle'),
-    streamerToggle: $('streamerToggle'),
-    flashSelect: $('flashSelect'),
-    particleSelect: $('particleSelect'),
-    shakeIntensity: $('shakeIntensity'),
-    statsBlock: $('statsBlock'),
-    btnResetStats: $('btnResetStats'),
-  };
-}
-
-export function updateScore(dom, statsSnapshot) {
-  dom.scoreAgra.textContent = statsSnapshot.wins[AGRAELUS];
-  dom.scoreChat.textContent = statsSnapshot.wins[CHATTER];
-  dom.spinCounter.textContent = `SPINY: ${statsSnapshot.spins}`;
-}
-
-export function updateStreak(dom, statsSnapshot) {
-  const { currentStreakWinner: w, currentStreakCount: c } = statsSnapshot;
-  dom.streakAgra.classList.add('hidden');
-  dom.streakChat.classList.add('hidden');
-  if (!w || c < 2) return;
-  const target = w === AGRAELUS ? dom.streakAgra : dom.streakChat;
-  let label = `x${c}`;
-  if (c >= 10) label += ' — CO TO JE';
-  else if (c >= 5) label += ' — HOŘÍ';
-  else if (c >= 3) label += ' — ROZJÍŽDÍ SE';
-  target.querySelector('span').textContent = label;
-  target.classList.remove('hidden');
-}
-
-export function updateHistory(dom, statsSnapshot) {
-  dom.historyRow.innerHTML = '';
-  statsSnapshot.history.forEach(({ loser, winner }) => {
-    const tile = document.createElement('div');
-    tile.className = 'history-tile ' + (winner === AGRAELUS ? 'win-agra' : 'win-chat');
-    tile.textContent = winner === AGRAELUS ? 'A' : 'C';
-    tile.title = `${loser} platí — ${winner} vyhrál`;
-    dom.historyRow.appendChild(tile);
-  });
-}
-
-export function updatePureGambaBadge(dom, settings) {
-  dom.pureGambaBadge.classList.toggle('hidden', !settings.isPureGamba());
-}
-
-export function renderPresets(dom, settings, onPick) {
-  dom.presetGrid.innerHTML = '';
-  PRESETS.forEach((preset) => {
-    const btn = document.createElement('button');
-    btn.className = 'preset-btn';
-    btn.textContent = PRESET_LABELS[preset.id] ?? preset.label;
-    btn.addEventListener('click', () => onPick(preset));
-    dom.presetGrid.appendChild(btn);
-  });
-  syncPresetActive(dom, settings);
-}
-
-export function syncPresetActive(dom, settings) {
-  const val = settings.get('agraelusLoseChance');
-  [...dom.presetGrid.children].forEach((btn, i) => {
-    btn.classList.toggle('active', PRESETS[i].agraelusLoseChance === val);
-  });
-}
-
-export function syncOddsUI(dom, settings) {
-  const agraWin = agraelusWinChanceFromLoseChance(settings.get('agraelusLoseChance'));
-  const chatWin = chatterWinChanceFromAgraelusWinChance(agraWin);
-  dom.agraOddsSlider.value = agraWin;
-  dom.agraOddsLabel.textContent = agraWin;
-  dom.chatOddsLabel.textContent = chatWin;
-  dom.agraOddsInput.value = agraWin;
-  dom.chatOddsInput.value = chatWin;
-
-  if (settings.get('showOdds')) {
-    dom.oddsTranscript.classList.remove('hidden');
-    dom.oddsTranscript.innerHTML =
-      `Agraelus: <b>${agraWin}%</b> šance na výhru · Chatter: <b>${chatWin}%</b> šance na výhru`;
-  } else {
-    dom.oddsTranscript.classList.add('hidden');
+export class UI {
+  constructor() {
+    this.money = document.querySelector('#moneyCounter');
+    this.spins = document.querySelector('#spinCounter');
+    this.centerSpins = document.querySelector('#centerSpinCounter');
+    this.history = document.querySelector('#history');
+    this.spinButton = document.querySelector('#spinButton');
+    this.resultBurst = document.querySelector('#resultBurst');
+    this.resultMain = document.querySelector('#resultMain');
+    this.resultSub = document.querySelector('#resultSub');
+    this.overlay = document.querySelector('#overlay');
+    this.finalAmount = document.querySelector('#finalAmount');
+    this.restartButton = document.querySelector('#restartButton');
+    this.muteButton = document.querySelector('#muteButton');
+    this.fullscreenButton = document.querySelector('#fullscreenButton');
+    this.wheelShell = document.querySelector('#wheelShell');
   }
-}
 
-export function syncSettingsForm(dom, settings) {
-  dom.turboToggle.checked = settings.get('turbo');
-  dom.degenToggle.checked = settings.get('degenerate');
-  dom.volMaster.value = settings.get('masterVolume');
-  dom.volMusic.value = settings.get('musicVolume');
-  dom.volSfx.value = settings.get('sfxVolume');
-  dom.muteToggle.checked = settings.get('muted');
-  dom.showOddsToggle.checked = settings.get('showOdds');
-  dom.streamerToggle.checked = settings.get('streamerMode');
-  dom.flashSelect.value = settings.get('flash');
-  dom.particleSelect.value = settings.get('particles');
-  dom.shakeIntensity.value = settings.get('shakeIntensity');
-  syncOddsUI(dom, settings);
-  syncPresetActive(dom, settings);
-}
+  formatMoney(value) {
+    return new Intl.NumberFormat('cs-CZ', { maximumFractionDigits: 0 }).format(Math.round(value)) + ' Kč';
+  }
 
-export function renderStatsBlock(dom, statsSnapshot) {
-  const s = statsSnapshot;
-  dom.statsBlock.innerHTML = `
-    Celkem spinů: <b>${s.spins}</b><br/>
-    Výhry Agraelus: <b>${s.wins[AGRAELUS]}</b> &nbsp; Výhry Chatter: <b>${s.wins[CHATTER]}</b><br/>
-    Prohry Agraelus: <b>${s.losses[AGRAELUS]}</b> &nbsp; Prohry Chatter: <b>${s.losses[CHATTER]}</b><br/>
-    Nejlepší série Agraelus: <b>${s.bestStreak[AGRAELUS]}</b><br/>
-    Nejlepší série Chatter: <b>${s.bestStreak[CHATTER]}</b>
-  `;
+  renderState(state) {
+    this.money.textContent = this.formatMoney(state.total);
+    this.spins.textContent = state.spins;
+    this.centerSpins.textContent = state.spins;
+    this.money.classList.remove('is-bumping');
+    this.spins.classList.remove('is-bumping');
+    this.centerSpins.classList.remove('is-bumping');
+    void this.money.offsetWidth;
+    this.money.classList.add('is-bumping');
+    this.spins.classList.add('is-bumping');
+    this.centerSpins.classList.add('is-bumping');
+    this.renderHistory(state.history);
+  }
+
+  renderHistory(records) {
+    if (!records.length) {
+      this.history.innerHTML = '<div class="history-empty">Zatím nic</div>';
+      return;
+    }
+    this.history.innerHTML = records.map((record) => {
+      const label = record.type === 'multiplier' ? 'x' + record.multiplier : '+' + record.value + ' Kč';
+      const extra = record.extraSpins ? '<span>+SPIN</span>' : '<span class="history-final">FINÁLE</span>';
+      return '<div class="history-item history-item--' + record.type + '"><strong>' + label + '</strong>' + extra + '</div>';
+    }).join('');
+  }
+
+  setBusy(busy) {
+    this.spinButton.disabled = busy;
+    this.spinButton.classList.toggle('is-busy', busy);
+  }
+
+  showResult(record) {
+    const isMultiplier = record.type === 'multiplier';
+    this.resultBurst.className = 'result-burst is-visible ' + (isMultiplier ? 'is-multiplier' : 'is-money');
+    this.resultMain.textContent = isMultiplier ? (record.multiplier === 3 ? 'TRIPLE!' : 'DOUBLE!') : '+' + record.value + ' Kč';
+    this.resultSub.textContent = isMultiplier
+      ? this.formatMoney(record.before) + ' → ' + this.formatMoney(record.after) + ' · +1 SPIN'
+      : record.extraSpins ? '+1 SPIN' : 'FINÁLNÍ POLE';
+  }
+
+  hideResult() {
+    this.resultBurst.classList.remove('is-visible');
+  }
+
+  shake(strength = 'normal') {
+    this.wheelShell.classList.remove('shake-normal', 'shake-heavy');
+    void this.wheelShell.offsetWidth;
+    this.wheelShell.classList.add(strength === 'heavy' ? 'shake-heavy' : 'shake-normal');
+  }
+
+  setMuted(muted) {
+    this.muteButton.textContent = muted ? '🔇' : '🔊';
+    this.muteButton.setAttribute('aria-label', muted ? 'Zapnout zvuk' : 'Vypnout zvuk');
+  }
+
+  async showFinal(total) {
+    this.overlay.setAttribute('aria-hidden', 'false');
+    this.overlay.classList.add('is-visible');
+    this.finalAmount.textContent = '0 Kč';
+    const duration = 1500;
+    const start = performance.now();
+    return new Promise((resolve) => {
+      const frame = (now) => {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 4);
+        this.finalAmount.textContent = this.formatMoney(total * eased);
+        if (t < 1) requestAnimationFrame(frame);
+        else resolve();
+      };
+      requestAnimationFrame(frame);
+    });
+  }
+
+  hideFinal() {
+    this.overlay.classList.remove('is-visible');
+    this.overlay.setAttribute('aria-hidden', 'true');
+  }
 }
