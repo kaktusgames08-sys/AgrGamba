@@ -37,26 +37,24 @@ function wedgePath(cx, cy, radius, startAngle, endAngle) {
   ].join(' ');
 }
 
-function smootherStep(t) {
-  return t * t * t * (t * (t * 6 - 15) + 10);
-}
-
-function easeOutQuint(t) {
-  return 1 - Math.pow(1 - t, 5);
-}
-
 function spinProgress(t) {
   const clamped = Math.min(1, Math.max(0, t));
-  const rampEnd = 0.14;
-  const rampDistance = 0.18;
 
-  if (clamped <= rampEnd) {
-    return rampDistance * smootherStep(clamped / rampEnd);
+  // Move immediately after the click instead of easing from zero velocity.
+  // Keep most of the speed until later in the spin, then decelerate smoothly.
+  const cruiseEnd = 0.52;
+  const cruiseDistance = 0.603;
+
+  if (clamped <= cruiseEnd) {
+    return cruiseDistance * (clamped / cruiseEnd);
   }
 
-  return rampDistance
-    + (1 - rampDistance)
-      * easeOutQuint((clamped - rampEnd) / (1 - rampEnd));
+  const u = (clamped - cruiseEnd) / (1 - cruiseEnd);
+  const decelExponent = 1.4;
+
+  return cruiseDistance
+    + (1 - cruiseDistance)
+      * (1 - Math.pow(1 - u, decelExponent));
 }
 
 function normalizeIndex(index, count) {
@@ -387,21 +385,21 @@ export class WheelRenderer {
           lastBoundary = boundary;
         }
 
-        if (t > 0.72) {
+        if (t > 0.82) {
           this.shell?.classList.add('is-anticipating');
           this.updatePointerHighlight(current);
         }
 
         let nextStage = 0;
 
-        if (t > 0.955) {
+        if (t > 0.975) {
           nextStage = 3;
           this.shell?.classList.add('is-settling');
           this.setPhase('settling');
-        } else if (t > 0.875) {
+        } else if (t > 0.925) {
           nextStage = 2;
           this.setPhase('anticipation-2');
-        } else if (t > 0.76) {
+        } else if (t > 0.84) {
           nextStage = 1;
           this.setPhase('anticipation-1');
         }
