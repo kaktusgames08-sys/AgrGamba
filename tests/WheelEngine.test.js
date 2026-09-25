@@ -28,7 +28,7 @@ test('randomLandingRotation produces a valid segment from the physical stop angl
 
 test('random landing never stops in forbidden border strips', () => {
   const slice = segmentAngle(18);
-  const safeHalf = slice * 0.43;
+  const safeHalf = slice * 0.475;
   const samples = [0, 0.01, 0.125, 0.499, 0.5, 0.875, 0.999999];
 
   for (const sample of samples) {
@@ -55,4 +55,15 @@ test('safe random space gives every physical segment the same width', () => {
   }
 
   assert.equal(seen.size, 18);
+});
+
+
+test('random landing allows very close calls while keeping a tiny border gap', () => {
+  const slice = segmentAngle(18);
+  const values = [0, 0];
+  const landing = randomLandingRotation(0, 18, () => values.shift());
+  const distanceToBorder = slice / 2 - Math.abs(landing.offset);
+
+  assert.ok(distanceToBorder > 0);
+  assert.ok(distanceToBorder < slice * 0.03);
 });

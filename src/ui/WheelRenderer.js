@@ -42,30 +42,10 @@ function wedgePath(cx, cy, radius, startAngle, endAngle) {
 
 function spinProgress(t) {
   const clamped = Math.min(1, Math.max(0, t));
-  const cruiseEnd = 0.66;
-  const cruiseSpeed = 1.05;
 
-  if (clamped <= cruiseEnd) {
-    return cruiseSpeed * clamped;
-  }
-
-  // C2-continuous quintic deceleration. Velocity and acceleration both join
-  // cleanly at cruiseEnd, then velocity reaches exactly zero at t=1.
-  const span = 1 - cruiseEnd;
-  const u = (clamped - cruiseEnd) / span;
-  const startPosition = cruiseSpeed * cruiseEnd;
-  const startSlope = cruiseSpeed * span;
-  const remainder = 1 - startPosition - startSlope;
-
-  const a3 = 10 * remainder + 4 * startSlope;
-  const a4 = -15 * remainder - 7 * startSlope;
-  const a5 = 6 * remainder + 3 * startSlope;
-
-  return startPosition
-    + startSlope * u
-    + a3 * Math.pow(u, 3)
-    + a4 * Math.pow(u, 4)
-    + a5 * Math.pow(u, 5);
+  // Constant angular deceleration: one uninterrupted physical-looking motion.
+  // Velocity falls linearly all the way to zero, so there is no late snap.
+  return 1 - Math.pow(1 - clamped, 2);
 }
 
 function normalizeIndex(index, count) {
@@ -362,12 +342,16 @@ export class WheelRenderer {
       this.segments.length,
       rng,
     );
+
     const targetRotation = landing.rotation;
     const index = landing.index;
     const distance = targetRotation - startRotation;
     const slice = segmentAngle(this.segments.length);
-    const durationJitter = 0.94 + Math.min(0.999999999999, Math.max(0, rng())) * 0.12;
+
+    const durationJitter = 0.96
+      + Math.min(0.999999999999, Math.max(0, rng())) * 0.08;
     const duration = this.spinDurationMs * durationJitter;
+
     const startedAt = performance.now();
     let lastBoundary = Math.floor(startRotation / slice);
 
@@ -382,6 +366,7 @@ export class WheelRenderer {
         const current = startRotation + distance * progress;
 
         this.rotor.style.transform = 'rotate(' + current + 'deg)';
+
         this.onProgress?.({
           timeProgress: t,
           wheelProgress: progress,
@@ -392,21 +377,11 @@ export class WheelRenderer {
         const boundary = Math.floor(current / slice);
 
         if (boundary !== lastBoundary) {
-          const speed = Math.max(0.06, Math.min(1, Math.abs(boundary - lastBoundary) * (1 - t) * 1.15));
+          const remaining = 1 - t;
+          const speed = Math.max(0.05, Math.min(1, remaining * 1.35));
           this.audio.tick(speed);
           this.bouncePointer();
           lastBoundary = boundary;
-        }
-
-        // Don't telegraph the outcome early. Only light the physical segment
-        // under the pointer during the very last part of the natural slowdown.
-        if (t > 0.94) {
-          this.updatePointerHighlight(current);
-        }
-
-        if (t > 0.97) {
-          this.shell?.classList.add('is-settling');
-          this.setPhase('settling');
         }
 
         if (t < 1) {
@@ -416,10 +391,13 @@ export class WheelRenderer {
 
         this.rotation = targetRotation;
         this.rotor.style.transform = 'rotate(' + targetRotation + 'deg)';
-        this.shell?.classList.remove('is-spinning', 'is-anticipating');
-        this.shell?.classList.add('is-settling');
+        this.shell?.classList.remove(
+          'is-spinning',
+          'is-anticipating',
+          'is-settling',
+        );
+
         this.updatePointerHighlight(targetRotation);
-        this.setPhase('settling');
 
         resolve({
           index,
@@ -430,4 +408,5 @@ export class WheelRenderer {
 
       requestAnimationFrame(frame);
     });
-  }}
+  }
+}
