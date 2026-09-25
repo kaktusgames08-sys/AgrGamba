@@ -1,6 +1,8 @@
 import {
   DEFAULT_SETTINGS,
+  PRESENTATION_PRESETS,
   TONE_OPTIONS,
+  applyPresentationPreset,
   makeSegmentLabel,
   normalizeSegment,
 } from '../core/SettingsManager.js';
@@ -50,6 +52,7 @@ export class SettingsPanel {
     this.volume = document.querySelector('#settingVolume');
     this.volumeValue = document.querySelector('#settingVolumeValue');
     this.effects = document.querySelector('#settingEffects');
+    this.presetButtons = [...document.querySelectorAll('[data-preset]')];
     this.ambientMotion = document.querySelector('#settingAmbientMotion');
     this.showHistory = document.querySelector('#settingShowHistory');
     this.error = document.querySelector('#settingsError');
@@ -81,6 +84,14 @@ export class SettingsPanel {
     this.addMoneyButton?.addEventListener('click', () => this.addSegment('money', 20));
     this.addX2Button?.addEventListener('click', () => this.addSegment('multiplier', 2));
     this.addX3Button?.addEventListener('click', () => this.addSegment('multiplier', 3));
+
+    this.presetButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        const presetId = button.dataset.preset;
+        this.draft = applyPresentationPreset(this.collect(), presetId);
+        this.renderPresentationOnly();
+      });
+    });
 
     this.segmentList?.addEventListener('click', (event) => {
       const remove = event.target.closest('[data-action="remove-segment"]');
@@ -147,6 +158,7 @@ export class SettingsPanel {
     this.effects.value = settings.effects;
     this.ambientMotion.checked = settings.ambientMotion;
     this.showHistory.checked = settings.showHistory;
+    this.renderPresetState(settings.presentationPreset);
 
     this.segmentList.innerHTML = '';
     settings.segments.forEach((segment, index) => {
@@ -154,6 +166,21 @@ export class SettingsPanel {
     });
 
     this.renumberRows();
+  }
+
+  renderPresetState(presetId) {
+    this.presetButtons.forEach((button) => {
+      const active = button.dataset.preset === presetId;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+  }
+
+  renderPresentationOnly() {
+    this.effects.value = this.draft.effects;
+    this.ambientMotion.checked = this.draft.ambientMotion;
+    this.showHistory.checked = this.draft.showHistory;
+    this.renderPresetState(this.draft.presentationPreset);
   }
 
   segmentRowMarkup(segment, index) {
@@ -298,6 +325,9 @@ export class SettingsPanel {
       effects: this.effects.value,
       ambientMotion: this.ambientMotion.checked,
       showHistory: this.showHistory.checked,
+      presentationPreset: this.presetButtons.find((button) => button.classList.contains('is-active'))?.dataset.preset
+        ?? this.draft.presentationPreset
+        ?? 'arcade',
     };
   }
 
