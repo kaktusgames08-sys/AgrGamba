@@ -1,57 +1,48 @@
-# KOLO NEŠTĚSTÍ v3
+# KOLO NEŠTĚSTÍ v4
 
-Browserové kolo pro stream / OBS / GitHub Pages. V3 přidává výrazně uhlazenější game-show prezentaci a kompletní nastavení kola přímo ve hře.
+Browserové kolo pro stream, OBS a GitHub Pages. V4 staví prezentaci kolem jasné sekvence **spin → anticipation → micro-freeze → impact → reward → návrat do ready stavu**.
 
-## Co je ve v3
+## Co přibylo ve v4
 
-- plynulejší spin s krátkou akcelerací, dlouhým dojezdem a skutečným pointer tickem,
-- live zvýraznění segmentu, který je opravdu pod pointerem při zpomalování,
-- žádné falešné near-miss změny výsledku — výsledek se vybere jednou před animací,
-- nové ambientní světlo, wheel sheen, marquee spark efekty a živější HUD,
-- animované dopočítávání částky,
-- +Kč / x2 / +SPIN badge, který vizuálně letí do HUD,
-- stavový pill **PŘIPRAVENO / ROZTÁČÍM / +SPIN / KONEC**,
-- panel série odehraných spinů,
-- nastavitelná intenzita efektů, hlasitost a délka spinu,
-- editor všech segmentů přímo v browseru,
-- nastavení se ukládá do `localStorage`.
+- synchronizovaný **LED chase ring** kolem kola,
+- třífázové anticipation chování při zpomalování,
+- krátký micro-freeze před odhalením výsledku,
+- silnější, ale jemný camera punch místo chaotického shake,
+- výsledky se zobrazují přímo přes kolo místo těžkého popup boxu,
+- částka používá **mechanický rolling-digit counter**,
+- center hub mění stav podle průběhu: SPINY → ? → POZOR → výsledek → KONEC,
+- continuous spin motor + pointer ticks + rising anticipation + impact + reward audio,
+- jemný 3D parallax podle myši,
+- reward tiers pro malé/střední/velké částky a x2/x3,
+- idle attract animace po skončení akce,
+- tři presentation presety: **CLEAN / ARCADE / MAX FX**.
+
+Výsledek se stále vybírá pouze jednou před roztočením. Vizuální anticipation výsledek nijak nepřehazuje ani nevytváří falešný near-miss.
 
 ## Nastavení kola
 
-Klikni na **⚙** vpravo nahoře.
+Klikni na **⚙** nebo stiskni `S`.
 
-Lze změnit:
+Měnit lze:
 
-- počet počátečních spinů,
-- délku animace spinu,
+- presentation preset,
+- počáteční spiny,
+- délku spinu,
 - hlasitost,
 - intenzitu efektů,
-- ambient animace,
-- historii výsledků,
-- počet polí kola,
-- typ každého pole: peníze / násobič,
-- částku nebo hodnotu násobiče,
-- barvu pole,
-- zda pole dává `+SPIN`.
+- ambientní pohyb,
+- historii,
+- 6–24 polí,
+- peníze / násobič,
+- hodnotu pole,
+- barvu,
+- `+SPIN` pro každé pole.
 
-Kolo musí mít alespoň jedno pole bez `+SPIN`, jinak by hra neměla konec. Editor to hlídá.
-
-Každé **viditelné fyzické políčko má stejnou pravděpodobnost**. Pokud nějakou hodnotu na kolo přidáš vícekrát, zvýšíš tím její celkovou šanci.
-
-## Výchozí pravidla
-
-Hra začíná s `0 Kč` a `1 spinem`.
-
-- při startu spinu se odečte 1 spin,
-- peněžní pole přidá částku,
-- `x2` / `x3` násobí aktuální částku,
-- pole s `+SPIN` vrátí další spin,
-- pole bez `+SPIN` ukončí hru, pokud už žádný spin nezbývá,
-- konec zobrazí **PROHRÁL JSI** a výslednou částku.
+Alespoň jedno pole musí být bez `+SPIN`, aby hra měla možný konec. Každé fyzické políčko má stejnou pravděpodobnost.
 
 ## Ovládání
 
-- `SPACE` — roztočit
+- `SPACE` — spin
 - `R` — restart po konci hry
 - `F` — fullscreen
 - `M` — mute
@@ -59,20 +50,22 @@ Hra začíná s `0 Kč` a `1 spinem`.
 
 ## Architektura
 
-- `src/core/WheelConfig.js` — výchozí segmenty
-- `src/core/WheelEngine.js` — RNG a cílová rotace
-- `src/core/GameState.js` — částka, spiny, historie, série
-- `src/core/SettingsManager.js` — validace a persist nastavení
-- `src/audio/AudioManager.js` — WebAudio + Mixkit vrstvy
-- `src/ui/WheelRenderer.js` — SVG kolo a spin motion
-- `src/ui/SettingsPanel.js` — editor kola
-- `src/ui/ParticleSystem.js` — částice / flash
-- `src/ui/UI.js` — HUD, counters, reward flight, finale
-- `src/style.css`, `src/polish.css`, `src/v3.css` — vizuální vrstvy
+- `src/core/WheelConfig.js` — výchozí kolo
+- `src/core/WheelEngine.js` — RNG a landing math
+- `src/core/GameState.js` — částka, spiny a historie
+- `src/core/SettingsManager.js` — persist a normalizace nastavení
+- `src/audio/AudioManager.js` — spin motor, ticking, anticipation a reward SFX
+- `src/ui/WheelRenderer.js` — SVG kolo a staged spin motion
+- `src/ui/LedRing.js` — synchronizovaný LED ring
+- `src/ui/RollingCounter.js` — rolling-digit counter
+- `src/ui/ParallaxController.js` — depth/parallax + camera punch
+- `src/ui/SettingsPanel.js` — editor kola a presety
+- `src/ui/UI.js` — HUD, center hub, reward sequence a finale
+- `src/style.css`, `src/polish.css`, `src/v3.css`, `src/v4.css` — vizuální vrstvy
 
 ## Zvuky
 
-Hra používá vlastní WebAudio vrstvy a jako doplněk několik free SFX z Mixkitu. Pokud se externí sample nenačte, WebAudio fallback dál funguje.
+Používá se vlastní WebAudio syntéza a doplňkové free SFX z Mixkitu. Když se externí sample nenačte, synth fallback dál funguje.
 
 Zdroj: https://mixkit.co/free-sound-effects/  
 Licence: https://mixkit.co/license/
