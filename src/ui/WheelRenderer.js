@@ -1,4 +1,4 @@
-import { easeOutQuint, landingRotation, segmentAngle } from '../core/WheelEngine.js';
+import { landingRotation, segmentAngle } from '../core/WheelEngine.js';
 import { SPIN_DURATION_MS } from '../core/WheelConfig.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -24,7 +24,22 @@ function wedgePath(cx, cy, radius, startAngle, endAngle) {
   const start = polar(cx, cy, radius, endAngle);
   const end = polar(cx, cy, radius, startAngle);
   const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
-  return ['M ' + cx + ' ' + cy, 'L ' + start.x + ' ' + start.y, 'A ' + radius + ' ' + radius + ' 0 ' + largeArc + ' 0 ' + end.x + ' ' + end.y, 'Z'].join(' ');
+  return [
+    'M ' + cx + ' ' + cy,
+    'L ' + start.x + ' ' + start.y,
+    'A ' + radius + ' ' + radius + ' 0 ' + largeArc + ' 0 ' + end.x + ' ' + end.y,
+    'Z',
+  ].join(' ');
+}
+
+function easeOutQuart(t) {
+  const clamped = Math.min(1, Math.max(0, t));
+  return 1 - Math.pow(1 - clamped, 4);
+}
+
+function easeOutCubic(t) {
+  const clamped = Math.min(1, Math.max(0, t));
+  return 1 - Math.pow(1 - clamped, 3);
 }
 
 export class WheelRenderer {
@@ -37,6 +52,7 @@ export class WheelRenderer {
     this.svg = null;
     this.rotor = null;
     this.segmentNodes = [];
+    this.lastPointerTickAt = 0;
     this.render();
   }
 
@@ -49,18 +65,19 @@ export class WheelRenderer {
     svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
     svg.setAttribute('class', 'wheel-svg');
     svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', 'Kolo s peněžními výhrami a násobiči');
+    svg.setAttribute('aria-label', 'Kolo neštěstí s peněžními částkami a násobiči');
 
     const defs = document.createElementNS(SVG_NS, 'defs');
     const filter = document.createElementNS(SVG_NS, 'filter');
     filter.setAttribute('id', 'segmentGlow');
-    filter.innerHTML = '<feGaussianBlur stdDeviation="8" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
+    filter.innerHTML = '<feGaussianBlur stdDeviation="7" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>';
     defs.appendChild(filter);
     svg.appendChild(defs);
 
     const rotor = document.createElementNS(SVG_NS, 'g');
     rotor.setAttribute('class', 'wheel-rotor');
     rotor.style.transformOrigin = '50% 50%';
+    rotor.style.willChange = 'transform';
 
     this.segments.forEach((segment, index) => {
       const centerAngle = index * slice;
@@ -81,15 +98,17 @@ export class WheelRenderer {
       grad.setAttribute('id', 'grad-' + index);
       grad.setAttribute('x1', '0%');
       grad.setAttribute('x2', '100%');
+
       const stop1 = document.createElementNS(SVG_NS, 'stop');
       stop1.setAttribute('offset', '0%');
       stop1.setAttribute('stop-color', colors[0]);
+
       const stop2 = document.createElementNS(SVG_NS, 'stop');
       stop2.setAttribute('offset', '100%');
       stop2.setAttribute('stop-color', colors[1]);
+
       grad.append(stop1, stop2);
       defs.appendChild(grad);
-
       group.appendChild(path);
 
       const labelRadius = 258;
@@ -108,6 +127,7 @@ export class WheelRenderer {
         big.setAttribute('dy', '-5');
         big.setAttribute('class', 'wheel-label__big');
         big.textContent = 'x' + segment.multiplier;
+
         const sub = document.createElementNS(SVG_NS, 'tspan');
         sub.setAttribute('x', labelPoint.x);
         sub.setAttribute('dy', '27');
@@ -121,6 +141,7 @@ export class WheelRenderer {
         big.setAttribute('class', 'wheel-label__big');
         big.textContent = segment.value + ' Kč';
         text.appendChild(big);
+
         if (segment.extraSpins) {
           const sub = document.createElementNS(SVG_NS, 'tspan');
           sub.setAttribute('x', labelPoint.x);
@@ -130,6 +151,7 @@ export class WheelRenderer {
           text.appendChild(sub);
         }
       }
+
       group.appendChild(text);
       rotor.appendChild(group);
       this.segmentNodes.push(group);
@@ -157,6 +179,26 @@ export class WheelRenderer {
   }
 
   bouncePointer() {
+    const now = performance.now();
+    if (now - this.lastPointerTickAt < 34) return;
+    this.lastPointerTickAt = now;
+
+    if (typeof this.pointer.animate === 'function') {
+      this.pointer.animate(
+        [
+          { transform: 'rotate(0deg)' },
+          { transform: 'rotate(4.5deg)' },
+          { transform: 'rotate(-0.8deg)' },
+          { transform: 'rotate(0deg)' },
+        ],
+        {
+          duration: 92,
+          easing: 'cubic-bezier(.2,.72,.32,1)',
+        },
+      );
+      return;
+    }
+
     this.pointer.classList.remove('is-ticking');
     void this.pointer.offsetWidth;
     this.pointer.classList.add('is-ticking');
@@ -164,11 +206,14 @@ export class WheelRenderer {
 
   spinTo(index, rng = Math.random) {
     this.clearWinner();
+
     const startRotation = this.rotation;
     const targetRotation = landingRotation(startRotation, index, this.segments.length, rng);
     const distance = targetRotation - startRotation;
     const slice = segmentAngle(this.segments.length);
     const startedAt = performance.now();
+    const settleStart = 0.955;
+    const overshoot = 1.15;
     let lastBoundary = Math.floor(startRotation / slice);
 
     this.audio.spinStart();
@@ -176,16 +221,26 @@ export class WheelRenderer {
     return new Promise((resolve) => {
       const frame = (now) => {
         const t = Math.min(1, (now - startedAt) / SPIN_DURATION_MS);
-        const eased = easeOutQuint(t);
-        const current = startRotation + distance * eased;
+        let current;
+
+        if (t < settleStart) {
+          const phase = t / settleStart;
+          current = startRotation + (distance + overshoot) * easeOutQuart(phase);
+        } else {
+          const phase = (t - settleStart) / (1 - settleStart);
+          current = targetRotation + overshoot * (1 - easeOutCubic(phase));
+        }
+
         this.rotor.style.transform = 'rotate(' + current + 'deg)';
 
-        const boundary = Math.floor(current / slice);
-        if (boundary !== lastBoundary) {
-          const progressSpeed = Math.max(0.12, 1 - t);
-          this.audio.tick(progressSpeed);
-          this.bouncePointer();
-          lastBoundary = boundary;
+        if (t < settleStart) {
+          const boundary = Math.floor(current / slice);
+          if (boundary !== lastBoundary) {
+            const speed = Math.max(0.1, Math.min(1, (1 - t) * 1.18));
+            this.audio.tick(speed);
+            this.bouncePointer();
+            lastBoundary = boundary;
+          }
         }
 
         if (t < 1) {
@@ -199,6 +254,7 @@ export class WheelRenderer {
         this.audio.impact();
         resolve();
       };
+
       requestAnimationFrame(frame);
     });
   }
