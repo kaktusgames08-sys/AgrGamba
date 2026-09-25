@@ -52,7 +52,7 @@ export class SettingsPanel {
     this.volume = document.querySelector('#settingVolume');
     this.volumeValue = document.querySelector('#settingVolumeValue');
     this.effects = document.querySelector('#settingEffects');
-    this.presetButtons = [...document.querySelectorAll('[data-preset]')];
+    this.presetButtons = [...document.querySelectorAll('.preset-card[data-preset]')];
     this.ambientMotion = document.querySelector('#settingAmbientMotion');
     this.showHistory = document.querySelector('#settingShowHistory');
     this.error = document.querySelector('#settingsError');
