@@ -11,7 +11,7 @@ Browserové kolo pro stream, OBS a GitHub Pages. V4 staví prezentaci kolem jasn
 - výsledky se zobrazují přímo přes kolo místo těžkého popup boxu,
 - částka používá **mechanický rolling-digit counter**,
 - center hub mění stav podle průběhu: SPINY → ? → POZOR → výsledek → KONEC,
-- continuous spin motor + pointer ticks + rising anticipation + impact + reward audio,
+- krátký spin-start whoosh + reálný game-show wheel slowdown sample + jemné pointer ticks + impact + reward audio,
 - jemný 3D parallax podle myši,
 - reward tiers pro malé/střední/velké částky a x2/x3,
 - idle attract animace po skončení akce,
@@ -38,7 +38,7 @@ Měnit lze:
 - barvu,
 - `+SPIN` pro každé pole.
 
-Výchozí kolo má nově **dvě pole 100 Kč bez +SPIN**. Obě okamžitě ukončují běh, takže se série častěji zastaví dřív a částky méně utíkají do nesmyslných hodnot. V editoru jde rozložení dál ručně změnit. Každé fyzické políčko má stejnou pravděpodobnost.
+Výchozí kolo má nově **tři pole 100 Kč bez +SPIN**, rovnoměrně rozložená po 18 segmentech. Každé okamžitě ukončuje běh, takže je na každém spinu 3/18 (16,7 %) šance na exit a částky méně utíkají do nesmyslných hodnot. V editoru jde rozložení dál ručně změnit. Každé fyzické políčko má stejnou pravděpodobnost.
 
 ## Ovládání
 
@@ -54,7 +54,7 @@ Výchozí kolo má nově **dvě pole 100 Kč bez +SPIN**. Obě okamžitě ukonč
 - `src/core/WheelEngine.js` — RNG a landing math
 - `src/core/GameState.js` — částka, spiny a historie
 - `src/core/SettingsManager.js` — persist a normalizace nastavení
-- `src/audio/AudioManager.js` — spin motor, ticking, anticipation a reward SFX
+- `src/audio/AudioManager.js` — webový wheel slowdown sample, jemný ticking, anticipation a reward SFX
 - `src/ui/WheelRenderer.js` — SVG kolo a staged spin motion
 - `src/ui/LedRing.js` — synchronizovaný LED ring
 - `src/ui/RollingCounter.js` — rolling-digit counter
@@ -65,10 +65,12 @@ Výchozí kolo má nově **dvě pole 100 Kč bez +SPIN**. Obě okamžitě ukonč
 
 ## Zvuky
 
-Používá se vlastní WebAudio syntéza a doplňkové free SFX z Mixkitu. Když se externí sample nenačte, synth fallback dál funguje.
+Původní continuous motor byl odstraněn. Dojezd kola používá **Wheel Spin Click Slow Down** z Pixabay (pooky1 / freesound_community), který je na Pixabay označený jako free for use pod Pixabay Content License. Reward zvuky dál používají free SFX z Mixkitu. Pokud se externí sample nenačte, základní WebAudio feedback dál funguje.
 
-Zdroj: https://mixkit.co/free-sound-effects/  
-Licence: https://mixkit.co/license/
+Pixabay wheel SFX: https://pixabay.com/sound-effects/film-special-effects-wheel-spin-click-slow-down-101152/  
+Pixabay licence: https://pixabay.com/service/license-summary/  
+Mixkit: https://mixkit.co/free-sound-effects/  
+Mixkit licence: https://mixkit.co/license/
 
 ## Vývoj
 

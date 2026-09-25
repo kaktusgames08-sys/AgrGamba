@@ -19,6 +19,10 @@ const SAMPLE_LIBRARY = {
     url: 'https://assets.mixkit.co/active_storage/sfx/240/240-preview.mp3',
     volume: 0.32,
   },
+  wheelSlowdown: {
+    url: 'https://cdn.pixabay.com/download/audio/2022/03/24/audio_55ce22eb82.mp3?filename=wheel-spin-click-slow-down-101152.mp3',
+    volume: 0.34,
+  },
 };
 
 export class AudioManager {
@@ -28,7 +32,8 @@ export class AudioManager {
     this.muted = localStorage.getItem('wheel-muted') === '1';
     this.masterVolume = 0.82;
     this.samples = new Map();
-    this.spinBed = null;
+    this.activeWheelSample = null;
+    this.wheelSampleStarted = false;
     this.preloadSamples();
   }
 
@@ -78,7 +83,7 @@ export class AudioManager {
     this.muted = Boolean(value);
     localStorage.setItem('wheel-muted', this.muted ? '1' : '0');
 
-    if (this.muted) this.stopSpinBed(0.03);
+    if (this.muted) this.stopSpinSound();
     return this.muted;
   }
 
@@ -92,18 +97,20 @@ export class AudioManager {
   }
 
   playSample(name, { volume = 1, playbackRate = 1 } = {}) {
-    if (this.muted || this.masterVolume <= 0) return;
+    if (this.muted || this.masterVolume <= 0) return null;
 
     const sample = this.samples.get(name);
-    if (!sample || sample.failed) return;
+    if (!sample || sample.failed) return null;
 
     try {
       const player = sample.audio.cloneNode();
       player.volume = Math.min(1, sample.config.volume * volume * this.masterVolume);
       player.playbackRate = playbackRate;
       player.play().catch(() => {});
+      return player;
     } catch {
       // Synth layers below keep the game audible if a remote sample is unavailable.
+      return null;
     }
   }
 
@@ -165,135 +172,84 @@ export class AudioManager {
     source.stop(now + duration);
   }
 
-  startSpinBed() {
-    const ctx = this.ensure();
-    if (!ctx || !this.noiseBuffer || this.spinBed) return;
+  startSpinSound() {
+    this.stopSpinSound();
+    this.wheelSampleStarted = false;
 
-    const now = ctx.currentTime;
+    this.noiseBurst({
+      duration: 0.1,
+      gain: 0.008,
+      frequency: 2100,
+      type: 'highpass',
+    });
 
-    const motor = ctx.createOscillator();
-    const motorGain = ctx.createGain();
-    motor.type = 'sawtooth';
-    motor.frequency.setValueAtTime(58, now);
-    motorGain.gain.setValueAtTime(0.0001, now);
-    motorGain.gain.exponentialRampToValueAtTime(0.018 * this.masterVolume, now + 0.18);
-
-    const noise = ctx.createBufferSource();
-    const filter = ctx.createBiquadFilter();
-    const noiseGain = ctx.createGain();
-    noise.buffer = this.noiseBuffer;
-    noise.loop = true;
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(760, now);
-    filter.Q.setValueAtTime(0.65, now);
-    noiseGain.gain.setValueAtTime(0.0001, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.008 * this.masterVolume, now + 0.2);
-
-    motor.connect(motorGain).connect(ctx.destination);
-    noise.connect(filter).connect(noiseGain).connect(ctx.destination);
-
-    motor.start(now);
-    noise.start(now);
-
-    this.spinBed = {
-      motor,
-      motorGain,
-      noise,
-      noiseGain,
-      filter,
-    };
+    this.tone({
+      frequency: 260,
+      slideTo: 720,
+      duration: 0.16,
+      gain: 0.018,
+      type: 'triangle',
+      attack: 0.004,
+    });
   }
 
-  updateSpinBed(progress = 0) {
-    if (!this.spinBed || !this.ctx) return;
+  updateSpinSound(progress = 0, durationMs = 5200) {
+    if (this.muted || this.masterVolume <= 0 || this.wheelSampleStarted) return;
 
-    const p = Math.max(0, Math.min(1, progress));
-    const now = this.ctx.currentTime;
-    const speedShape = p < 0.18
-      ? p / 0.18
-      : Math.max(0.08, 1 - (p - 0.18) / 0.82);
+    const duration = Math.max(1000, Number(durationMs) || 5200);
+    const threshold = Math.max(0.38, Math.min(0.82, 1 - 1750 / duration));
 
-    this.spinBed.motor.frequency.setTargetAtTime(52 + speedShape * 72, now, 0.035);
-    this.spinBed.filter.frequency.setTargetAtTime(420 + speedShape * 1700, now, 0.03);
-    this.spinBed.motorGain.gain.setTargetAtTime(
-      (0.008 + speedShape * 0.017) * this.masterVolume,
-      now,
-      0.045,
-    );
-    this.spinBed.noiseGain.gain.setTargetAtTime(
-      (0.003 + speedShape * 0.009) * this.masterVolume,
-      now,
-      0.045,
-    );
+    if (progress < threshold) return;
+
+    this.wheelSampleStarted = true;
+
+    const player = this.playSample('wheelSlowdown', {
+      volume: 0.92,
+      playbackRate: 1,
+    });
+
+    if (!player) return;
+
+    this.activeWheelSample = player;
+    player.addEventListener('ended', () => {
+      if (this.activeWheelSample === player) {
+        this.activeWheelSample = null;
+      }
+    }, { once: true });
   }
 
-  stopSpinBed(fade = 0.09) {
-    if (!this.spinBed || !this.ctx) return;
+  stopSpinSound() {
+    const player = this.activeWheelSample;
+    this.activeWheelSample = null;
+    this.wheelSampleStarted = false;
 
-    const bed = this.spinBed;
-    this.spinBed = null;
-
-    const now = this.ctx.currentTime;
-    const end = now + Math.max(0.02, fade);
-
-    bed.motorGain.gain.cancelScheduledValues(now);
-    bed.noiseGain.gain.cancelScheduledValues(now);
-    bed.motorGain.gain.setValueAtTime(Math.max(0.0001, bed.motorGain.gain.value), now);
-    bed.noiseGain.gain.setValueAtTime(Math.max(0.0001, bed.noiseGain.gain.value), now);
-    bed.motorGain.gain.exponentialRampToValueAtTime(0.0001, end);
-    bed.noiseGain.gain.exponentialRampToValueAtTime(0.0001, end);
+    if (!player) return;
 
     try {
-      bed.motor.stop(end + 0.03);
-      bed.noise.stop(end + 0.03);
+      player.pause();
+      player.currentTime = 0;
     } catch {
-      // Nodes may already be stopped.
+      // Audio can already be detached by the browser.
     }
   }
 
   tick(speed = 1) {
+    if (this.wheelSampleStarted) return;
+
     const s = Math.max(0.1, Math.min(1, speed));
 
     this.tone({
-      frequency: 1120 + s * 620,
-      duration: 0.021 + (1 - s) * 0.016,
-      gain: 0.013 + s * 0.009,
+      frequency: 1080 + s * 460,
+      duration: 0.018 + (1 - s) * 0.01,
+      gain: 0.0045 + s * 0.003,
       type: 'triangle',
-      slideTo: 720 + s * 350,
-      attack: 0.002,
-    });
-
-    this.tone({
-      frequency: 142 + s * 68,
-      duration: 0.032,
-      gain: 0.016 + (1 - s) * 0.005,
-      type: 'sine',
-      slideTo: 96,
-      attack: 0.002,
+      slideTo: 820 + s * 210,
+      attack: 0.0015,
     });
   }
 
   spinStart() {
-    this.startSpinBed();
-    this.noiseBurst({ duration: 0.18, gain: 0.018, frequency: 1200, type: 'highpass' });
-    this.tone({
-      frequency: 82,
-      slideTo: 190,
-      duration: 0.28,
-      gain: 0.052,
-      type: 'sawtooth',
-      attack: 0.008,
-    });
-
-    setTimeout(() => {
-      this.tone({
-        frequency: 520,
-        slideTo: 780,
-        duration: 0.12,
-        gain: 0.025,
-        type: 'triangle',
-      });
-    }, 55);
+    this.startSpinSound();
   }
 
   anticipation(stage = 1) {
@@ -437,7 +393,7 @@ export class AudioManager {
   }
 
   lossFinale() {
-    this.stopSpinBed(0.04);
+    this.stopSpinSound();
     this.playSample('lose', {
       volume: 1.05,
       playbackRate: 0.94,

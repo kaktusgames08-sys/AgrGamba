@@ -4,11 +4,14 @@ import {
   SPIN_DURATION_MS,
 } from './WheelConfig.js';
 
-const STORAGE_KEY = 'kolo-nestesti-settings-v4.1';
+const STORAGE_KEY = 'kolo-nestesti-settings-v4.2';
 const LEGACY_STORAGE_KEYS = [
+  'kolo-nestesti-settings-v4.1',
   'kolo-nestesti-settings-v4',
   'kolo-nestesti-settings-v3',
 ];
+
+const TARGET_TERMINAL_EXITS = 3;
 
 export const TONE_OPTIONS = [
   'amber',
@@ -98,46 +101,80 @@ export function applyPresentationPreset(settings, presetId) {
   };
 }
 
+function isTerminalHundred(segment) {
+  return segment?.type === 'money'
+    && Number(segment?.value) === 100
+    && Number(segment?.extraSpins) === 0;
+}
+
+function circularDistance(a, b, length) {
+  const direct = Math.abs(a - b);
+  return Math.min(direct, length - direct);
+}
+
+function findBalancedExitCandidate(segments, exitIndices) {
+  const preferredLegacyIndex = segments.findIndex((segment) =>
+    segment?.type === 'money'
+      && Number(segment?.value) === 75
+      && Number(segment?.extraSpins) > 0
+  );
+
+  if (preferredLegacyIndex >= 0) {
+    return preferredLegacyIndex;
+  }
+
+  let bestIndex = -1;
+  let bestDistance = -1;
+  let bestValue = -Infinity;
+
+  segments.forEach((segment, index) => {
+    if (
+      segment?.type !== 'money'
+      || Number(segment?.extraSpins) <= 0
+    ) {
+      return;
+    }
+
+    const minDistance = exitIndices.length
+      ? Math.min(...exitIndices.map((exitIndex) =>
+          circularDistance(index, exitIndex, segments.length)
+        ))
+      : segments.length;
+
+    const value = Number(segment?.value) || 0;
+
+    if (
+      minDistance > bestDistance
+      || (minDistance === bestDistance && value > bestValue)
+    ) {
+      bestIndex = index;
+      bestDistance = minDistance;
+      bestValue = value;
+    }
+  });
+
+  return bestIndex;
+}
+
 export function migrateBalancedExits(input = {}) {
   const migrated = clone(input);
   const segments = Array.isArray(migrated.segments)
     ? migrated.segments.map((segment) => ({ ...segment }))
     : [];
 
-  const terminalHundreds = segments.filter((segment) =>
-    segment?.type === 'money'
-      && Number(segment?.value) === 100
-      && Number(segment?.extraSpins) === 0
-  ).length;
-
-  if (terminalHundreds >= 2 || segments.length < 6) {
+  if (segments.length < 6) {
     return migrated;
   }
 
-  const preferredIndex = segments.findIndex((segment) =>
-    segment?.type === 'money'
-      && Number(segment?.value) === 75
-      && Number(segment?.extraSpins) > 0
-  );
+  let exitIndices = segments
+    .map((segment, index) => isTerminalHundred(segment) ? index : -1)
+    .filter((index) => index >= 0);
 
-  let replacementIndex = preferredIndex;
+  while (exitIndices.length < TARGET_TERMINAL_EXITS) {
+    const replacementIndex = findBalancedExitCandidate(segments, exitIndices);
 
-  if (replacementIndex < 0) {
-    let bestValue = -Infinity;
+    if (replacementIndex < 0) break;
 
-    segments.forEach((segment, index) => {
-      if (
-        segment?.type === 'money'
-        && Number(segment?.extraSpins) > 0
-        && Number(segment?.value) > bestValue
-      ) {
-        replacementIndex = index;
-        bestValue = Number(segment.value);
-      }
-    });
-  }
-
-  if (replacementIndex >= 0) {
     segments[replacementIndex] = {
       label: '100 Kč',
       type: 'money',
@@ -146,6 +183,8 @@ export function migrateBalancedExits(input = {}) {
       tone: 'final',
       finale: true,
     };
+
+    exitIndices = [...exitIndices, replacementIndex];
   }
 
   migrated.segments = segments;

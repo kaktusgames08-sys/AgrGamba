@@ -103,28 +103,40 @@ test('normalizeSettings keeps explicit v4 presentation preset', () => {
 });
 
 
-test('default wheel has two 100 Kč exit segments', () => {
+test('default wheel has three 100 Kč exit segments', () => {
   const exits = DEFAULT_SETTINGS.segments.filter((segment) =>
     segment.type === 'money'
       && segment.value === 100
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 2);
+  assert.equal(exits.length, 3);
 });
 
-test('legacy v4 wheel with one exit is migrated to two 100 Kč exits', () => {
-  const oldSegments = DEFAULT_SETTINGS.segments.map((segment, index) =>
-    index === 15
-      ? {
-          label: '75 Kč + SPIN',
-          type: 'money',
-          value: 75,
-          extraSpins: 1,
-          tone: 'orange',
-        }
-      : segment
-  );
+test('legacy v4 wheel with one exit is migrated to three 100 Kč exits', () => {
+  const oldSegments = DEFAULT_SETTINGS.segments.map((segment, index) => {
+    if (index === 3) {
+      return {
+        label: '30 Kč + SPIN',
+        type: 'money',
+        value: 30,
+        extraSpins: 1,
+        tone: 'red',
+      };
+    }
+
+    if (index === 15) {
+      return {
+        label: '75 Kč + SPIN',
+        type: 'money',
+        value: 75,
+        extraSpins: 1,
+        tone: 'orange',
+      };
+    }
+
+    return segment;
+  });
 
   const migrated = migrateBalancedExits({
     ...DEFAULT_SETTINGS,
@@ -137,29 +149,31 @@ test('legacy v4 wheel with one exit is migrated to two 100 Kč exits', () => {
       && Number(segment.extraSpins) === 0
   );
 
-  assert.equal(exits.length, 2);
+  assert.equal(exits.length, 3);
   assert.equal(migrated.segments[15].value, 100);
   assert.equal(migrated.segments[15].extraSpins, 0);
+  assert.equal(migrated.segments[3].value, 100);
+  assert.equal(migrated.segments[3].extraSpins, 0);
 });
 
-test('SettingsManager automatically migrates stored v4 balance once', () => {
+test('SettingsManager automatically migrates stored v4.1 balance once', () => {
   const storage = new MemoryStorage();
   const legacy = {
     ...DEFAULT_SETTINGS,
     segments: DEFAULT_SETTINGS.segments.map((segment, index) =>
-      index === 15
+      index === 3
         ? {
-            label: '75 Kč + SPIN',
+            label: '30 Kč + SPIN',
             type: 'money',
-            value: 75,
+            value: 30,
             extraSpins: 1,
-            tone: 'orange',
+            tone: 'red',
           }
         : segment
     ),
   };
 
-  storage.setItem('kolo-nestesti-settings-v4', JSON.stringify(legacy));
+  storage.setItem('kolo-nestesti-settings-v4.1', JSON.stringify(legacy));
 
   const loaded = new SettingsManager(storage).get();
   const exits = loaded.segments.filter((segment) =>
@@ -168,6 +182,6 @@ test('SettingsManager automatically migrates stored v4 balance once', () => {
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 2);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.1'));
+  assert.equal(exits.length, 3);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.2'));
 });
