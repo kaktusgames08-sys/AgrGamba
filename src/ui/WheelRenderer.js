@@ -37,22 +37,26 @@ function wedgePath(cx, cy, radius, startAngle, endAngle) {
   ].join(' ');
 }
 
-function easeInCubic(t) {
-  return t * t * t;
+function smootherStep(t) {
+  return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-function easeOutQuart(t) {
-  return 1 - Math.pow(1 - t, 4);
+function easeOutQuint(t) {
+  return 1 - Math.pow(1 - t, 5);
 }
 
 function spinProgress(t) {
   const clamped = Math.min(1, Math.max(0, t));
+  const rampEnd = 0.14;
+  const rampDistance = 0.18;
 
-  if (clamped <= 0.12) {
-    return 0.16 * easeInCubic(clamped / 0.12);
+  if (clamped <= rampEnd) {
+    return rampDistance * smootherStep(clamped / rampEnd);
   }
 
-  return 0.16 + 0.84 * easeOutQuart((clamped - 0.12) / 0.88);
+  return rampDistance
+    + (1 - rampDistance)
+      * easeOutQuint((clamped - rampEnd) / (1 - rampEnd));
 }
 
 function normalizeIndex(index, count) {
@@ -323,12 +327,12 @@ export class WheelRenderer {
       this.pointer.animate(
         [
           { transform: 'rotate(0deg)' },
-          { transform: 'rotate(5deg)' },
-          { transform: 'rotate(-1deg)' },
+          { transform: 'rotate(3.6deg)' },
+          { transform: 'rotate(-0.45deg)' },
           { transform: 'rotate(0deg)' },
         ],
         {
-          duration: 88,
+          duration: 104,
           easing: 'cubic-bezier(.2,.72,.32,1)',
         },
       );
@@ -367,7 +371,6 @@ export class WheelRenderer {
         const current = startRotation + distance * progress;
 
         this.rotor.style.transform = 'rotate(' + current + 'deg)';
-        this.audio.updateSpinBed(t);
         this.onProgress?.({
           timeProgress: t,
           wheelProgress: progress,
@@ -384,21 +387,21 @@ export class WheelRenderer {
           lastBoundary = boundary;
         }
 
-        if (t > 0.67) {
+        if (t > 0.72) {
           this.shell?.classList.add('is-anticipating');
           this.updatePointerHighlight(current);
         }
 
         let nextStage = 0;
 
-        if (t > 0.93) {
+        if (t > 0.955) {
           nextStage = 3;
           this.shell?.classList.add('is-settling');
           this.setPhase('settling');
-        } else if (t > 0.84) {
+        } else if (t > 0.875) {
           nextStage = 2;
           this.setPhase('anticipation-2');
-        } else if (t > 0.7) {
+        } else if (t > 0.76) {
           nextStage = 1;
           this.setPhase('anticipation-1');
         }
@@ -415,8 +418,6 @@ export class WheelRenderer {
 
         this.rotation = targetRotation;
         this.rotor.style.transform = 'rotate(' + targetRotation + 'deg)';
-        this.audio.stopSpinBed(0.06);
-
         this.shell?.classList.remove('is-spinning', 'is-anticipating');
         this.shell?.classList.add('is-settling');
         this.updatePointerHighlight(targetRotation);

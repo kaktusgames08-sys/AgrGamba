@@ -75,10 +75,10 @@ function impactStrength(tier) {
 }
 
 function freezeDuration(tier) {
-  if (tier === 'multiplier3' || tier === 'final') return 130;
-  if (tier === 'big' || tier === 'multiplier2') return 110;
-  if (tier === 'medium') return 92;
-  return 76;
+  if (tier === 'multiplier3' || tier === 'final') return 88;
+  if (tier === 'big' || tier === 'multiplier2') return 72;
+  if (tier === 'medium') return 60;
+  return 48;
 }
 
 function applyPresentationSettings(nextSettings) {
