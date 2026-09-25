@@ -38,7 +38,7 @@ Měnit lze:
 - barvu,
 - `+SPIN` pro každé pole.
 
-Alespoň jedno pole musí být bez `+SPIN`, aby hra měla možný konec. Každé fyzické políčko má stejnou pravděpodobnost.
+Výchozí kolo má nově **dvě pole 100 Kč bez +SPIN**. Obě okamžitě ukončují běh, takže se série častěji zastaví dřív a částky méně utíkají do nesmyslných hodnot. V editoru jde rozložení dál ručně změnit. Každé fyzické políčko má stejnou pravděpodobnost.
 
 ## Ovládání
 
