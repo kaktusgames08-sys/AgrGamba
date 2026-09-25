@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "3.0.0",
-  "description": "Kolo neštěstí — configurable high-energy browser wheel for GitHub Pages and OBS.",
+  "version": "4.0.0",
+  "description": "Kolo neštěstí — configurable cinematic browser wheel with staged game-show motion for GitHub Pages and OBS.",
   "type": "module",
   "scripts": {
     "dev": "vite",
