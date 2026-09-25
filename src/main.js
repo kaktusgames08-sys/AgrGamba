@@ -58,8 +58,8 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function classifyReward(record) {
-  if (!record.extraSpins) return 'final';
+function classifyReward(record, isEnding = false) {
+  if (isEnding) return 'final';
   if (record.type === 'multiplier') {
     return record.multiplier >= 3 ? 'multiplier3' : 'multiplier2';
   }
@@ -143,7 +143,8 @@ async function revealLanding(index, tier) {
 }
 
 async function playReward(record, tier) {
-  ui.setCenterMode('result', { record });
+  const isEnding = tier === 'final';
+  ui.setCenterMode('result', { record, isEnding });
   ui.showResult(record, tier);
 
   if (record.type === 'multiplier') {
@@ -191,8 +192,10 @@ async function playReward(record, tier) {
   if (record.extraSpins) {
     ui.setStatus('+SPIN · JEDEME DÁL', 'success');
     setTimeout(() => audio.extraSpin(), 110);
-  } else {
+  } else if (state.isEnded()) {
     ui.setStatus('KONEC · BEZ +SPIN', 'danger');
+  } else {
+    ui.setStatus('BEZ +SPIN · ' + state.spins + ' ZBÝVÁ', 'ready');
   }
 }
 
@@ -222,11 +225,12 @@ async function spin() {
     extraSpins: segment.extraSpins ?? 0,
   };
 
-  const previewTier = classifyReward(previewRecord);
+  const willEnd = state.spins + (segment.extraSpins ?? 0) <= 0;
+  const previewTier = classifyReward(previewRecord, willEnd);
   await revealLanding(index, previewTier);
 
   const record = state.resolve(segment);
-  const tier = classifyReward(record);
+  const tier = classifyReward(record, state.isEnded());
 
   await playReward(record, tier);
 
