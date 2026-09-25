@@ -458,12 +458,12 @@
 @keyframes resultTextImpact {
   0% {
     opacity: 0;
-    transform: scale(.68) translateY(12px);
-    filter: blur(5px) drop-shadow(0 10px 16px rgba(0,0,0,.42));
+    transform: scale(.82) translateY(7px);
+    filter: blur(2.5px) drop-shadow(0 10px 16px rgba(0,0,0,.42));
   }
-  55% {
+  58% {
     opacity: 1;
-    transform: scale(1.08) translateY(-2px);
+    transform: scale(1.035) translateY(-1px);
     filter: blur(0) drop-shadow(0 10px 16px rgba(0,0,0,.42));
   }
   100% {
@@ -542,19 +542,19 @@
 }
 
 @keyframes cameraPunchSoft {
-  38% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1.012); }
+  40% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1.007); }
   100% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1); }
 }
 
 @keyframes cameraPunchNormal {
-  34% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1.021); }
-  66% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(.998); }
+  36% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1.013); }
+  70% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(.999); }
   100% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1); }
 }
 
 @keyframes cameraPunchHeavy {
-  26% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1.032); }
-  52% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(.996); }
+  30% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1.019); }
+  60% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(.998); }
   100% { transform: translate3d(var(--stage-x), var(--stage-y), 0) scale(1); }
 }
 
