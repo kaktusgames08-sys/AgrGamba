@@ -2,6 +2,7 @@ import './style.css';
 import './polish.css';
 import './v3.css';
 import './v4.css';
+import './piggy.css';
 
 import { GameState } from './core/GameState.js';
 import { SettingsManager } from './core/SettingsManager.js';
@@ -12,6 +13,7 @@ import { WheelRenderer } from './ui/WheelRenderer.js';
 import { ParticleSystem } from './ui/ParticleSystem.js';
 import { SettingsPanel } from './ui/SettingsPanel.js';
 import { UI } from './ui/UI.js';
+import { PiggyBank } from './ui/PiggyBank.js';
 
 const settingsManager = new SettingsManager();
 let settings = settingsManager.get();
@@ -21,6 +23,7 @@ const audio = new AudioManager();
 const ui = new UI();
 const ledRing = new LedRing(document.querySelector('#ledRing'));
 const parallax = new ParallaxController(document.querySelector('#machineStage'));
+const piggy = new PiggyBank();
 
 const particles = new ParticleSystem(
   document.querySelector('#particleLayer'),
@@ -102,6 +105,7 @@ function applyGameSettings(nextSettings) {
   ui.hideFinal();
   ui.hideResult();
   ui.setGameOverVisual(false);
+  piggy.reset();
   ui.resetAnimationMemory(state);
   ui.renderState(state);
   ui.setStatus('NASTAVENÍ ULOŽENO', 'success');
@@ -132,6 +136,8 @@ async function revealLanding(index, tier) {
 
 async function playReward(record, tier) {
   const isEnding = tier === 'final';
+  let piggyAnimation = Promise.resolve();
+
   ui.setCenterMode('result', { record, isEnding });
   ui.showResult(record, tier);
 
@@ -152,6 +158,7 @@ async function playReward(record, tier) {
     ui.shake(tier === 'multiplier3' ? 'normal' : 'soft');
   } else {
     audio.money(record.value, tier);
+    piggyAnimation = piggy.feed(record.value, record.after);
 
     particles.burst({
       count: tier === 'big'
@@ -171,11 +178,16 @@ async function playReward(record, tier) {
     }
   }
 
+  if (record.type === 'multiplier') {
+    piggy.pulseMultiplier(record.after);
+  }
+
   await wait(145);
   ui.flyReward(record);
 
   await wait(175);
   ui.renderState(state, { animateTotalFrom: record.before });
+  await piggyAnimation;
 
   if (record.extraSpins) {
     ui.setStatus('+SPIN · JEDEME DÁL', 'success');
@@ -241,6 +253,7 @@ async function spin() {
     ui.shake('normal');
     parallax.punch('normal');
 
+    await piggy.explode(state.total);
     await ui.showFinal(state.total);
   } else {
     ui.hideResult();
@@ -266,6 +279,7 @@ function restart() {
   ui.hideFinal();
   ui.hideResult();
   ui.setGameOverVisual(false);
+  piggy.reset();
   ui.resetAnimationMemory(state);
   ui.renderState(state);
   ui.setStatus('PŘIPRAVENO', 'ready');
@@ -312,6 +326,7 @@ document.addEventListener('keydown', (event) => {
 applyPresentationSettings(settings);
 ui.setMuted(audio.muted);
 ui.renderState(state);
+piggy.setTotal(state.total);
 ui.setCenterMode('idle', { spins: state.spins });
 ui.setStatus('PŘIPRAVENO', 'ready');
 ledRing.setMode('idle');

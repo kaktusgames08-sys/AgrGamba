@@ -51,6 +51,28 @@
           <div id="history" class="history-list">
             <div class="history-empty">Zatím nic</div>
           </div>
+
+          <div class="leaderboard">
+            <div class="leaderboard__title">NEJVÍC PROJEBALI</div>
+
+            <div class="leaderboard__item leaderboard__item--gold">
+              <span class="leaderboard__rank">1</span>
+              <div class="leaderboard__copy">
+                <strong>jerusalemcrusader</strong>
+                <span>18 série zatočení</span>
+              </div>
+              <b>1975 Kč</b>
+            </div>
+
+            <div class="leaderboard__item">
+              <span class="leaderboard__rank">2</span>
+              <div class="leaderboard__copy">
+                <strong>fkroupic</strong>
+                <span>8 série zatočení</span>
+              </div>
+              <b>180 Kč</b>
+            </div>
+          </div>
         </aside>
 
         <section id="machineStage" class="machine" aria-label="Kolo neštěstí">
@@ -121,6 +143,37 @@
             <div><span class="rule-chip rule-chip--x2">x2</span><b>zdvojnásobí částku</b></div>
             <div><span class="rule-chip rule-chip--x3">x3</span><b>ztrojnásobí částku</b></div>
             <div><span class="rule-chip rule-chip--end">END</span><b>pole bez +SPIN končí hru</b></div>
+          </div>
+
+          <div class="piggy-panel" aria-label="Prasátko s vytočenými penězi">
+            <div class="piggy-panel__label">PRASÁTKO PROJEBU</div>
+
+            <div id="piggyBank" class="piggy-bank" aria-hidden="true">
+              <div class="piggy-bank__ear piggy-bank__ear--left"></div>
+              <div class="piggy-bank__ear piggy-bank__ear--right"></div>
+              <div class="piggy-bank__body"></div>
+              <div class="piggy-bank__head"></div>
+              <div class="piggy-bank__snout"></div>
+              <div class="piggy-bank__eye"></div>
+              <div class="piggy-bank__slot"></div>
+              <div class="piggy-bank__shine"></div>
+              <div class="piggy-bank__leg piggy-bank__leg--1"></div>
+              <div class="piggy-bank__leg piggy-bank__leg--2"></div>
+              <div class="piggy-bank__leg piggy-bank__leg--3"></div>
+              <div class="piggy-bank__leg piggy-bank__leg--4"></div>
+              <div class="piggy-bank__tail"></div>
+              <div id="piggyExplosion" class="piggy-bank__explosion"></div>
+            </div>
+
+            <div class="piggy-total">
+              <span>UVNITŘ</span>
+              <strong id="piggyTotal">0 Kč</strong>
+            </div>
+
+            <div id="piggyFinal" class="piggy-final" aria-hidden="true">
+              <span>FINÁLNÍ ČÁSTKA</span>
+              <strong id="piggyFinalAmount">0 Kč</strong>
+            </div>
           </div>
         </aside>
       </main>

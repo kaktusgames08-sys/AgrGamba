@@ -187,6 +187,7 @@ export class UI {
 
   showResult(record, tier = 'small') {
     clearTimeout(this.hideTimer);
+    this.app.classList.add('has-result-burst');
 
     const isMultiplier = record.type === 'multiplier';
     const isFinal = tier === 'final';
@@ -227,6 +228,8 @@ export class UI {
   }
 
   hideResult() {
+    this.app.classList.remove('has-result-burst');
+
     if (!this.resultBurst.classList.contains('is-visible')) return;
 
     this.resultBurst.classList.add('is-leaving');
@@ -242,15 +245,6 @@ export class UI {
     const sourceX = source.left + source.width / 2;
     const sourceY = source.top + source.height * 0.46;
     const flights = [];
-
-    if (record.type === 'money' && record.value > 0) {
-      flights.push({
-        text: '+' + record.value + ' Kč',
-        className: 'reward-flight--money',
-        target: this.money,
-        delay: 0,
-      });
-    }
 
     if (record.type === 'multiplier') {
       flights.push({
