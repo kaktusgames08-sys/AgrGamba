@@ -44,7 +44,6 @@ export class SettingsPanel {
     this.segmentList = document.querySelector('#segmentEditorList');
     this.addMoneyButton = document.querySelector('#addMoneySegment');
     this.addX2Button = document.querySelector('#addX2Segment');
-    this.addX3Button = document.querySelector('#addX3Segment');
 
     this.startingSpins = document.querySelector('#settingStartingSpins');
     this.spinDuration = document.querySelector('#settingSpinDuration');
@@ -83,7 +82,6 @@ export class SettingsPanel {
 
     this.addMoneyButton?.addEventListener('click', () => this.addSegment('money', 20));
     this.addX2Button?.addEventListener('click', () => this.addSegment('multiplier', 2));
-    this.addX3Button?.addEventListener('click', () => this.addSegment('multiplier', 3));
 
     this.presetButtons.forEach((button) => {
       button.addEventListener('click', () => {
@@ -212,7 +210,7 @@ export class SettingsPanel {
             data-field="value"
             type="number"
             min="${isMultiplier ? 2 : 0}"
-            max="${isMultiplier ? 10 : 100000}"
+            max="${isMultiplier ? 2 : 100000}"
             step="1"
             value="${numberValue}"
           />
@@ -248,8 +246,8 @@ export class SettingsPanel {
     if (type === 'multiplier') {
       label.textContent = 'Násobič';
       input.min = '2';
-      input.max = '10';
-      if (Number(input.value) < 2 || Number(input.value) > 10) input.value = '2';
+      input.max = '2';
+      input.value = '2';
     } else {
       label.textContent = 'Částka Kč';
       input.min = '0';
