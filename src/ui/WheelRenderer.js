@@ -53,6 +53,18 @@ function normalizeIndex(index, count) {
   return ((index % count) + count) % count;
 }
 
+// Fraction of the spin's time elapsed at which each suspense stage
+// kicks in. The wheel is already decelerating hard by this point (see
+// spinProgress's cubic ease-out), so these line up with the wheel
+// visibly crawling rather than with the raw time budget: by stage 1 it
+// has lost ~85% of its speed, and by stage 3 it is essentially creeping
+// segment by segment.
+const SUSPENSE_STAGES = [0.55, 0.78, 0.9, 0.965];
+
+// A short held-breath pause once the wheel visually stops, before the
+// winner glow and result reveal take over.
+const FREEZE_HOLD_MS = 220;
+
 export class WheelRenderer {
   constructor({
     mount,
@@ -355,6 +367,7 @@ export class WheelRenderer {
 
     const startedAt = performance.now();
     let lastBoundary = Math.floor(startRotation / slice);
+    let suspenseStage = 0;
 
     this.shell?.classList.add('is-spinning');
     this.setPhase('spinning');
@@ -385,6 +398,30 @@ export class WheelRenderer {
           lastBoundary = boundary;
         }
 
+        // Stage the reveal as the wheel visibly slows: side panels dim,
+        // the LED ring tightens its "hot zone" around the pointer, and
+        // a rising audio blip marks each step up in tension. Every one
+        // of these effects already exists in CSS/UI/LedRing/AudioManager;
+        // this is what actually turns them on.
+        if (suspenseStage < 1 && t >= SUSPENSE_STAGES[0]) {
+          suspenseStage = 1;
+          this.shell?.classList.add('is-anticipating');
+          this.setPhase('anticipation-1');
+          this.audio.anticipation(1);
+        } else if (suspenseStage < 2 && t >= SUSPENSE_STAGES[1]) {
+          suspenseStage = 2;
+          this.setPhase('anticipation-2');
+          this.audio.anticipation(2);
+        } else if (suspenseStage < 3 && t >= SUSPENSE_STAGES[2]) {
+          suspenseStage = 3;
+          this.setPhase('anticipation-3');
+          this.audio.anticipation(3);
+        } else if (suspenseStage < 4 && t >= SUSPENSE_STAGES[3]) {
+          suspenseStage = 4;
+          this.shell?.classList.add('is-settling');
+          this.setPhase('settling');
+        }
+
         if (t < 1) {
           requestAnimationFrame(frame);
           return;
@@ -400,11 +437,17 @@ export class WheelRenderer {
 
         this.updatePointerHighlight(targetRotation);
 
-        resolve({
-          index,
-          rotation: targetRotation,
-          landingOffset: landing.offset,
-        });
+        // One last held breath right as it stops, before the winner
+        // glow and result reveal take over.
+        this.setPhase('freeze');
+
+        setTimeout(() => {
+          resolve({
+            index,
+            rotation: targetRotation,
+            landingOffset: landing.offset,
+          });
+        }, FREEZE_HOLD_MS);
       };
 
       requestAnimationFrame(frame);
