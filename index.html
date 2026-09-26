@@ -119,12 +119,21 @@
               <span class="spin-button__text">ROZTOČIT</span>
               <span class="spin-button__hint">SPACE</span>
             </button>
+
+            <button id="hardcoreButton" class="hardcore-button" type="button" aria-pressed="false">
+              <span class="hardcore-button__icon">🔥</span>
+              <span class="hardcore-button__copy">
+                <strong>HARDCORE TOČKA</strong>
+                <small>3 SPINY · 150 Kč+ · POSLEDNÍ = NÁSOBIČ</small>
+              </span>
+            </button>
           </div>
 
           <div class="key-hints" aria-hidden="true">
             <span><kbd>SPACE</kbd> spin</span>
             <span><kbd>F</kbd> fullscreen</span>
             <span><kbd>M</kbd> zvuk</span>
+            <span><kbd>H</kbd> hardcore</span>
           </div>
         </section>
 
@@ -137,6 +146,11 @@
           <div class="session-rules">
             <div><span class="rule-chip rule-chip--x2">x2</span><b>zdvojnásobí částku</b></div>
             <div><span class="rule-chip rule-chip--end">END</span><b>pole bez +SPIN končí hru</b></div>
+          </div>
+
+          <div id="hardcoreRule" class="hardcore-rule" hidden>
+            <strong>HARDCORE</strong>
+            <span>3 spiny bez respinu · první 2 kola 150–1000 Kč · poslední spin násobič · max 5000 Kč</span>
           </div>
 
           <div class="piggy-panel" aria-label="Prasátko s vytočenými penězi">
@@ -263,7 +277,7 @@
 
                 <label class="setting-field setting-field--range">
                   <span>Rychlost spinu <b id="settingSpinDurationValue">5.2 s</b></span>
-                  <input id="settingSpinDuration" type="range" min="3200" max="8000" step="100" />
+                  <input id="settingSpinDuration" type="range" min="1000" max="8000" step="100" />
                 </label>
 
                 <label class="setting-field setting-field--range">
