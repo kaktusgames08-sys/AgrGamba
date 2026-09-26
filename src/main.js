@@ -29,6 +29,11 @@ const piggy = new PiggyBank();
 const leaderboard = new Leaderboard();
 const viewportScaler = new ViewportScaler();
 
+const amountEmote = document.querySelector('#amountEmote');
+amountEmote?.addEventListener('error', () => {
+  amountEmote.closest('.hud-card__emote')?.classList.add('is-fallback');
+}, { once: true });
+
 const particles = new ParticleSystem(
   document.querySelector('#particleLayer'),
   document.querySelector('#flash'),
