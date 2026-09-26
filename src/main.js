@@ -76,7 +76,7 @@ function classifyReward(record, isEnding = false) {
 }
 
 function impactStrength(tier) {
-  if (tier === 'multiplier3' || tier === 'final') return 'heavy';
+  if (tier === 'final') return 'heavy';
   if (tier === 'big' || tier === 'multiplier2') return 'normal';
   return 'soft';
 }
