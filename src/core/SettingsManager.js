@@ -147,7 +147,8 @@ function circularDistance(a, b, length) {
 }
 
 function findBalancedExitCandidate(segments, exitIndices) {
-  let bestIndex = -1; let bestDistance = -1;
+  let bestIndex = -1;
+  let bestDistance = -1;
   let bestValue = -Infinity;
 
   segments.forEach((segment, index) => {
