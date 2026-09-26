@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.3.0",
-  "description": "Kolo neštěstí — premium browser wheel with 40 Kč minimum regular rewards, 1s spin option and capped 3-spin Hardcore mode.",
+  "version": "4.3.1",
+  "description": "Kolo neštěstí — single-screen desktop fit with visible Hardcore control at 100% browser zoom.",
   "type": "module",
   "scripts": {
     "dev": "vite",
