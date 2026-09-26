@@ -54,24 +54,7 @@
 
           <div class="leaderboard">
             <div class="leaderboard__title">NEJVÍC PROJEBALI</div>
-
-            <div class="leaderboard__item leaderboard__item--gold">
-              <span class="leaderboard__rank">1</span>
-              <div class="leaderboard__copy">
-                <strong>jerusalemcrusader</strong>
-                <span>18 série zatočení</span>
-              </div>
-              <b>1975 Kč</b>
-            </div>
-
-            <div class="leaderboard__item">
-              <span class="leaderboard__rank">2</span>
-              <div class="leaderboard__copy">
-                <strong>fkroupic</strong>
-                <span>8 série zatočení</span>
-              </div>
-              <b>180 Kč</b>
-            </div>
+            <div id="leaderboardList" class="leaderboard__list"></div>
           </div>
         </aside>
 
@@ -141,7 +124,6 @@
 
           <div class="session-rules">
             <div><span class="rule-chip rule-chip--x2">x2</span><b>zdvojnásobí částku</b></div>
-            <div><span class="rule-chip rule-chip--x3">x3</span><b>ztrojnásobí částku</b></div>
             <div><span class="rule-chip rule-chip--end">END</span><b>pole bez +SPIN končí hru</b></div>
           </div>
 
@@ -149,19 +131,53 @@
             <div class="piggy-panel__label">PRASÁTKO PROJEBU</div>
 
             <div id="piggyBank" class="piggy-bank" aria-hidden="true">
-              <div class="piggy-bank__ear piggy-bank__ear--left"></div>
-              <div class="piggy-bank__ear piggy-bank__ear--right"></div>
-              <div class="piggy-bank__body"></div>
-              <div class="piggy-bank__head"></div>
-              <div class="piggy-bank__snout"></div>
-              <div class="piggy-bank__eye"></div>
-              <div class="piggy-bank__slot"></div>
-              <div class="piggy-bank__shine"></div>
-              <div class="piggy-bank__leg piggy-bank__leg--1"></div>
-              <div class="piggy-bank__leg piggy-bank__leg--2"></div>
-              <div class="piggy-bank__leg piggy-bank__leg--3"></div>
-              <div class="piggy-bank__leg piggy-bank__leg--4"></div>
-              <div class="piggy-bank__tail"></div>
+              <svg class="piggy-svg" viewBox="0 0 240 150" role="img" aria-label="Růžové keramické prasátko">
+                <defs>
+                  <linearGradient id="pigBody" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stop-color="#ffdce6"/>
+                    <stop offset=".38" stop-color="#f7aec3"/>
+                    <stop offset=".72" stop-color="#ea8ca9"/>
+                    <stop offset="1" stop-color="#cf688b"/>
+                  </linearGradient>
+                  <radialGradient id="pigHighlight" cx=".35" cy=".2" r=".7">
+                    <stop offset="0" stop-color="#ffffff" stop-opacity=".85"/>
+                    <stop offset=".28" stop-color="#ffffff" stop-opacity=".2"/>
+                    <stop offset=".65" stop-color="#ffffff" stop-opacity="0"/>
+                  </radialGradient>
+                  <linearGradient id="pigGoldGlow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#fff3a8"/>
+                    <stop offset=".55" stop-color="#ffcf54"/>
+                    <stop offset="1" stop-color="#df8122"/>
+                  </linearGradient>
+                  <filter id="pigShadow" x="-30%" y="-30%" width="160%" height="180%">
+                    <feDropShadow dx="0" dy="12" stdDeviation="9" flood-color="#000000" flood-opacity=".28"/>
+                  </filter>
+                </defs>
+
+                <g filter="url(#pigShadow)">
+                  <path class="piggy-svg__tail" d="M209 72c18-16 29 9 13 16-12 5-18-8-9-14" fill="none" stroke="#e98fab" stroke-width="7" stroke-linecap="round"/>
+                  <ellipse class="piggy-svg__body" cx="132" cy="78" rx="79" ry="50" fill="url(#pigBody)" stroke="#a84d6c" stroke-width="2.5"/>
+                  <circle class="piggy-svg__head" cx="63" cy="78" r="39" fill="url(#pigBody)" stroke="#a84d6c" stroke-width="2.5"/>
+                  <path class="piggy-svg__ear" d="M45 49 55 17 75 50Z" fill="url(#pigBody)" stroke="#a84d6c" stroke-width="2.5"/>
+                  <path class="piggy-svg__ear" d="M77 48 88 18 104 54Z" fill="url(#pigBody)" stroke="#a84d6c" stroke-width="2.5"/>
+                  <ellipse class="piggy-svg__snout" cx="31" cy="83" rx="25" ry="18" fill="#f7bdcc" stroke="#a84d6c" stroke-width="2.5"/>
+                  <ellipse cx="23" cy="83" rx="4" ry="6" fill="#7f3c50"/>
+                  <ellipse cx="39" cy="83" rx="4" ry="6" fill="#7f3c50"/>
+                  <ellipse class="piggy-svg__eye" cx="67" cy="68" rx="5" ry="7" fill="#18131d"/>
+                  <circle cx="69" cy="65" r="1.6" fill="#fff" fill-opacity=".75"/>
+                  <rect x="85" y="115" width="25" height="28" rx="9" fill="#e986a4" stroke="#a84d6c" stroke-width="2"/>
+                  <rect x="132" y="116" width="25" height="27" rx="9" fill="#df7899" stroke="#a84d6c" stroke-width="2"/>
+                  <rect class="piggy-svg__slot" x="128" y="38" width="48" height="9" rx="5" fill="#6f263f"/>
+                  <ellipse class="piggy-svg__shine" cx="151" cy="58" rx="55" ry="26" fill="url(#pigHighlight)" transform="rotate(-10 151 58)"/>
+                  <rect class="piggy-svg__gold-slot-glow" x="126" y="34" width="52" height="17" rx="8" fill="url(#pigGoldGlow)" opacity=".15"/>
+                </g>
+
+                <g class="piggy-cracks" fill="none" stroke="#7d304c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M127 65l10 8-8 8 12 11"/>
+                  <path d="M153 71l-9 10 9 8-6 13"/>
+                  <path d="M106 82l12 4-6 12"/>
+                </g>
+              </svg>
               <div id="piggyExplosion" class="piggy-bank__explosion"></div>
             </div>
 
@@ -173,6 +189,7 @@
             <div id="piggyFinal" class="piggy-final" aria-hidden="true">
               <span>FINÁLNÍ ČÁSTKA</span>
               <strong id="piggyFinalAmount">0 Kč</strong>
+              <button id="restartButton" class="piggy-restart-button" type="button">HRÁT ZNOVU <b>R</b></button>
             </div>
           </div>
         </aside>
@@ -186,7 +203,6 @@
           <div id="finalAmount" class="final-card__amount">0 Kč</div>
           <div class="final-card__message">Kolo neštěstí tě dostalo.</div>
           <div class="final-card__sparkline" aria-hidden="true">✦ ★ ✦ ★ ✦</div>
-          <button id="restartButton" class="restart-button" type="button">HRÁT ZNOVU <span>R</span></button>
         </div>
       </div>
 
@@ -280,7 +296,6 @@
               <div class="segment-actions">
                 <button id="addMoneySegment" type="button">+ PENÍZE</button>
                 <button id="addX2Segment" type="button">+ X2</button>
-                <button id="addX3Segment" type="button">+ X3</button>
               </div>
             </section>
           </div>
