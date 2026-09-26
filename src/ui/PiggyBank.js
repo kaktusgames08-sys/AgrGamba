@@ -89,9 +89,33 @@ export class PiggyBank {
     return canvas;
   }
 
+  pigScaleForTotal(value) {
+    const total = Math.max(0, Number(value) || 0);
+
+    // Slow, readable growth: 0 Kč = 1.00x, ~500 Kč = 1.14x,
+    // ~1000 Kč = 1.20x, 2000 Kč+ caps at 1.28x.
+    const progress = Math.min(1, Math.sqrt(total / 2000));
+    return 1 + progress * 0.28;
+  }
+
+  updatePigScale(value = this.currentTotal) {
+    if (!this.pig) return;
+
+    const scale = this.pigScaleForTotal(value);
+    this.pig.style.setProperty('--piggy-fill-scale', scale.toFixed(4));
+    this.pig.dataset.fillLevel = scale >= 1.24
+      ? 'full'
+      : scale >= 1.14
+        ? 'medium'
+        : scale > 1.02
+          ? 'low'
+          : 'empty';
+  }
+
   setTotal(value, { pulse = false } = {}) {
     this.currentTotal = Math.max(0, Math.round(Number(value) || 0));
     if (this.total) this.total.textContent = this.formatMoney(this.currentTotal);
+    this.updatePigScale(this.currentTotal);
 
     if (pulse) this.bumpPig();
   }
@@ -239,6 +263,7 @@ export class PiggyBank {
         if (visibleTotal !== this.currentTotal) {
           this.currentTotal = visibleTotal;
           if (this.total) this.total.textContent = this.formatMoney(visibleTotal);
+          this.updatePigScale(visibleTotal);
         }
 
         if (active > 0 && now - startAt <= totalDuration + 40) {
