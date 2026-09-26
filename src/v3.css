@@ -333,7 +333,6 @@ body.settings-open {
 }
 
 .rule-chip--x2 { background: linear-gradient(145deg, #a249e4, #5a1aa2); }
-.rule-chip--x3 { background: linear-gradient(145deg, #51df71, #15753c); }
 .rule-chip--end { background: linear-gradient(145deg, #ff9d4d, #b92f22); font-size: 8px; }
 
 .machine {
