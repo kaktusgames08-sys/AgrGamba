@@ -1,84 +1,42 @@
-# KOLO NEŠTĚSTÍ v4.2.1
+# KOLO NEŠTĚSTÍ v4.3
 
-Browserové kolo pro stream, OBS a GitHub Pages. Aktuální verze drží férový fyzický stop kola, tři finální stovky a přidává výrazně čistší prezentaci výsledku, adaptivní fullscreen layout, leaderboard a prasátko s finální animací.
+Browserové kolo pro stream, OBS a GitHub Pages.
 
-## Hlavní změny ve v4.2.1
+## v4.3
 
-- výsledek už nepřekrývá střed kola — má vlastní kompaktní dock pod kolem,
-- střed kola zůstává jen pro stav hry: SPINY / TOČÍM / PADLO / KONEC,
-- vlastní lesklé SVG prasátko ve stylu celé hry,
-- při peněžním výsledku letí do prasátka přesně tolik 1 Kč mincí, kolik padlo,
-- mince jsou vykreslené přes canvas místo stovek DOM elementů,
-- x2 aktualizuje částku v prasátku a spustí vlastní pulse,
-- na konci prasátko popraská, exploduje a samo zobrazí finální částku + tlačítko restart,
-- starý duplicitní finální overlay se už nepoužívá,
-- leaderboard je renderovaný z dat a připravený na další dynamické zdroje,
-- layout používá společný `--ui-scale`, takže se automaticky přizpůsobuje výšce a šířce viewportu bez scrollování,
-- poslední část spinu má delší plynulý dojezd bez staged snapu,
-- **x3 je kompletně odstraněné**; staré uložené x3 segmenty se automaticky převedou na x2,\n- **x2 může být na kole maximálně jednou**; staré uložené konfigurace s více x2 se automaticky opraví,\n- horní HUD má nový premium slot-machine vzhled a vedle částky používá zadaný 7TV emote,\n- leaderboard má větší jména, částky i čitelnou informaci o sérii zatočení,\n- červený závoj kolem kola je potlačený ve prospěch tmavého neutrálního stage,\n- horní HUD je menší a nechává víc prostoru kolu,\n- prasátko se plynule nafukuje podle částky uvnitř (s bezpečným maximem).
+- běžné peněžní pole už neklesne pod **40 Kč**,
+- nastavení rychlosti spinu nově dovoluje **1.0–8.0 s**,
+- leaderboard má nové seed výsledky,
+- přidané tlačítko **HARDCORE TOČKA**,
+- Hardcore má přesně **3 spiny bez respinu**,
+- první dva Hardcore spiny používají money wheel **150–1000 Kč**,
+- před třetím spinem se kolo samo přepne na multiplier finále,
+- poslední wheel používá násobiče **x1 / x1.5 / x2 / x2.5**,
+- maximální možná Hardcore částka je **5000 Kč**,
+- Hardcore lze zapnout/vypnout tlačítkem nebo klávesou **H**,
+- stávající x2 pravidlo zůstává: v normálním kole může být x2 maximálně jednou.
 
-## Výchozí kolo
+## Leaderboard seed
 
-Výchozí kolo má 18 fyzických segmentů a **3× 100 Kč bez +SPIN**. Každá stovka ukončuje běh. Každý fyzický segment má stejnou pravděpodobnost.
-
-Násobič je nově pouze **x2** a na kole může být **jen jednou**. Výchozí x3 pole bylo nahrazeno peněžním polem.
-
-## Leaderboard
-
-Výchozí data:
-
-- jerusalemcrusader — 1975 Kč — 18 série zatočení
-- fkroupic — 180 Kč — 8 série zatočení
-
-Leaderboard je vykreslovaný modulem `src/ui/Leaderboard.js` a umí používat data uložená v localStorage.
-
-## Nastavení
-
-Klikni na **⚙** nebo stiskni `S`.
-
-Měnit lze:
-
-- presentation preset,
-- počáteční spiny,
-- délku spinu,
-- hlasitost,
-- intenzitu efektů,
-- ambientní pohyb,
-- historii,
-- 6–24 polí,
-- peníze / x2,
-- hodnotu peněžního pole,
-- barvu,
-- `+SPIN` pro každé pole.
+- jerusalemcrusader — 1975 Kč — 18 série
+- potisengage — 1145 Kč — 40 série
+- jerusalemcrusadser — 705 Kč — 15 série
+- fkroupic — 180 Kč — 8 série
+- JimmySiipek — 180 Kč — 4 série
+- Aizeens — 100 Kč — 1 série
 
 ## Ovládání
 
 - `SPACE` — spin
+- `H` — Hardcore režim
 - `R` — restart po konci hry
 - `F` — fullscreen
 - `M` — mute
 - `S` — nastavení
 
-## Architektura
+## Hardcore balance
 
-- `src/core/WheelConfig.js` — výchozí kolo
-- `src/core/WheelEngine.js` — férový random stop a landing math
-- `src/core/GameState.js` — částka, spiny a historie
-- `src/core/SettingsManager.js` — persist, migrace a normalizace
-- `src/audio/AudioManager.js` — jemné tick/impact/reward audio
-- `src/ui/WheelRenderer.js` — SVG kolo a kontinuální smooth spin
-- `src/ui/PiggyBank.js` — canvas mince, prasátko a finální exploze
-- `src/ui/Leaderboard.js` — data-driven leaderboard
-- `src/ui/ViewportScaler.js` — společný adaptivní `--ui-scale`
-- `src/ui/UI.js` — HUD, result dock a stavové UI
-- `src/piggy.css` — fullscreen polish, leaderboard a piggy finale
-
-## Zvuky
-
-Používá se vlastní WebAudio syntéza a doplňkové free SFX z Mixkitu. Continuous motor kola je odstraněný.
-
-Zdroj: https://mixkit.co/free-sound-effects/  
-Licence: https://mixkit.co/license/
+První dva spiny mají pouze peněžní pole bez respinu. Nejvyšší money hit je 1000 Kč. Třetí spin používá samostatné multiplier kolo. Protože maximum po prvních dvou spinech je 2000 Kč a nejvyšší multiplier je x2.5, teoretické maximum je přesně **5000 Kč**.
 
 ## Vývoj
 
@@ -88,4 +46,4 @@ npm test
 npm run build
 ```
 
-GitHub Pages deploy běží z `main` přes existující workflow.
+GitHub Pages deploy běží z `main`.

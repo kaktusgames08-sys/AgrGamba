@@ -5,9 +5,29 @@ const DEFAULT_ENTRIES = [
     streak: 18,
   },
   {
+    name: 'potisengage',
+    loss: 1145,
+    streak: 40,
+  },
+  {
+    name: 'jerusalemcrusadser',
+    loss: 705,
+    streak: 15,
+  },
+  {
     name: 'fkroupic',
     loss: 180,
     streak: 8,
+  },
+  {
+    name: 'JimmySiipek',
+    loss: 180,
+    streak: 4,
+  },
+  {
+    name: 'Aizeens',
+    loss: 100,
+    streak: 1,
   },
 ];
 
@@ -15,7 +35,7 @@ export class Leaderboard {
   constructor({
     mount = document.querySelector('#leaderboardList'),
     storage = globalThis.localStorage,
-    storageKey = 'kolo-nestesti-loss-leaderboard-v1',
+    storageKey = 'kolo-nestesti-loss-leaderboard-v2',
   } = {}) {
     this.mount = mount;
     this.storage = storage;

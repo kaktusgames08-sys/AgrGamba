@@ -80,7 +80,7 @@ export class SettingsPanel {
       this.volumeValue.textContent = Math.round(Number(this.volume.value) * 100) + ' %';
     });
 
-    this.addMoneyButton?.addEventListener('click', () => this.addSegment('money', 20));
+    this.addMoneyButton?.addEventListener('click', () => this.addSegment('money', 40));
     this.addX2Button?.addEventListener('click', () => this.addSegment('multiplier', 2));
 
     this.presetButtons.forEach((button) => {
@@ -209,7 +209,7 @@ export class SettingsPanel {
           <input
             data-field="value"
             type="number"
-            min="${isMultiplier ? 2 : 0}"
+            min="${isMultiplier ? 2 : 40}"
             max="${isMultiplier ? 2 : 100000}"
             step="1"
             value="${numberValue}"
@@ -255,9 +255,9 @@ export class SettingsPanel {
     if (type === 'multiplier' && this.hasMultiplierRow(row)) {
       select.value = 'money';
       label.textContent = 'Částka Kč';
-      input.min = '0';
+      input.min = '40';
       input.max = '100000';
-      input.value = Number(input.value) > 2 ? input.value : '35';
+      input.value = Number(input.value) >= 40 ? input.value : '40';
       this.showError('x2 může být na kole jen jednou.');
       this.renumberRows();
       return;
@@ -270,9 +270,9 @@ export class SettingsPanel {
       input.value = '2';
     } else {
       label.textContent = 'Částka Kč';
-      input.min = '0';
+      input.min = '40';
       input.max = '100000';
-      if (Number(input.value) < 0) input.value = '20';
+      if (Number(input.value) < 40) input.value = '40';
     }
   }
 

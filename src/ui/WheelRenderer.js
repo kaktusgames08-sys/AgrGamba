@@ -63,7 +63,9 @@ const SUSPENSE_STAGES = [0.55, 0.78, 0.9, 0.965];
 
 // A short held-breath pause once the wheel visually stops, before the
 // winner glow and result reveal take over.
-const FREEZE_HOLD_MS = 220;
+function freezeHoldMs(duration) {
+  return Math.max(45, Math.min(120, Math.round(duration * 0.025)));
+}
 
 export class WheelRenderer {
   constructor({
@@ -106,7 +108,7 @@ export class WheelRenderer {
 
   setSpinDuration(durationMs) {
     this.spinDurationMs = Math.max(
-      3200,
+      1000,
       Math.min(8000, Number(durationMs) || SPIN_DURATION_MS),
     );
   }
@@ -231,7 +233,8 @@ export class WheelRenderer {
         sub.setAttribute('x', labelPoint.x);
         sub.setAttribute('dy', '27');
         sub.setAttribute('class', 'wheel-label__sub');
-        sub.textContent = segment.extraSpins ? '+ SPIN' : 'KONEC';
+        sub.textContent = segment.subLabel
+          ?? (segment.extraSpins ? '+ SPIN' : 'KONEC');
 
         text.append(big, sub);
       } else {
@@ -245,7 +248,8 @@ export class WheelRenderer {
         sub.setAttribute('x', labelPoint.x);
         sub.setAttribute('dy', '27');
         sub.setAttribute('class', 'wheel-label__sub');
-        sub.textContent = segment.extraSpins ? '+ SPIN' : 'KONEC';
+        sub.textContent = segment.subLabel
+          ?? (segment.extraSpins ? '+ SPIN' : 'KONEC');
 
         text.append(big, sub);
       }
@@ -447,7 +451,7 @@ export class WheelRenderer {
             rotation: targetRotation,
             landingOffset: landing.offset,
           });
-        }, FREEZE_HOLD_MS);
+        }, freezeHoldMs(duration));
       };
 
       requestAnimationFrame(frame);

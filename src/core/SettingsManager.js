@@ -4,8 +4,9 @@ import {
   SPIN_DURATION_MS,
 } from './WheelConfig.js';
 
-const STORAGE_KEY = 'kolo-nestesti-settings-v4.4';
+const STORAGE_KEY = 'kolo-nestesti-settings-v4.5';
 const LEGACY_STORAGE_KEYS = [
+  'kolo-nestesti-settings-v4.4',
   'kolo-nestesti-settings-v4.3',
   'kolo-nestesti-settings-v4.2',
   'kolo-nestesti-settings-v4.1',
@@ -14,7 +15,7 @@ const LEGACY_STORAGE_KEYS = [
 ];
 
 const TARGET_TERMINAL_EXITS = 3;
-const EXTRA_MULTIPLIER_REPLACEMENTS = [35, 50, 25, 40, 30, 60];
+const EXTRA_MULTIPLIER_REPLACEMENTS = [40, 50, 60, 75, 80, 40];
 
 export const TONE_OPTIONS = [
   'amber',
@@ -81,7 +82,7 @@ export function normalizeSegment(segment, index = 0) {
     // fields are normalized to x2 so old saved wheels stay playable.
     normalized.multiplier = 2;
   } else {
-    normalized.value = Math.max(0, Math.min(100000, Math.round(Number(segment?.value) || 0)));
+    normalized.value = Math.max(40, Math.min(100000, Math.round(Number(segment?.value) || 40)));
   }
 
   normalized.finale = normalized.extraSpins === 0;
@@ -239,7 +240,7 @@ export function normalizeSettings(input = {}) {
   return {
     segments,
     startingSpins: Math.max(1, Math.min(10, Math.round(Number(input.startingSpins) || STARTING_SPINS))),
-    spinDurationMs: Math.max(3200, Math.min(8000, Math.round(Number(input.spinDurationMs) || SPIN_DURATION_MS))),
+    spinDurationMs: Math.max(1000, Math.min(8000, Math.round(Number(input.spinDurationMs) || SPIN_DURATION_MS))),
     masterVolume: Math.max(0, Math.min(1, Number.isFinite(Number(input.masterVolume)) ? Number(input.masterVolume) : 0.82)),
     effects: EFFECT_LEVELS.has(input.effects) ? input.effects : 'high',
     ambientMotion: input.ambientMotion !== false,
