@@ -53,8 +53,8 @@ export class PiggyBank {
     const targetY = pigRect.top + pigRect.height * 0.28;
 
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const stagger = reducedMotion ? 0 : Math.max(3, Math.min(11, 520 / coinCount));
-    const baseDuration = reducedMotion ? 1 : 650;
+    const stagger = reducedMotion ? 0 : Math.max(3, Math.min(7, 300 / coinCount));
+    const baseDuration = reducedMotion ? 1 : 520;
 
     for (let i = 0; i < coinCount; i += 1) {
       const coin = document.createElement('div');
@@ -108,7 +108,7 @@ export class PiggyBank {
       }
     }
 
-    const totalDuration = baseDuration + coinCount * stagger + 320;
+    const totalDuration = baseDuration + coinCount * stagger + 220;
     await new Promise((resolve) => setTimeout(resolve, totalDuration));
 
     if (resultingTotal !== null) {
