@@ -1,6 +1,12 @@
-# KOLO NEŠTĚSTÍ v4.3
+# KOLO NEŠTĚSTÍ v4.3.1
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.3.1
+
+- desktop layout se nově vejde na jednu obrazovku při 100% zoomu,
+- hlavní SPIN a HARDCORE tlačítko jsou na desktopu vedle sebe,
+- na nižších výškách se automaticky zmenší wheel/panely a schovají jen pomocné key hints.
 
 ## v4.3
 
