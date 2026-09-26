@@ -208,11 +208,7 @@ export class UI {
           : 'PŘIČÍTÁM';
 
     this.resultMain.textContent = isMultiplier
-      ? (record.multiplier === 3
-        ? 'TRIPLE!'
-        : record.multiplier === 2
-          ? 'DOUBLE!'
-          : 'x' + record.multiplier)
+      ? 'DOUBLE!'
       : '+' + record.value + ' Kč';
 
     this.resultSub.textContent = isMultiplier
