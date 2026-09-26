@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.3.1",
-  "description": "Kolo neštěstí — single-screen desktop fit with visible Hardcore control at 100% browser zoom.",
+  "version": "4.3.2",
+  "description": "Kolo neštěstí — normal wheel with two ending fields plus capped three-spin Hardcore mode.",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -103,17 +103,17 @@ test('normalizeSettings keeps explicit v4 presentation preset', () => {
 });
 
 
-test('default wheel has three 100 Kč exit segments', () => {
+test('default wheel has two 100 Kč exit segments', () => {
   const exits = DEFAULT_SETTINGS.segments.filter((segment) =>
     segment.type === 'money'
       && segment.value === 100
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 3);
+  assert.equal(exits.length, 2);
 });
 
-test('legacy v4 wheel with one exit is migrated to three 100 Kč exits', () => {
+test('legacy normal wheel is migrated to two balanced 100 Kč exits', () => {
   const oldSegments = DEFAULT_SETTINGS.segments.map((segment, index) => {
     if (index === 3) {
       return {
@@ -149,16 +149,14 @@ test('legacy v4 wheel with one exit is migrated to three 100 Kč exits', () => {
       && Number(segment.extraSpins) === 0
   );
 
-  assert.equal(exits.length, 3);
-  assert.equal(migrated.segments[15].value, 100);
-  assert.equal(migrated.segments[15].extraSpins, 0);
+  assert.equal(exits.length, 2);
   assert.equal(
     migrated.segments.filter((segment) =>
       segment.type === 'money'
         && Number(segment.value) === 100
         && Number(segment.extraSpins) === 0
     ).length,
-    3,
+    2,
   );
 });
 
@@ -188,8 +186,8 @@ test('SettingsManager automatically migrates stored v4.1 balance once', () => {
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 3);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.5'));
+  assert.equal(exits.length, 2);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.6'));
 });
 
 
@@ -277,7 +275,7 @@ test('stored v4.3 wheel with duplicate x2 fields migrates to one x2', () => {
   );
 
   assert.equal(multipliers.length, 1);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.5'));
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.6'));
 });
 
 
@@ -311,4 +309,34 @@ test('spin duration can be reduced to one second', () => {
   });
 
   assert.equal(settings.spinDurationMs, 1000);
+});
+
+
+test('stored v4.5 wheel with three exits migrates down to two', () => {
+  const storage = new MemoryStorage();
+  const legacy = {
+    ...DEFAULT_SETTINGS,
+    segments: DEFAULT_SETTINGS.segments.map((segment) => ({ ...segment })),
+  };
+
+  legacy.segments[9] = {
+    label: '100 Kč',
+    type: 'money',
+    value: 100,
+    extraSpins: 0,
+    tone: 'final',
+    finale: true,
+  };
+
+  storage.setItem('kolo-nestesti-settings-v4.5', JSON.stringify(legacy));
+
+  const loaded = new SettingsManager(storage).get();
+  const exits = loaded.segments.filter((segment) =>
+    segment.type === 'money'
+      && segment.value === 100
+      && segment.extraSpins === 0
+  );
+
+  assert.equal(exits.length, 2);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.6'));
 });
