@@ -60,6 +60,7 @@ const wheel = new WheelRenderer({
   onPhaseChange: (phase) => {
     ui.setSpinPhase(phase);
     ledRing.setMode(phaseToLedMode(phase));
+    ui.microFreeze(phase === 'freeze');
   },
 });
 
