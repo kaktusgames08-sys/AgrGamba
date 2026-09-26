@@ -101,9 +101,13 @@ export class UI {
         ? 'x' + record.multiplier
         : '+' + record.value + ' Kč';
 
-      const extra = record.extraSpins
-        ? '<span>+SPIN</span>'
-        : '<span class="history-final">KONEC</span>';
+      const extra = record.hardcore
+        ? record.hardcoreFinal
+          ? '<span class="history-final">FINÁLE</span>'
+          : '<span class="history-hardcore">HARDCORE</span>'
+        : record.extraSpins
+          ? '<span>+SPIN</span>'
+          : '<span class="history-final">KONEC</span>';
 
       return '<div class="history-item history-item--' + record.type + '" style="--history-delay:' + (index * 35) + 'ms">'
         + '<strong>' + label + '</strong>'
@@ -174,9 +178,11 @@ export class UI {
       this.centerValue.textContent = payload.isEnding ? '!' : '✓';
       this.centerBottom.textContent = payload.isEnding
         ? 'STOP'
-        : record?.extraSpins
-          ? '+ SPIN'
-          : 'BEZ SPINU';
+        : record?.hardcore
+          ? 'HARDCORE'
+          : record?.extraSpins
+            ? '+ SPIN'
+            : 'BEZ SPINU';
       return;
     }
 
@@ -208,17 +214,23 @@ export class UI {
           : 'PŘIČÍTÁM';
 
     this.resultMain.textContent = isMultiplier
-      ? 'DOUBLE!'
+      ? record.multiplier === 2
+        ? 'DOUBLE!'
+        : 'x' + record.multiplier + '!'
       : '+' + record.value + ' Kč';
 
-    this.resultSub.textContent = isMultiplier
-      ? this.formatMoney(record.before) + ' → ' + this.formatMoney(record.after)
-        + (record.extraSpins ? ' · +1 SPIN' : '')
-      : record.extraSpins
-        ? '+1 SPIN · JEDEME DÁL'
-        : isFinal
-          ? 'BEZ +SPIN · KONEC'
-          : 'BEZ +SPIN';
+    this.resultSub.textContent = record.hardcore
+      ? isMultiplier
+        ? 'FINÁLNÍ NÁSOBIČ · ' + this.formatMoney(record.before) + ' → ' + this.formatMoney(record.after)
+        : 'HARDCORE · ' + (record.remainingSpins ?? 0) + ' SPINY ZBÝVAJÍ'
+      : isMultiplier
+        ? this.formatMoney(record.before) + ' → ' + this.formatMoney(record.after)
+          + (record.extraSpins ? ' · +1 SPIN' : '')
+        : record.extraSpins
+          ? '+1 SPIN · JEDEME DÁL'
+          : isFinal
+            ? 'BEZ +SPIN · KONEC'
+            : 'BEZ +SPIN';
 
     requestAnimationFrame(() => {
       this.resultBurst.classList.add('is-visible');
