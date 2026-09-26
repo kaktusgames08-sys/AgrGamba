@@ -1,6 +1,11 @@
-# KOLO NEŠTĚSTÍ v4.3.1
+# KOLO NEŠTĚSTÍ v4.3.2
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.3.2
+
+- normální kolo má nově přesně **2× 100 Kč KONEC** místo tří,
+- staré uložené normal wheel konfigurace se automaticky migrují na dva konce.
 
 ## v4.3.1
 
