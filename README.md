@@ -1,25 +1,38 @@
-# KOLO NEŠTĚSTÍ v4
+# KOLO NEŠTĚSTÍ v4.1
 
-Browserové kolo pro stream, OBS a GitHub Pages. V4 staví prezentaci kolem jasné sekvence **spin → anticipation → micro-freeze → impact → reward → návrat do ready stavu**.
+Browserové kolo pro stream, OBS a GitHub Pages. Aktuální verze drží férový fyzický stop kola, tři finální stovky a přidává výrazně čistší prezentaci výsledku, adaptivní fullscreen layout, leaderboard a prasátko s finální animací.
 
-## Co přibylo ve v4
+## Hlavní změny ve v4.1
 
-- synchronizovaný **LED chase ring** kolem kola,
-- třífázové anticipation chování při zpomalování,
-- krátký micro-freeze před odhalením výsledku,
-- silnější, ale jemný camera punch místo chaotického shake,
-- výsledky se zobrazují přímo přes kolo místo těžkého popup boxu,
-- částka používá **mechanický rolling-digit counter**,
-- center hub mění stav podle průběhu: SPINY → ? → POZOR → výsledek → KONEC,
-- continuous spin motor + pointer ticks + rising anticipation + impact + reward audio,
-- jemný 3D parallax podle myši,
-- reward tiers pro malé/střední/velké částky a x2/x3,
-- idle attract animace po skončení akce,
-- tři presentation presety: **CLEAN / ARCADE / MAX FX**.
+- výsledek už nepřekrývá střed kola — má vlastní kompaktní dock pod kolem,
+- střed kola zůstává jen pro stav hry: SPINY / TOČÍM / PADLO / KONEC,
+- vlastní lesklé SVG prasátko ve stylu celé hry,
+- při peněžním výsledku letí do prasátka přesně tolik 1 Kč mincí, kolik padlo,
+- mince jsou vykreslené přes canvas místo stovek DOM elementů,
+- x2 aktualizuje částku v prasátku a spustí vlastní pulse,
+- na konci prasátko popraská, exploduje a samo zobrazí finální částku + tlačítko restart,
+- starý duplicitní finální overlay se už nepoužívá,
+- leaderboard je renderovaný z dat a připravený na další dynamické zdroje,
+- layout používá společný `--ui-scale`, takže se automaticky přizpůsobuje výšce a šířce viewportu bez scrollování,
+- poslední část spinu má delší plynulý dojezd bez staged snapu,
+- **x3 je kompletně odstraněné**; staré uložené x3 segmenty se automaticky převedou na x2.
 
-Výsledek se stále vybírá pouze jednou před roztočením. Vizuální anticipation výsledek nijak nepřehazuje ani nevytváří falešný near-miss.
+## Výchozí kolo
 
-## Nastavení kola
+Výchozí kolo má 18 fyzických segmentů a **3× 100 Kč bez +SPIN**. Každá stovka ukončuje běh. Každý fyzický segment má stejnou pravděpodobnost.
+
+Násobič je nově pouze **x2**. Výchozí x3 pole bylo nahrazeno peněžním polem.
+
+## Leaderboard
+
+Výchozí data:
+
+- jerusalemcrusader — 1975 Kč — 18 série zatočení
+- fkroupic — 180 Kč — 8 série zatočení
+
+Leaderboard je vykreslovaný modulem `src/ui/Leaderboard.js` a umí používat data uložená v localStorage.
+
+## Nastavení
 
 Klikni na **⚙** nebo stiskni `S`.
 
@@ -33,12 +46,10 @@ Měnit lze:
 - ambientní pohyb,
 - historii,
 - 6–24 polí,
-- peníze / násobič,
-- hodnotu pole,
+- peníze / x2,
+- hodnotu peněžního pole,
 - barvu,
 - `+SPIN` pro každé pole.
-
-Výchozí kolo má **tři pole 100 Kč bez +SPIN**. Všechna okamžitě ukončují běh, takže se série zastavují dřív a částky méně utíkají do nesmyslných hodnot. V editoru jde rozložení dál ručně změnit. Každé fyzické políčko má stejnou pravděpodobnost.
 
 ## Ovládání
 
@@ -51,21 +62,20 @@ Výchozí kolo má **tři pole 100 Kč bez +SPIN**. Všechna okamžitě ukončuj
 ## Architektura
 
 - `src/core/WheelConfig.js` — výchozí kolo
-- `src/core/WheelEngine.js` — RNG a landing math
+- `src/core/WheelEngine.js` — férový random stop a landing math
 - `src/core/GameState.js` — částka, spiny a historie
-- `src/core/SettingsManager.js` — persist a normalizace nastavení
-- `src/audio/AudioManager.js` — spin motor, ticking, anticipation a reward SFX
-- `src/ui/WheelRenderer.js` — SVG kolo a staged spin motion
-- `src/ui/LedRing.js` — synchronizovaný LED ring
-- `src/ui/RollingCounter.js` — rolling-digit counter
-- `src/ui/ParallaxController.js` — depth/parallax + camera punch
-- `src/ui/SettingsPanel.js` — editor kola a presety
-- `src/ui/UI.js` — HUD, center hub, reward sequence a finale
-- `src/style.css`, `src/polish.css`, `src/v3.css`, `src/v4.css` — vizuální vrstvy
+- `src/core/SettingsManager.js` — persist, migrace a normalizace
+- `src/audio/AudioManager.js` — jemné tick/impact/reward audio
+- `src/ui/WheelRenderer.js` — SVG kolo a kontinuální smooth spin
+- `src/ui/PiggyBank.js` — canvas mince, prasátko a finální exploze
+- `src/ui/Leaderboard.js` — data-driven leaderboard
+- `src/ui/ViewportScaler.js` — společný adaptivní `--ui-scale`
+- `src/ui/UI.js` — HUD, result dock a stavové UI
+- `src/piggy.css` — fullscreen polish, leaderboard a piggy finale
 
 ## Zvuky
 
-Používá se vlastní WebAudio syntéza a doplňkové free SFX z Mixkitu. Když se externí sample nenačte, synth fallback dál funguje.
+Používá se vlastní WebAudio syntéza a doplňkové free SFX z Mixkitu. Continuous motor kola je odstraněný.
 
 Zdroj: https://mixkit.co/free-sound-effects/  
 Licence: https://mixkit.co/license/
