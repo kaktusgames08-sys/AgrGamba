@@ -1126,3 +1126,208 @@ body {
     justify-content: center;
   }
 }
+
+
+/* ----- v4.2.1 visual corrections ----- */
+
+/* Remove the heavy red block around the wheel and keep the center neutral/dark. */
+#app {
+  background:
+    radial-gradient(circle at 50% 44%, rgba(255, 197, 94, .055), transparent 30%),
+    radial-gradient(circle at 50% -8%, rgba(255,255,255,.025), transparent 34%),
+    linear-gradient(180deg, #1b0309 0%, #21050c 24%, #16030a 62%, #0b0206 100%);
+}
+
+#app::before {
+  opacity: .12;
+  filter: blur(24px) saturate(.92);
+}
+
+#app::after {
+  background:
+    linear-gradient(101deg, rgba(50,5,13,.5) 0 10%, transparent 22%),
+    linear-gradient(259deg, rgba(50,5,13,.5) 0 10%, transparent 22%),
+    radial-gradient(ellipse at 50% 0%, transparent 0 48%, rgba(3,1,3,.18) 74%, rgba(3,1,3,.5) 100%);
+}
+
+.machine {
+  background: transparent !important;
+}
+
+.machine__arch {
+  opacity: .46;
+  background:
+    radial-gradient(
+      circle at 50% 18%,
+      rgba(255, 214, 127, .15),
+      rgba(107, 74, 26, .045) 44%,
+      transparent 72%
+    ) !important;
+  filter: blur(8px);
+}
+
+.wheel-aura {
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 214, 113, .18),
+      rgba(126, 83, 28, .045) 48%,
+      transparent 72%
+    ) !important;
+  opacity: .52;
+}
+
+.machine:has(.wheel-shell.is-anticipating) .wheel-aura {
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 232, 160, .28),
+      rgba(153, 103, 38, .065) 50%,
+      transparent 73%
+    ) !important;
+}
+
+.stage-glow {
+  opacity: .15;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 220, 150, .44),
+      rgba(255, 180, 80, .045) 58%,
+      transparent
+    );
+}
+
+/* Slightly smaller header so the wheel remains the visual focus. */
+.topbar {
+  width: min(calc(1240px * var(--ui-scale)), calc(100vw - 34px));
+  grid-template-columns:
+    minmax(calc(275px * var(--ui-scale)), .92fr)
+    minmax(calc(460px * var(--ui-scale)), 1.28fr)
+    auto;
+  gap: calc(10px * var(--ui-scale));
+  padding:
+    calc(5px * var(--ui-scale))
+    calc(8px * var(--ui-scale));
+  border-width: 2px;
+  border-radius: calc(19px * var(--ui-scale));
+}
+
+.brand {
+  padding:
+    calc(2px * var(--ui-scale))
+    calc(7px * var(--ui-scale));
+}
+
+.brand__eyebrow {
+  font-size: calc(8px * var(--ui-scale));
+}
+
+.brand h1 {
+  font-size: clamp(
+    calc(24px * var(--ui-scale)),
+    2.2vw,
+    calc(36px * var(--ui-scale))
+  );
+}
+
+.brand__subtitle {
+  margin-top: calc(3px * var(--ui-scale));
+  font-size: calc(6px * var(--ui-scale));
+}
+
+.hud {
+  gap: calc(8px * var(--ui-scale));
+}
+
+.hud-card {
+  min-height: calc(59px * var(--ui-scale));
+  padding:
+    calc(5px * var(--ui-scale))
+    calc(12px * var(--ui-scale));
+  border-radius: calc(13px * var(--ui-scale));
+}
+
+.hud-card__label {
+  font-size: calc(8px * var(--ui-scale));
+}
+
+.hud-card strong {
+  font-size: clamp(
+    calc(25px * var(--ui-scale)),
+    2.45vw,
+    calc(38px * var(--ui-scale))
+  );
+}
+
+.hud-card__emote {
+  width: calc(48px * var(--ui-scale));
+  height: calc(43px * var(--ui-scale));
+  border-radius: calc(10px * var(--ui-scale));
+}
+
+.hud-card__money-row {
+  gap: calc(8px * var(--ui-scale));
+}
+
+.top-actions {
+  gap: calc(6px * var(--ui-scale));
+  padding:
+    calc(5px * var(--ui-scale))
+    calc(7px * var(--ui-scale));
+  border-radius: calc(13px * var(--ui-scale));
+}
+
+.icon-button {
+  width: calc(37px * var(--ui-scale));
+  height: calc(37px * var(--ui-scale));
+  border-radius: calc(10px * var(--ui-scale));
+}
+
+/* Piggy bank physically grows with the amount stored inside it. */
+.piggy-bank {
+  --piggy-fill-scale: 1;
+  scale: var(--piggy-fill-scale);
+  transform-origin: 50% 84%;
+  transition:
+    scale 420ms cubic-bezier(.16,.86,.24,1),
+    filter 180ms ease,
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.piggy-bank[data-fill-level="low"] {
+  filter: drop-shadow(0 12px 10px rgba(0,0,0,.28));
+}
+
+.piggy-bank[data-fill-level="medium"] {
+  filter:
+    drop-shadow(0 13px 11px rgba(0,0,0,.3))
+    drop-shadow(0 0 8px rgba(255, 187, 205, .12));
+}
+
+.piggy-bank[data-fill-level="full"] {
+  filter:
+    drop-shadow(0 14px 12px rgba(0,0,0,.32))
+    drop-shadow(0 0 13px rgba(255, 194, 111, .17));
+}
+
+.piggy-bank[data-fill-level="full"] .piggy-svg__gold-slot-glow {
+  opacity: .36;
+  filter: drop-shadow(0 0 8px rgba(255, 205, 79, .5));
+}
+
+@media (max-width: 1280px) and (min-width: 1081px) {
+  .topbar {
+    width: min(calc(1120px * var(--ui-scale)), calc(100vw - 26px));
+    grid-template-columns:
+      minmax(calc(245px * var(--ui-scale)), .88fr)
+      minmax(calc(410px * var(--ui-scale)), 1.24fr)
+      auto;
+  }
+
+  .hud-card__emote {
+    width: calc(43px * var(--ui-scale));
+    height: calc(39px * var(--ui-scale));
+  }
+}

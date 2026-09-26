@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.2.0",
-  "description": "Kolo neštěstí — premium casino-style browser wheel with readable leaderboard, 7TV amount emote, piggy-bank finale and fair random landings.",
+  "version": "4.2.1",
+  "description": "Kolo neštěstí — premium browser wheel with neutral wheel staging, compact HUD, growing piggy bank and fair random landings.",
   "type": "module",
   "scripts": {
     "dev": "vite",
