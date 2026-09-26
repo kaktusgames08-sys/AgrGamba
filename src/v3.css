@@ -254,6 +254,11 @@ body.settings-open {
   to { transform: translateX(110%); }
 }
 
+.leaderboard__item {
+  opacity: 0;
+  animation: historyIn 280ms cubic-bezier(.2,.82,.3,1) var(--board-delay, 0ms) forwards;
+}
+
 .session-panel {
   padding-bottom: 18px;
   text-align: center;
