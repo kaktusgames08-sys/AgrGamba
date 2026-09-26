@@ -6,6 +6,12 @@ import './piggy.css';
 
 import { GameState } from './core/GameState.js';
 import { SettingsManager } from './core/SettingsManager.js';
+import {
+  HARDCORE_STARTING_SPINS,
+  HARDCORE_MAX_PAYOUT,
+  HARDCORE_MONEY_SEGMENTS,
+  HARDCORE_MULTIPLIER_SEGMENTS,
+} from './core/HardcoreConfig.js';
 import { AudioManager } from './audio/AudioManager.js';
 import { LedRing } from './ui/LedRing.js';
 import { ParallaxController } from './ui/ParallaxController.js';
@@ -19,6 +25,8 @@ import { ViewportScaler } from './ui/ViewportScaler.js';
 
 const settingsManager = new SettingsManager();
 let settings = settingsManager.get();
+let gameMode = 'normal';
+let activeSegments = settings.segments;
 
 const state = new GameState(settings.startingSpins);
 const audio = new AudioManager();
@@ -28,6 +36,12 @@ const parallax = new ParallaxController(document.querySelector('#machineStage'))
 const piggy = new PiggyBank();
 const leaderboard = new Leaderboard();
 const viewportScaler = new ViewportScaler();
+
+const app = document.querySelector('#app');
+const hardcoreButton = document.querySelector('#hardcoreButton');
+const hardcoreRule = document.querySelector('#hardcoreRule');
+const hardcoreButtonTitle = hardcoreButton?.querySelector('strong');
+const hardcoreButtonSub = hardcoreButton?.querySelector('small');
 
 const amountEmote = document.querySelector('#amountEmote');
 amountEmote?.addEventListener('error', () => {
@@ -39,9 +53,13 @@ const particles = new ParticleSystem(
   document.querySelector('#flash'),
 );
 
+function isHardcore() {
+  return gameMode === 'hardcore';
+}
+
 function phaseToLedMode(phase) {
   if (phase === 'spinning') return 'spinning';
-  if (phase === 'anticipation-1' || phase === 'anticipation-2') return 'anticipating';
+  if (phase?.startsWith('anticipation-')) return 'anticipating';
   if (phase === 'settling' || phase === 'freeze') return 'settling';
   if (phase === 'landed') return 'winner';
   return 'idle';
@@ -52,7 +70,7 @@ const wheel = new WheelRenderer({
   pointer: document.querySelector('#pointer'),
   shell: document.querySelector('#wheelShell'),
   audio,
-  segments: settings.segments,
+  segments: activeSegments,
   spinDurationMs: settings.spinDurationMs,
   onProgress: ({ timeProgress, rotation }) => {
     ledRing.setProgress(timeProgress, rotation);
@@ -77,7 +95,7 @@ function classifyReward(record, isEnding = false) {
   if (isEnding) return 'final';
   if (record.type === 'multiplier') return 'multiplier2';
   if (record.value >= 60) return 'big';
-  if (record.value >= 30) return 'medium';
+  if (record.value >= 40) return 'medium';
   return 'small';
 }
 
@@ -98,18 +116,57 @@ function applyPresentationSettings(nextSettings) {
   );
 }
 
-function updateControls() {
-  ui.setBusy(busy || !state.canSpin());
+function syncModeUi() {
+  const hardcore = isHardcore();
+
+  app.dataset.gameMode = hardcore ? 'hardcore' : 'normal';
+  hardcoreButton?.classList.toggle('is-active', hardcore);
+  hardcoreButton?.setAttribute('aria-pressed', hardcore ? 'true' : 'false');
+
+  if (hardcoreRule) hardcoreRule.hidden = !hardcore;
+
+  if (hardcoreButtonTitle) {
+    hardcoreButtonTitle.textContent = hardcore
+      ? 'ZPĚT NA NORMAL'
+      : 'HARDCORE TOČKA';
+  }
+
+  if (hardcoreButtonSub) {
+    hardcoreButtonSub.textContent = hardcore
+      ? 'HARDCORE AKTIVNÍ · RESET NA KLASIKU'
+      : '3 SPINY · 150 Kč+ · POSLEDNÍ = NÁSOBIČ';
+  }
 }
 
-function applyGameSettings(nextSettings) {
-  settings = nextSettings;
-  applyPresentationSettings(settings);
+function updateControls() {
+  ui.setBusy(busy || !state.canSpin());
+  if (hardcoreButton) hardcoreButton.disabled = busy;
+}
 
-  state.setStartingSpins(settings.startingSpins);
+function setActiveSegments(segments) {
+  activeSegments = segments;
+  wheel.setSegments(segments);
+}
+
+async function swapWheelSegments(segments) {
+  app.classList.add('is-wheel-switching');
+  await wait(150);
+  setActiveSegments(segments);
+  await wait(80);
+  app.classList.remove('is-wheel-switching');
+}
+
+function resetCurrentMode({ announce = true } = {}) {
+  const hardcore = isHardcore();
+
+  state.setStartingSpins(
+    hardcore ? HARDCORE_STARTING_SPINS : settings.startingSpins,
+  );
   state.reset();
 
-  wheel.setSegments(settings.segments);
+  setActiveSegments(
+    hardcore ? HARDCORE_MONEY_SEGMENTS : settings.segments,
+  );
   wheel.setSpinDuration(settings.spinDurationMs);
   ledRing.setMode('idle');
 
@@ -119,12 +176,41 @@ function applyGameSettings(nextSettings) {
   piggy.reset();
   ui.resetAnimationMemory(state);
   ui.renderState(state);
-  ui.setStatus('NASTAVENÍ ULOŽENO', 'success');
+  ui.setCenterMode('idle', { spins: state.spins });
+
+  if (announce) {
+    ui.setStatus(
+      hardcore
+        ? 'HARDCORE · 3 SPINY · BEZ RESPINU'
+        : 'PŘIPRAVENO',
+      hardcore ? 'hardcore' : 'ready',
+    );
+  }
+
+  syncModeUi();
   updateControls();
+}
+
+function applyGameSettings(nextSettings) {
+  settings = nextSettings;
+  applyPresentationSettings(settings);
+  resetCurrentMode({ announce: false });
+
+  ui.setStatus(
+    isHardcore()
+      ? 'NASTAVENÍ ULOŽENO · HARDCORE RESET'
+      : 'NASTAVENÍ ULOŽENO',
+    'success',
+  );
 
   setTimeout(() => {
     if (!busy && !state.isEnded()) {
-      ui.setStatus('PŘIPRAVENO', 'ready');
+      ui.setStatus(
+        isHardcore()
+          ? 'HARDCORE · 3 SPINY · BEZ RESPINU'
+          : 'PŘIPRAVENO',
+        isHardcore() ? 'hardcore' : 'ready',
+      );
     }
   }, 950);
 }
@@ -196,6 +282,17 @@ async function playReward(record, tier) {
   ui.renderState(state, { animateTotalFrom: record.before });
   await piggyAnimation;
 
+  if (record.hardcore) {
+    if (state.isEnded()) {
+      ui.setStatus('HARDCORE HOTOVO · ' + state.total + ' Kč', 'success');
+    } else if (state.spins === 1) {
+      ui.setStatus('POSLEDNÍ SPIN · NÁSOBIČE', 'hardcore');
+    } else {
+      ui.setStatus('HARDCORE · ' + state.spins + ' SPINY ZBÝVAJÍ', 'hardcore');
+    }
+    return;
+  }
+
   if (record.extraSpins) {
     ui.setStatus('+SPIN · JEDEME DÁL', 'success');
     setTimeout(() => audio.extraSpin(), 110);
@@ -206,6 +303,23 @@ async function playReward(record, tier) {
   }
 }
 
+function capHardcoreRecord(record) {
+  if (!isHardcore()) return record;
+
+  const capped = Math.min(HARDCORE_MAX_PAYOUT, state.total);
+
+  if (capped !== state.total) {
+    state.total = capped;
+    record.after = capped;
+    if (state.history[0]) state.history[0].after = capped;
+  }
+
+  record.hardcore = true;
+  record.hardcoreFinal = state.isEnded();
+  record.remainingSpins = state.spins;
+  return record;
+}
+
 async function spin() {
   if (busy || !state.canSpin() || settingsPanel.isOpen()) return;
 
@@ -214,7 +328,10 @@ async function spin() {
 
   state.beginSpin();
   ui.renderState(state);
-  ui.setStatus('ROZTÁČÍM…', 'spinning');
+  ui.setStatus(
+    isHardcore() ? 'HARDCORE · ROZTÁČÍM…' : 'ROZTÁČÍM…',
+    'spinning',
+  );
   ui.setSpinPhase('spinning');
   updateControls();
   ui.hideResult();
@@ -222,53 +339,87 @@ async function spin() {
 
   const landing = await wheel.spinRandom();
   const index = landing.index;
-  const segment = settings.segments[index];
+  const segment = activeSegments[index];
 
   const previewRecord = {
     type: segment.type,
     value: segment.value ?? null,
     multiplier: segment.multiplier ?? null,
     extraSpins: segment.extraSpins ?? 0,
+    hardcore: isHardcore(),
   };
 
   const willEnd = state.spins + (segment.extraSpins ?? 0) <= 0;
   const previewTier = classifyReward(previewRecord, willEnd);
   await revealLanding(index, previewTier);
 
-  const record = state.resolve(segment);
+  const record = capHardcoreRecord(state.resolve(segment));
   const tier = classifyReward(record, state.isEnded());
 
   await playReward(record, tier);
 
-  await wait(state.isEnded() ? 720 : 760);
+  await wait(state.isEnded() ? 540 : 520);
 
   if (state.isEnded()) {
     ui.hideResult();
-    ui.setGameOverVisual(true);
     ledRing.setMode('idle');
 
-    await wait(130);
+    await wait(90);
 
-    audio.lossFinale();
-    particles.screenFlash('strong', 'loss');
-    particles.burst({
-      count: 58,
-      intense: true,
-      variant: 'loss',
-    });
-
-    ui.shake('normal');
-    parallax.punch('normal');
+    if (isHardcore()) {
+      particles.screenFlash('strong', 'reward');
+      particles.burst({
+        count: 78,
+        intense: true,
+        variant: 'reward',
+      });
+      ui.shake('normal');
+      parallax.punch('normal');
+      ui.setStatus(
+        'HARDCORE FINÁLE · ' + state.total + ' / ' + HARDCORE_MAX_PAYOUT + ' Kč',
+        'success',
+      );
+    } else {
+      ui.setGameOverVisual(true);
+      audio.lossFinale();
+      particles.screenFlash('strong', 'loss');
+      particles.burst({
+        count: 58,
+        intense: true,
+        variant: 'loss',
+      });
+      ui.shake('normal');
+      parallax.punch('normal');
+    }
 
     await piggy.explode(state.total);
   } else {
     ui.hideResult();
-    await wait(170);
+    await wait(150);
+
+    if (
+      isHardcore()
+      && state.spins === 1
+      && activeSegments !== HARDCORE_MULTIPLIER_SEGMENTS
+    ) {
+      ui.setStatus('POSLEDNÍ SPIN · PŘEPÍNÁM NA NÁSOBIČE', 'hardcore');
+      await swapWheelSegments(HARDCORE_MULTIPLIER_SEGMENTS);
+    }
 
     ui.setCenterMode('idle', { spins: state.spins });
     ledRing.setMode('idle');
     ui.setSpinPhase('idle');
-    ui.setStatus('PŘIPRAVENO', 'ready');
+
+    if (isHardcore()) {
+      ui.setStatus(
+        state.spins === 1
+          ? 'POSLEDNÍ SPIN · NÁSOBIČE · MAX 5000 Kč'
+          : 'HARDCORE · ' + state.spins + ' SPINY ZBÝVAJÍ',
+        'hardcore',
+      );
+    } else {
+      ui.setStatus('PŘIPRAVENO', 'ready');
+    }
   }
 
   busy = false;
@@ -277,20 +428,19 @@ async function spin() {
 
 function restart() {
   if (busy) return;
+  resetCurrentMode();
+}
 
-  state.reset();
-  wheel.clearWinner();
-  ledRing.setMode('idle');
+function toggleHardcoreMode() {
+  if (busy || settingsPanel.isOpen()) return;
 
-  ui.hideFinal();
-  ui.hideResult();
-  ui.setGameOverVisual(false);
-  piggy.reset();
-  ui.resetAnimationMemory(state);
-  ui.renderState(state);
-  ui.setStatus('PŘIPRAVENO', 'ready');
+  gameMode = isHardcore() ? 'normal' : 'hardcore';
+  resetCurrentMode();
 
-  updateControls();
+  if (isHardcore()) {
+    particles.screenFlash('normal', 'reward');
+    ui.setStatus('HARDCORE · 3 SPINY · 150 Kč+ · MAX 5000 Kč', 'hardcore');
+  }
 }
 
 async function toggleFullscreen() {
@@ -309,6 +459,7 @@ ui.spinButton.addEventListener('click', spin);
 ui.restartButton.addEventListener('click', restart);
 ui.muteButton.addEventListener('click', () => ui.setMuted(audio.toggle()));
 ui.fullscreenButton.addEventListener('click', toggleFullscreen);
+hardcoreButton?.addEventListener('click', toggleHardcoreMode);
 
 document.addEventListener('keydown', (event) => {
   if (event.repeat) return;
@@ -326,11 +477,14 @@ document.addEventListener('keydown', (event) => {
     toggleFullscreen();
   } else if (key === 's' && !busy && !settingsPanel.isOpen()) {
     settingsPanel.open();
+  } else if (key === 'h' && !busy && !settingsPanel.isOpen()) {
+    toggleHardcoreMode();
   }
 });
 
 applyPresentationSettings(settings);
 ui.setMuted(audio.muted);
+syncModeUi();
 ui.renderState(state);
 piggy.setTotal(state.total);
 ui.setCenterMode('idle', { spins: state.spins });
