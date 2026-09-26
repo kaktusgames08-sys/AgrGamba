@@ -88,7 +88,7 @@ export class Leaderboard {
         .replaceAll("'", '&#039;');
 
       return [
-        '<div class="leaderboard__item">',
+        '<div class="leaderboard__item" style="--board-delay:' + (index * 45) + 'ms">',
         '<span class="leaderboard__rank" aria-label="Pořadí ' + (index + 1) + '">' + this.medal(index) + '</span>',
         '<div class="leaderboard__copy">',
         '<strong>' + safeName + '</strong>',
