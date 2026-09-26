@@ -12,8 +12,11 @@ export class ViewportScaler {
     const height = window.visualViewport?.height ?? window.innerHeight;
 
     const widthScale = width / 1720;
-    const heightScale = height / 920;
-    const scale = Math.max(0.72, Math.min(1.08, Math.min(widthScale, heightScale)));
+    // The full desktop composition now includes the Hardcore control.
+    // Base the scale on a taller design canvas so 100% browser zoom
+    // still keeps the whole game inside one viewport.
+    const heightScale = height / 1000;
+    const scale = Math.max(0.66, Math.min(1.06, Math.min(widthScale, heightScale)));
 
     this.root.style.setProperty('--ui-scale', scale.toFixed(4));
   }
