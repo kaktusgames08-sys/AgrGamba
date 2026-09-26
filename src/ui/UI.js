@@ -171,10 +171,12 @@ export class UI {
     if (mode === 'result') {
       const record = payload.record;
       this.centerTop.textContent = payload.isEnding ? 'KONEC' : 'PADLO';
-      this.centerValue.textContent = record?.type === 'multiplier'
-        ? 'x' + record.multiplier
-        : '+' + record.value;
-      this.centerBottom.textContent = record?.type === 'money' ? 'KČ' : record?.extraSpins ? '+ SPIN' : 'BEZ SPINU';
+      this.centerValue.textContent = payload.isEnding ? '!' : '✓';
+      this.centerBottom.textContent = payload.isEnding
+        ? 'STOP'
+        : record?.extraSpins
+          ? '+ SPIN'
+          : 'BEZ SPINU';
       return;
     }
 
@@ -206,11 +208,7 @@ export class UI {
           : 'PŘIČÍTÁM';
 
     this.resultMain.textContent = isMultiplier
-      ? (record.multiplier === 3
-        ? 'TRIPLE!'
-        : record.multiplier === 2
-          ? 'DOUBLE!'
-          : 'x' + record.multiplier)
+      ? 'DOUBLE!'
       : '+' + record.value + ' Kč';
 
     this.resultSub.textContent = isMultiplier

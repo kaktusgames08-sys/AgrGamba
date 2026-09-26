@@ -183,5 +183,38 @@ test('SettingsManager automatically migrates stored v4.1 balance once', () => {
   );
 
   assert.equal(exits.length, 3);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.2'));
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.3'));
+});
+
+
+test('legacy x3 multipliers are migrated to x2', () => {
+  const settings = normalizeSettings({
+    ...DEFAULT_SETTINGS,
+    segments: DEFAULT_SETTINGS.segments.map((segment, index) =>
+      index === 4
+        ? {
+            type: 'multiplier',
+            multiplier: 3,
+            extraSpins: 1,
+            tone: 'green',
+          }
+        : segment
+    ),
+  });
+
+  const multipliers = settings.segments
+    .filter((segment) => segment.type === 'multiplier')
+    .map((segment) => segment.multiplier);
+
+  assert.ok(multipliers.length > 0);
+  assert.ok(multipliers.every((value) => value === 2));
+});
+
+test('default wheel contains no x3 multiplier', () => {
+  assert.equal(
+    DEFAULT_SETTINGS.segments.some((segment) =>
+      segment.type === 'multiplier' && segment.multiplier > 2
+    ),
+    false,
+  );
 });

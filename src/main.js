@@ -14,6 +14,8 @@ import { ParticleSystem } from './ui/ParticleSystem.js';
 import { SettingsPanel } from './ui/SettingsPanel.js';
 import { UI } from './ui/UI.js';
 import { PiggyBank } from './ui/PiggyBank.js';
+import { Leaderboard } from './ui/Leaderboard.js';
+import { ViewportScaler } from './ui/ViewportScaler.js';
 
 const settingsManager = new SettingsManager();
 let settings = settingsManager.get();
@@ -24,6 +26,8 @@ const ui = new UI();
 const ledRing = new LedRing(document.querySelector('#ledRing'));
 const parallax = new ParallaxController(document.querySelector('#machineStage'));
 const piggy = new PiggyBank();
+const leaderboard = new Leaderboard();
+const viewportScaler = new ViewportScaler();
 
 const particles = new ParticleSystem(
   document.querySelector('#particleLayer'),
@@ -54,6 +58,9 @@ const wheel = new WheelRenderer({
   },
 });
 
+void leaderboard;
+void viewportScaler;
+
 let busy = false;
 
 function wait(ms) {
@@ -62,16 +69,14 @@ function wait(ms) {
 
 function classifyReward(record, isEnding = false) {
   if (isEnding) return 'final';
-  if (record.type === 'multiplier') {
-    return record.multiplier >= 3 ? 'multiplier3' : 'multiplier2';
-  }
+  if (record.type === 'multiplier') return 'multiplier2';
   if (record.value >= 60) return 'big';
   if (record.value >= 30) return 'medium';
   return 'small';
 }
 
 function impactStrength(tier) {
-  if (tier === 'multiplier3' || tier === 'final') return 'heavy';
+  if (tier === 'final') return 'heavy';
   if (tier === 'big' || tier === 'multiplier2') return 'normal';
   return 'soft';
 }
@@ -145,17 +150,13 @@ async function playReward(record, tier) {
     audio.multiplier(record.multiplier);
 
     particles.burst({
-      count: tier === 'multiplier3' ? 82 : 58,
+      count: 58,
       intense: true,
       variant: 'reward',
     });
 
-    particles.screenFlash(
-      tier === 'multiplier3' ? 'strong' : 'normal',
-      'reward',
-    );
-
-    ui.shake(tier === 'multiplier3' ? 'normal' : 'soft');
+    particles.screenFlash('normal', 'reward');
+    ui.shake('soft');
   } else {
     audio.money(record.value, tier);
     piggyAnimation = piggy.feed(record.value, record.after);
@@ -254,7 +255,6 @@ async function spin() {
     parallax.punch('normal');
 
     await piggy.explode(state.total);
-    await ui.showFinal(state.total);
   } else {
     ui.hideResult();
     await wait(170);

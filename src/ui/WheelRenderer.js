@@ -43,9 +43,10 @@ function wedgePath(cx, cy, radius, startAngle, endAngle) {
 function spinProgress(t) {
   const clamped = Math.min(1, Math.max(0, t));
 
-  // Constant angular deceleration: one uninterrupted physical-looking motion.
-  // Velocity falls linearly all the way to zero, so there is no late snap.
-  return 1 - Math.pow(1 - clamped, 2);
+  // One uninterrupted curve with a longer, readable final crawl.
+  // Velocity approaches zero smoothly (no staged snap), while the last
+  // few segments remain in motion long enough for genuine close calls.
+  return 1 - Math.pow(1 - clamped, 3);
 }
 
 function normalizeIndex(index, count) {

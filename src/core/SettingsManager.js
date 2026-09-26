@@ -4,8 +4,9 @@ import {
   SPIN_DURATION_MS,
 } from './WheelConfig.js';
 
-const STORAGE_KEY = 'kolo-nestesti-settings-v4.2';
+const STORAGE_KEY = 'kolo-nestesti-settings-v4.3';
 const LEGACY_STORAGE_KEYS = [
+  'kolo-nestesti-settings-v4.2',
   'kolo-nestesti-settings-v4.1',
   'kolo-nestesti-settings-v4',
   'kolo-nestesti-settings-v3',
@@ -74,7 +75,9 @@ export function normalizeSegment(segment, index = 0) {
   };
 
   if (type === 'multiplier') {
-    normalized.multiplier = Math.max(2, Math.min(10, Math.round(Number(segment?.multiplier) || 2)));
+    // x3 and higher were removed from the game. Legacy/custom multiplier
+    // fields are normalized to x2 so old saved wheels stay playable.
+    normalized.multiplier = 2;
   } else {
     normalized.value = Math.max(0, Math.min(100000, Math.round(Number(segment?.value) || 0)));
   }

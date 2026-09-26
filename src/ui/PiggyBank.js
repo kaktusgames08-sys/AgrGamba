@@ -6,7 +6,7 @@ export class PiggyBank {
     finalAmount = document.querySelector('#piggyFinalAmount'),
     explosion = document.querySelector('#piggyExplosion'),
     source = document.querySelector('#wheelShell'),
-    flightLayer = document.querySelector('#rewardFlightLayer'),
+    app = document.querySelector('#app'),
   } = {}) {
     this.pig = pig;
     this.total = total;
@@ -14,8 +14,22 @@ export class PiggyBank {
     this.finalAmount = finalAmount;
     this.explosion = explosion;
     this.source = source;
-    this.flightLayer = flightLayer;
+    this.app = app;
     this.currentTotal = 0;
+    this.feedToken = 0;
+
+    this.canvas = document.createElement('canvas');
+    this.canvas.className = 'piggy-coin-canvas';
+    this.canvas.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(this.canvas);
+
+    this.ctx = this.canvas.getContext('2d', { alpha: true });
+    this.coinSprite = this.createCoinSprite();
+    this.resizeCanvas();
+
+    this.boundResize = () => this.resizeCanvas();
+    window.addEventListener('resize', this.boundResize, { passive: true });
+    window.visualViewport?.addEventListener('resize', this.boundResize, { passive: true });
   }
 
   formatMoney(value) {
@@ -24,96 +38,62 @@ export class PiggyBank {
     }).format(Math.round(Number(value) || 0)) + ' Kč';
   }
 
+  resizeCanvas() {
+    if (!this.canvas || !this.ctx) return;
+
+    const width = window.visualViewport?.width ?? window.innerWidth;
+    const height = window.visualViewport?.height ?? window.innerHeight;
+    const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+
+    this.canvas.width = Math.max(1, Math.round(width * dpr));
+    this.canvas.height = Math.max(1, Math.round(height * dpr));
+    this.canvas.style.width = width + 'px';
+    this.canvas.style.height = height + 'px';
+
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  createCoinSprite() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 40;
+    canvas.height = 40;
+    const ctx = canvas.getContext('2d');
+
+    const gradient = ctx.createRadialGradient(14, 11, 2, 20, 20, 18);
+    gradient.addColorStop(0, '#fff8c7');
+    gradient.addColorStop(0.28, '#ffe075');
+    gradient.addColorStop(0.68, '#f2ad2c');
+    gradient.addColorStop(1, '#b96312');
+
+    ctx.beginPath();
+    ctx.arc(20, 20, 17, 0, Math.PI * 2);
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(103,49,5,.72)';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(20, 20, 12.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,246,176,.48)';
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+
+    ctx.fillStyle = '#5a2b05';
+    ctx.font = '900 15px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('1', 20, 20.5);
+
+    return canvas;
+  }
+
   setTotal(value, { pulse = false } = {}) {
     this.currentTotal = Math.max(0, Math.round(Number(value) || 0));
     if (this.total) this.total.textContent = this.formatMoney(this.currentTotal);
 
-    if (pulse && this.pig) {
-      this.pig.classList.remove('is-fed');
-      void this.pig.offsetWidth;
-      this.pig.classList.add('is-fed');
-      setTimeout(() => this.pig?.classList.remove('is-fed'), 440);
-    }
-  }
-
-  async feed(amount, resultingTotal = null) {
-    const coinCount = Math.max(0, Math.round(Number(amount) || 0));
-
-    if (!coinCount || !this.pig || !this.source || !this.flightLayer) {
-      if (resultingTotal !== null) this.setTotal(resultingTotal, { pulse: true });
-      return;
-    }
-
-    const sourceRect = this.source.getBoundingClientRect();
-    const pigRect = this.pig.getBoundingClientRect();
-
-    const sourceX = sourceRect.left + sourceRect.width * 0.5;
-    const sourceY = sourceRect.top + sourceRect.height * 0.48;
-    const targetX = pigRect.left + pigRect.width * 0.52;
-    const targetY = pigRect.top + pigRect.height * 0.28;
-
-    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    const stagger = reducedMotion ? 0 : Math.max(3, Math.min(7, 300 / coinCount));
-    const baseDuration = reducedMotion ? 1 : 520;
-
-    for (let i = 0; i < coinCount; i += 1) {
-      const coin = document.createElement('div');
-      coin.className = 'piggy-coin';
-      coin.textContent = '1';
-
-      const spreadX = reducedMotion ? 0 : (Math.random() - 0.5) * 54;
-      const spreadY = reducedMotion ? 0 : (Math.random() - 0.5) * 30;
-      const endX = targetX - sourceX + spreadX;
-      const endY = targetY - sourceY + spreadY;
-      const arcX = endX * 0.48 + (Math.random() - 0.5) * 80;
-      const arcY = endY * 0.35 - 60 - Math.random() * 55;
-      const duration = baseDuration + (reducedMotion ? 0 : Math.random() * 260);
-
-      coin.style.left = sourceX + 'px';
-      coin.style.top = sourceY + 'px';
-      this.flightLayer.appendChild(coin);
-
-      const animation = coin.animate([
-        {
-          opacity: 0,
-          transform: 'translate(-50%, -50%) scale(.45) rotate(0deg)',
-        },
-        {
-          opacity: 1,
-          offset: 0.12,
-          transform: 'translate(calc(-50% + ' + arcX + 'px), calc(-50% + ' + arcY + 'px)) scale(1.05) rotate(180deg)',
-        },
-        {
-          opacity: 1,
-          offset: 0.88,
-          transform: 'translate(calc(-50% + ' + endX + 'px), calc(-50% + ' + endY + 'px)) scale(.76) rotate(520deg)',
-        },
-        {
-          opacity: 0,
-          transform: 'translate(calc(-50% + ' + endX + 'px), calc(-50% + ' + endY + 'px)) scale(.25) rotate(600deg)',
-        },
-      ], {
-        duration,
-        delay: i * stagger,
-        easing: 'cubic-bezier(.18,.78,.26,1)',
-        fill: 'forwards',
-      });
-
-      animation.finished
-        .then(() => coin.remove())
-        .catch(() => coin.remove());
-
-      if (i % Math.max(1, Math.floor(coinCount / 6)) === 0) {
-        setTimeout(() => this.bumpPig(), i * stagger + duration * 0.88);
-      }
-    }
-
-    const totalDuration = baseDuration + coinCount * stagger + 220;
-    await new Promise((resolve) => setTimeout(resolve, totalDuration));
-
-    if (resultingTotal !== null) {
-      this.setTotal(resultingTotal, { pulse: true });
-    }
+    if (pulse) this.bumpPig();
   }
 
   bumpPig() {
@@ -122,7 +102,161 @@ export class PiggyBank {
     this.pig.classList.remove('is-fed');
     void this.pig.offsetWidth;
     this.pig.classList.add('is-fed');
-    setTimeout(() => this.pig?.classList.remove('is-fed'), 420);
+
+    setTimeout(() => {
+      this.pig?.classList.remove('is-fed');
+    }, 420);
+  }
+
+  clearCanvas() {
+    if (!this.ctx || !this.canvas) return;
+    const width = window.visualViewport?.width ?? window.innerWidth;
+    const height = window.visualViewport?.height ?? window.innerHeight;
+    this.ctx.clearRect(0, 0, width, height);
+  }
+
+  async feed(amount, resultingTotal = null) {
+    const coinCount = Math.max(0, Math.round(Number(amount) || 0));
+
+    if (!coinCount || !this.pig || !this.source || !this.ctx) {
+      if (resultingTotal !== null) this.setTotal(resultingTotal, { pulse: true });
+      return;
+    }
+
+    const token = ++this.feedToken;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+    if (reducedMotion) {
+      this.setTotal(resultingTotal ?? (this.currentTotal + coinCount), { pulse: true });
+      return;
+    }
+
+    const sourceRect = this.source.getBoundingClientRect();
+    const pigRect = this.pig.getBoundingClientRect();
+
+    const sourceX = sourceRect.left + sourceRect.width * 0.5;
+    const sourceY = sourceRect.top + sourceRect.height * 0.49;
+    const targetX = pigRect.left + pigRect.width * 0.55;
+    const targetY = pigRect.top + pigRect.height * 0.28;
+    const startTotal = resultingTotal === null
+      ? this.currentTotal
+      : Math.max(0, Math.round(resultingTotal - coinCount));
+
+    const stagger = Math.max(1.2, Math.min(7, 260 / Math.max(1, coinCount)));
+    const baseDuration = 470;
+    const bumpEvery = Math.max(1, Math.floor(coinCount / 7));
+    const particles = Array.from({ length: coinCount }, (_, index) => {
+      const jitterX = (Math.random() - 0.5) * 58;
+      const jitterY = (Math.random() - 0.5) * 22;
+      const tx = targetX + jitterX;
+      const ty = targetY + jitterY;
+      const cx = sourceX + (tx - sourceX) * (0.42 + Math.random() * 0.18)
+        + (Math.random() - 0.5) * 90;
+      const cy = Math.min(sourceY, ty) - 65 - Math.random() * 80;
+
+      return {
+        sx: sourceX + (Math.random() - 0.5) * 18,
+        sy: sourceY + (Math.random() - 0.5) * 12,
+        cx,
+        cy,
+        tx,
+        ty,
+        delay: index * stagger,
+        duration: baseDuration + Math.random() * 250,
+        spin: (Math.random() - 0.5) * 10,
+        scale: 0.72 + Math.random() * 0.35,
+        arrived: false,
+        bump: index % bumpEvery === 0,
+      };
+    });
+
+    const startAt = performance.now();
+    const totalDuration = Math.max(...particles.map((particle) =>
+      particle.delay + particle.duration
+    ));
+
+    this.pig.classList.add('is-glowing');
+
+    await new Promise((resolve) => {
+      const frame = (now) => {
+        if (token !== this.feedToken) {
+          this.clearCanvas();
+          resolve();
+          return;
+        }
+
+        this.clearCanvas();
+        let active = 0;
+        let arrived = 0;
+
+        for (const particle of particles) {
+          const local = (now - startAt - particle.delay) / particle.duration;
+
+          if (local < 0) {
+            active += 1;
+            continue;
+          }
+
+          if (local >= 1) {
+            particle.arrived = true;
+            arrived += 1;
+            continue;
+          }
+
+          active += 1;
+          const t = Math.max(0, Math.min(1, local));
+          const eased = 1 - Math.pow(1 - t, 3);
+          const oneMinus = 1 - eased;
+          const x = oneMinus * oneMinus * particle.sx
+            + 2 * oneMinus * eased * particle.cx
+            + eased * eased * particle.tx;
+          const y = oneMinus * oneMinus * particle.sy
+            + 2 * oneMinus * eased * particle.cy
+            + eased * eased * particle.ty;
+          const alpha = t < 0.08 ? t / 0.08 : Math.min(1, (1 - t) / 0.12);
+          const scale = particle.scale * (0.55 + Math.sin(Math.PI * t) * 0.55);
+
+          this.ctx.save();
+          this.ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+          this.ctx.translate(x, y);
+          this.ctx.rotate(t * particle.spin);
+          this.ctx.scale(scale, scale);
+          this.ctx.drawImage(this.coinSprite, -20, -20, 40, 40);
+          this.ctx.restore();
+
+          if (!particle.arrived && t > 0.93) {
+            particle.arrived = true;
+            if (particle.bump) this.bumpPig();
+          }
+
+          if (particle.arrived) arrived += 1;
+        }
+
+        const visibleTotal = Math.min(
+          startTotal + arrived,
+          resultingTotal ?? (startTotal + coinCount),
+        );
+        if (visibleTotal !== this.currentTotal) {
+          this.currentTotal = visibleTotal;
+          if (this.total) this.total.textContent = this.formatMoney(visibleTotal);
+        }
+
+        if (active > 0 && now - startAt <= totalDuration + 40) {
+          requestAnimationFrame(frame);
+        } else {
+          this.clearCanvas();
+          resolve();
+        }
+      };
+
+      requestAnimationFrame(frame);
+    });
+
+    this.pig.classList.remove('is-glowing');
+
+    if (resultingTotal !== null) {
+      this.setTotal(resultingTotal, { pulse: true });
+    }
   }
 
   pulseMultiplier(total) {
@@ -130,47 +264,66 @@ export class PiggyBank {
     this.pig?.classList.remove('is-multiplied');
     void this.pig?.offsetWidth;
     this.pig?.classList.add('is-multiplied');
-    setTimeout(() => this.pig?.classList.remove('is-multiplied'), 620);
+
+    setTimeout(() => {
+      this.pig?.classList.remove('is-multiplied');
+    }, 620);
   }
 
   async explode(total) {
     if (!this.pig) return;
 
+    ++this.feedToken;
+    this.clearCanvas();
     this.setTotal(total);
+
     this.final?.classList.remove('is-visible');
     this.final?.setAttribute('aria-hidden', 'true');
     this.explosion?.replaceChildren();
 
-    for (let i = 0; i < 24; i += 1) {
+    this.app?.classList.add('is-piggy-finale');
+    this.pig.classList.remove('is-fed', 'is-multiplied', 'is-glowing');
+    this.pig.classList.add('is-cracking');
+
+    await new Promise((resolve) => setTimeout(resolve, 520));
+
+    for (let i = 0; i < 28; i += 1) {
       const shard = document.createElement('i');
       shard.className = 'piggy-shard';
       const angle = Math.random() * Math.PI * 2;
-      const distance = 65 + Math.random() * 115;
+      const distance = 70 + Math.random() * 135;
       shard.style.setProperty('--shard-x', Math.cos(angle) * distance + 'px');
       shard.style.setProperty('--shard-y', Math.sin(angle) * distance + 'px');
-      shard.style.setProperty('--shard-r', ((Math.random() - 0.5) * 520) + 'deg');
+      shard.style.setProperty('--shard-r', ((Math.random() - 0.5) * 560) + 'deg');
       this.explosion?.appendChild(shard);
     }
 
-    this.pig.classList.remove('is-fed', 'is-multiplied');
     this.pig.classList.add('is-exploding');
 
-    await new Promise((resolve) => setTimeout(resolve, 720));
+    await new Promise((resolve) => setTimeout(resolve, 760));
 
     if (this.finalAmount) this.finalAmount.textContent = this.formatMoney(total);
     this.final?.setAttribute('aria-hidden', 'false');
     this.final?.classList.add('is-visible');
-
-    await new Promise((resolve) => setTimeout(resolve, 650));
   }
 
   reset() {
+    ++this.feedToken;
+    this.clearCanvas();
     this.currentTotal = 0;
     this.setTotal(0);
-    this.pig?.classList.remove('is-fed', 'is-multiplied', 'is-exploding');
+    this.app?.classList.remove('is-piggy-finale');
+    this.pig?.classList.remove(
+      'is-fed',
+      'is-multiplied',
+      'is-glowing',
+      'is-cracking',
+      'is-exploding',
+    );
     this.explosion?.replaceChildren();
     this.final?.classList.remove('is-visible');
     this.final?.setAttribute('aria-hidden', 'true');
+
     if (this.finalAmount) this.finalAmount.textContent = '0 Kč';
   }
 }

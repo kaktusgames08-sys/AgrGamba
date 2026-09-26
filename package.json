@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.0.1",
-  "description": "Kolo neštěstí — configurable cinematic browser wheel with staged game-show motion for GitHub Pages and OBS.",
+  "version": "4.1.0",
+  "description": "Kolo neštěstí — smooth browser wheel with adaptive fullscreen UI, piggy-bank finale and fair random landings.",
   "type": "module",
   "scripts": {
     "dev": "vite",
