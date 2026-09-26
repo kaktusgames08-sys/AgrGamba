@@ -427,8 +427,7 @@
   animation-direction: normal, alternate;
 }
 
-.result-burst.reward-tier-multiplier2 .result-burst__main,
-.result-burst.reward-tier-multiplier3 .result-burst__main {
+.result-burst.reward-tier-multiplier2 .result-burst__main {
   color: #f2b5ff;
   -webkit-text-stroke-color: #6c177b;
   text-shadow:
@@ -437,15 +436,6 @@
     0 0 52px rgba(146,48,245,.5);
 }
 
-.result-burst.reward-tier-multiplier3 .result-burst__main {
-  font-size: clamp(66px, 10.5vw, 132px);
-  color: #d8ffc9;
-  -webkit-text-stroke-color: #255b2c;
-  text-shadow:
-    0 6px 0 #1e5028,
-    0 0 24px rgba(117,255,132,.86),
-    0 0 62px rgba(173,80,255,.62);
-}
 
 .result-burst.reward-tier-final .result-burst__main {
   color: #ff876f;
@@ -560,8 +550,7 @@
 
 /* ----- Reward hierarchy ----- */
 
-#app[data-preset="max"] .result-burst.reward-tier-big.is-visible .wheel-aura,
-#app[data-preset="max"] .result-burst.reward-tier-multiplier3.is-visible .wheel-aura {
+#app[data-preset="max"] .result-burst.reward-tier-big.is-visible .wheel-aura {
   opacity: 1;
 }
 
