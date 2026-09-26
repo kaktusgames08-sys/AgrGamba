@@ -144,6 +144,7 @@ export class PiggyBank {
 
     const stagger = Math.max(1.2, Math.min(7, 260 / Math.max(1, coinCount)));
     const baseDuration = 470;
+    const bumpEvery = Math.max(1, Math.floor(coinCount / 7));
     const particles = Array.from({ length: coinCount }, (_, index) => {
       const jitterX = (Math.random() - 0.5) * 58;
       const jitterY = (Math.random() - 0.5) * 22;
@@ -165,6 +166,7 @@ export class PiggyBank {
         spin: (Math.random() - 0.5) * 10,
         scale: 0.72 + Math.random() * 0.35,
         arrived: false,
+        bump: index % bumpEvery === 0,
       };
     });
 
@@ -224,7 +226,7 @@ export class PiggyBank {
 
           if (!particle.arrived && t > 0.93) {
             particle.arrived = true;
-            this.bumpPig();
+            if (particle.bump) this.bumpPig();
           }
 
           if (particle.arrived) arrived += 1;
