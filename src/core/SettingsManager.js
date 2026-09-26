@@ -4,8 +4,9 @@ import {
   SPIN_DURATION_MS,
 } from './WheelConfig.js';
 
-const STORAGE_KEY = 'kolo-nestesti-settings-v4.5';
+const STORAGE_KEY = 'kolo-nestesti-settings-v4.6';
 const LEGACY_STORAGE_KEYS = [
+  'kolo-nestesti-settings-v4.5',
   'kolo-nestesti-settings-v4.4',
   'kolo-nestesti-settings-v4.3',
   'kolo-nestesti-settings-v4.2',
@@ -14,8 +15,9 @@ const LEGACY_STORAGE_KEYS = [
   'kolo-nestesti-settings-v3',
 ];
 
-const TARGET_TERMINAL_EXITS = 3;
+const TARGET_TERMINAL_EXITS = 2;
 const EXTRA_MULTIPLIER_REPLACEMENTS = [40, 50, 60, 75, 80, 40];
+const EXTRA_EXIT_REPLACEMENTS = [60, 75, 80, 50, 40];
 
 export const TONE_OPTIONS = [
   'amber',
@@ -145,18 +147,7 @@ function circularDistance(a, b, length) {
 }
 
 function findBalancedExitCandidate(segments, exitIndices) {
-  const preferredLegacyIndex = segments.findIndex((segment) =>
-    segment?.type === 'money'
-      && Number(segment?.value) === 75
-      && Number(segment?.extraSpins) > 0
-  );
-
-  if (preferredLegacyIndex >= 0) {
-    return preferredLegacyIndex;
-  }
-
-  let bestIndex = -1;
-  let bestDistance = -1;
+  let bestIndex = -1; let bestDistance = -1;
   let bestValue = -Infinity;
 
   segments.forEach((segment, index) => {
@@ -201,6 +192,30 @@ export function migrateBalancedExits(input = {}) {
   let exitIndices = segments
     .map((segment, index) => isTerminalHundred(segment) ? index : -1)
     .filter((index) => index >= 0);
+
+  // Older builds had three END fields. Keep the first one, turn the
+  // remaining END fields back into +SPIN money fields, then add one
+  // balanced END opposite it. That gives the normal wheel exactly two ends.
+  if (exitIndices.length > TARGET_TERMINAL_EXITS) {
+    const keepIndex = exitIndices[0];
+
+    exitIndices.slice(1).forEach((index, replacementOrder) => {
+      const replacement = {
+        label: '',
+        type: 'money',
+        value: EXTRA_EXIT_REPLACEMENTS[
+          replacementOrder % EXTRA_EXIT_REPLACEMENTS.length
+        ],
+        extraSpins: 1,
+        tone: TONE_OPTIONS[index % (TONE_OPTIONS.length - 1)],
+        finale: false,
+      };
+      replacement.label = makeSegmentLabel(replacement);
+      segments[index] = replacement;
+    });
+
+    exitIndices = [keepIndex];
+  }
 
   while (exitIndices.length < TARGET_TERMINAL_EXITS) {
     const replacementIndex = findBalancedExitCandidate(segments, exitIndices);
