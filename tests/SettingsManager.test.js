@@ -183,7 +183,7 @@ test('SettingsManager automatically migrates stored v4.1 balance once', () => {
   );
 
   assert.equal(exits.length, 3);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.4'));
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.5'));
 });
 
 
@@ -271,5 +271,38 @@ test('stored v4.3 wheel with duplicate x2 fields migrates to one x2', () => {
   );
 
   assert.equal(multipliers.length, 1);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.4'));
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.5'));
+});
+
+
+test('money fields are normalized to at least 40 Kč', () => {
+  const settings = normalizeSettings({
+    ...DEFAULT_SETTINGS,
+    segments: DEFAULT_SETTINGS.segments.map((segment, index) =>
+      index === 0
+        ? {
+            type: 'money',
+            value: 5,
+            extraSpins: 1,
+            tone: 'amber',
+          }
+        : segment
+    ),
+  });
+
+  const moneyValues = settings.segments
+    .filter((segment) => segment.type === 'money')
+    .map((segment) => segment.value);
+
+  assert.ok(moneyValues.every((value) => value >= 40));
+  assert.equal(settings.segments[0].value, 40);
+});
+
+test('spin duration can be reduced to one second', () => {
+  const settings = normalizeSettings({
+    ...DEFAULT_SETTINGS,
+    spinDurationMs: 1000,
+  });
+
+  assert.equal(settings.spinDurationMs, 1000);
 });
