@@ -1331,3 +1331,183 @@ body {
     height: calc(39px * var(--ui-scale));
   }
 }
+
+
+/* ----- v4.3 hardcore mode ----- */
+
+.controls {
+  display: grid;
+  justify-items: center;
+  gap: calc(9px * var(--ui-scale));
+}
+
+.hardcore-button {
+  width: min(calc(430px * var(--ui-scale)), 88vw);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: calc(11px * var(--ui-scale));
+  padding:
+    calc(9px * var(--ui-scale))
+    calc(14px * var(--ui-scale));
+  border: 1px solid rgba(255, 168, 75, .42);
+  border-radius: calc(16px * var(--ui-scale));
+  cursor: pointer;
+  color: #ffe6b4;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 112, 48, .18), transparent 42%),
+    linear-gradient(180deg, rgba(97, 20, 25, .95), rgba(41, 8, 15, .98));
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 10px 24px rgba(0,0,0,.22);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    filter 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.hardcore-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(255, 196, 94, .72);
+  filter: brightness(1.06);
+}
+
+.hardcore-button:disabled {
+  cursor: not-allowed;
+  opacity: .52;
+}
+
+.hardcore-button.is-active {
+  border-color: #ffcc5e;
+  background:
+    radial-gradient(circle at 22% 0%, rgba(255, 195, 72, .26), transparent 44%),
+    linear-gradient(180deg, #8f2f27, #4a0d16 70%, #25050d);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 0 0 1px rgba(255, 199, 83, .16),
+    0 0 24px rgba(255, 97, 44, .18),
+    0 12px 28px rgba(0,0,0,.28);
+}
+
+.hardcore-button__icon {
+  font-size: calc(24px * var(--ui-scale));
+  filter: drop-shadow(0 0 8px rgba(255, 125, 46, .42));
+}
+
+.hardcore-button__copy {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.hardcore-button__copy strong {
+  font-size: calc(12px * var(--ui-scale));
+  letter-spacing: .08em;
+}
+
+.hardcore-button__copy small {
+  color: rgba(255, 226, 185, .6);
+  font-size: calc(7px * var(--ui-scale));
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.hardcore-rule {
+  margin:
+    calc(8px * var(--ui-scale))
+    calc(9px * var(--ui-scale))
+    0;
+  padding:
+    calc(9px * var(--ui-scale))
+    calc(10px * var(--ui-scale));
+  border: 1px solid rgba(255, 180, 72, .2);
+  border-radius: calc(12px * var(--ui-scale));
+  text-align: left;
+  background:
+    linear-gradient(180deg, rgba(255, 105, 43, .08), transparent),
+    rgba(21, 5, 8, .36);
+}
+
+.hardcore-rule strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #ffcf68;
+  font-size: calc(9px * var(--ui-scale));
+  letter-spacing: .14em;
+}
+
+.hardcore-rule span {
+  display: block;
+  color: rgba(255, 231, 200, .62);
+  font-size: calc(7.5px * var(--ui-scale));
+  line-height: 1.35;
+}
+
+#app[data-game-mode="hardcore"] .topbar {
+  border-color: rgba(255, 158, 64, .88);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 223, 156, .1),
+    inset 0 0 0 7px rgba(35, 13, 15, .28),
+    0 16px 34px rgba(0,0,0,.36),
+    0 0 22px rgba(255, 80, 34, .12);
+}
+
+#app[data-game-mode="hardcore"] .wheel-rim--outer {
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,.28),
+    inset 0 -8px 18px rgba(102,46,5,.2),
+    0 0 0 2px rgba(255, 218, 132, .34),
+    0 0 25px rgba(255, 93, 38, .22);
+}
+
+#app[data-game-mode="hardcore"] .game-status[data-tone="hardcore"] {
+  color: #ffd170;
+  border-color: rgba(255, 172, 62, .3);
+  background:
+    linear-gradient(180deg, rgba(112, 28, 22, .78), rgba(38, 7, 12, .88));
+}
+
+#app[data-game-mode="hardcore"] .game-status[data-tone="hardcore"] .game-status__dot {
+  background: #ff9c38;
+  box-shadow: 0 0 10px rgba(255, 116, 40, .74);
+}
+
+#app.is-wheel-switching .wheel-shell {
+  opacity: .28;
+  filter: blur(2px) brightness(.7);
+  transition:
+    opacity 150ms ease,
+    filter 150ms ease;
+}
+
+#app:not(.is-wheel-switching) .wheel-shell {
+  transition:
+    opacity 180ms ease,
+    filter 180ms ease;
+}
+
+.history-hardcore {
+  color: #ffb74d !important;
+  background: rgba(255, 113, 42, .08);
+  border-color: rgba(255, 153, 63, .18) !important;
+}
+
+#app[data-game-mode="hardcore"] .center-medallion {
+  box-shadow:
+    inset 0 3px 10px rgba(255,255,255,.1),
+    0 18px 34px rgba(0,0,0,.3),
+    0 0 20px rgba(255, 90, 35, .16);
+}
+
+@media (max-height: 760px) and (min-width: 1081px) {
+  .hardcore-button {
+    width: min(calc(380px * var(--ui-scale)), 84vw);
+    padding-top: calc(7px * var(--ui-scale));
+    padding-bottom: calc(7px * var(--ui-scale));
+  }
+
+  .hardcore-button__copy small {
+    display: none;
+  }
+}
