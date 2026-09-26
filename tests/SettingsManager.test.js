@@ -152,8 +152,14 @@ test('legacy v4 wheel with one exit is migrated to three 100 Kč exits', () => {
   assert.equal(exits.length, 3);
   assert.equal(migrated.segments[15].value, 100);
   assert.equal(migrated.segments[15].extraSpins, 0);
-  assert.equal(migrated.segments[3].value, 100);
-  assert.equal(migrated.segments[3].extraSpins, 0);
+  assert.equal(
+    migrated.segments.filter((segment) =>
+      segment.type === 'money'
+        && Number(segment.value) === 100
+        && Number(segment.extraSpins) === 0
+    ).length,
+    3,
+  );
 });
 
 test('SettingsManager automatically migrates stored v4.1 balance once', () => {
