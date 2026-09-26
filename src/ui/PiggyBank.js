@@ -303,8 +303,6 @@ export class PiggyBank {
     if (this.finalAmount) this.finalAmount.textContent = this.formatMoney(total);
     this.final?.setAttribute('aria-hidden', 'false');
     this.final?.classList.add('is-visible');
-
-    await new Promise((resolve) => setTimeout(resolve, 420));
   }
 
   reset() {
