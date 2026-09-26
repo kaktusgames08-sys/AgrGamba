@@ -4,8 +4,9 @@ import {
   SPIN_DURATION_MS,
 } from './WheelConfig.js';
 
-const STORAGE_KEY = 'kolo-nestesti-settings-v4.3';
+const STORAGE_KEY = 'kolo-nestesti-settings-v4.4';
 const LEGACY_STORAGE_KEYS = [
+  'kolo-nestesti-settings-v4.3',
   'kolo-nestesti-settings-v4.2',
   'kolo-nestesti-settings-v4.1',
   'kolo-nestesti-settings-v4',
@@ -13,6 +14,7 @@ const LEGACY_STORAGE_KEYS = [
 ];
 
 const TARGET_TERMINAL_EXITS = 3;
+const EXTRA_MULTIPLIER_REPLACEMENTS = [35, 50, 25, 40, 30, 60];
 
 export const TONE_OPTIONS = [
   'amber',
@@ -85,6 +87,32 @@ export function normalizeSegment(segment, index = 0) {
   normalized.finale = normalized.extraSpins === 0;
   normalized.label = makeSegmentLabel(normalized);
   return normalized;
+}
+
+function keepSingleMultiplier(segments) {
+  let hasMultiplier = false;
+
+  return segments.map((segment, index) => {
+    if (segment.type !== 'multiplier') return segment;
+
+    if (!hasMultiplier) {
+      hasMultiplier = true;
+      return segment;
+    }
+
+    const replacement = {
+      type: 'money',
+      value: EXTRA_MULTIPLIER_REPLACEMENTS[
+        index % EXTRA_MULTIPLIER_REPLACEMENTS.length
+      ],
+      extraSpins: segment.extraSpins,
+      tone: segment.tone,
+    };
+
+    replacement.finale = replacement.extraSpins === 0;
+    replacement.label = makeSegmentLabel(replacement);
+    return replacement;
+  });
 }
 
 function inferPreset(input) {
@@ -196,8 +224,10 @@ export function migrateBalancedExits(input = {}) {
 
 export function normalizeSettings(input = {}) {
   const rawSegments = Array.isArray(input.segments) ? input.segments.slice(0, 24) : [];
-  const segments = (rawSegments.length >= 6 ? rawSegments : clone(WHEEL_SEGMENTS))
-    .map((segment, index) => normalizeSegment(segment, index));
+  const segments = keepSingleMultiplier(
+    (rawSegments.length >= 6 ? rawSegments : clone(WHEEL_SEGMENTS))
+      .map((segment, index) => normalizeSegment(segment, index)),
+  );
 
   if (!segments.some((segment) => segment.extraSpins === 0)) {
     const last = segments[segments.length - 1];

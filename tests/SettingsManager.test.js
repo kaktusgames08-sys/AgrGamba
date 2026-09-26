@@ -183,7 +183,7 @@ test('SettingsManager automatically migrates stored v4.1 balance once', () => {
   );
 
   assert.equal(exits.length, 3);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.3'));
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.4'));
 });
 
 
@@ -217,4 +217,59 @@ test('default wheel contains no x3 multiplier', () => {
     ),
     false,
   );
+});
+
+
+test('normalizeSettings keeps at most one x2 field', () => {
+  const settings = normalizeSettings({
+    ...DEFAULT_SETTINGS,
+    segments: DEFAULT_SETTINGS.segments.map((segment, index) => {
+      if (index === 6 || index === 12) {
+        return {
+          type: 'multiplier',
+          multiplier: 2,
+          extraSpins: 1,
+          tone: index === 6 ? 'green' : 'cyan',
+        };
+      }
+
+      return segment;
+    }),
+  });
+
+  const multipliers = settings.segments.filter((segment) =>
+    segment.type === 'multiplier'
+  );
+
+  assert.equal(multipliers.length, 1);
+  assert.equal(multipliers[0].multiplier, 2);
+});
+
+test('stored v4.3 wheel with duplicate x2 fields migrates to one x2', () => {
+  const storage = new MemoryStorage();
+  const legacy = {
+    ...DEFAULT_SETTINGS,
+    segments: DEFAULT_SETTINGS.segments.map((segment, index) => {
+      if (index === 7) {
+        return {
+          type: 'multiplier',
+          multiplier: 2,
+          extraSpins: 1,
+          tone: 'cyan',
+        };
+      }
+
+      return segment;
+    }),
+  };
+
+  storage.setItem('kolo-nestesti-settings-v4.3', JSON.stringify(legacy));
+
+  const loaded = new SettingsManager(storage).get();
+  const multipliers = loaded.segments.filter((segment) =>
+    segment.type === 'multiplier'
+  );
+
+  assert.equal(multipliers.length, 1);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.4'));
 });

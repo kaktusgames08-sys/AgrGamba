@@ -1,8 +1,8 @@
-# KOLO NEŠTĚSTÍ v4.1
+# KOLO NEŠTĚSTÍ v4.2
 
 Browserové kolo pro stream, OBS a GitHub Pages. Aktuální verze drží férový fyzický stop kola, tři finální stovky a přidává výrazně čistší prezentaci výsledku, adaptivní fullscreen layout, leaderboard a prasátko s finální animací.
 
-## Hlavní změny ve v4.1
+## Hlavní změny ve v4.2
 
 - výsledek už nepřekrývá střed kola — má vlastní kompaktní dock pod kolem,
 - střed kola zůstává jen pro stav hry: SPINY / TOČÍM / PADLO / KONEC,
@@ -15,13 +15,13 @@ Browserové kolo pro stream, OBS a GitHub Pages. Aktuální verze drží férov�
 - leaderboard je renderovaný z dat a připravený na další dynamické zdroje,
 - layout používá společný `--ui-scale`, takže se automaticky přizpůsobuje výšce a šířce viewportu bez scrollování,
 - poslední část spinu má delší plynulý dojezd bez staged snapu,
-- **x3 je kompletně odstraněné**; staré uložené x3 segmenty se automaticky převedou na x2.
+- **x3 je kompletně odstraněné**; staré uložené x3 segmenty se automaticky převedou na x2,\n- **x2 může být na kole maximálně jednou**; staré uložené konfigurace s více x2 se automaticky opraví,\n- horní HUD má nový premium slot-machine vzhled a vedle částky používá zadaný 7TV emote,\n- leaderboard má větší jména, částky i čitelnou informaci o sérii zatočení.
 
 ## Výchozí kolo
 
 Výchozí kolo má 18 fyzických segmentů a **3× 100 Kč bez +SPIN**. Každá stovka ukončuje běh. Každý fyzický segment má stejnou pravděpodobnost.
 
-Násobič je nově pouze **x2**. Výchozí x3 pole bylo nahrazeno peněžním polem.
+Násobič je nově pouze **x2** a na kole může být **jen jednou**. Výchozí x3 pole bylo nahrazeno peněžním polem.
 
 ## Leaderboard
 

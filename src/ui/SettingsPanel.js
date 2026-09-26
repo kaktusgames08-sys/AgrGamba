@@ -238,10 +238,30 @@ export class SettingsPanel {
     `;
   }
 
+  hasMultiplierRow(excludeRow = null) {
+    return [...this.segmentList.querySelectorAll('.segment-editor')]
+      .some((row) =>
+        row !== excludeRow
+        && row.querySelector('[data-field="type"]')?.value === 'multiplier'
+      );
+  }
+
   syncRowType(row) {
-    const type = row.querySelector('[data-field="type"]').value;
+    const select = row.querySelector('[data-field="type"]');
+    const type = select.value;
     const input = row.querySelector('[data-field="value"]');
     const label = row.querySelector('[data-value-label]');
+
+    if (type === 'multiplier' && this.hasMultiplierRow(row)) {
+      select.value = 'money';
+      label.textContent = 'Částka Kč';
+      input.min = '0';
+      input.max = '100000';
+      input.value = Number(input.value) > 2 ? input.value : '35';
+      this.showError('x2 může být na kole jen jednou.');
+      this.renumberRows();
+      return;
+    }
 
     if (type === 'multiplier') {
       label.textContent = 'Násobič';
@@ -258,6 +278,12 @@ export class SettingsPanel {
 
   addSegment(type, value) {
     const count = this.segmentList.querySelectorAll('.segment-editor').length;
+
+    if (type === 'multiplier' && this.hasMultiplierRow()) {
+      this.showError('x2 už na kole je. Může tam být jen jednou.');
+      return;
+    }
+
     if (count >= 24) {
       this.showError('Maximum je 24 polí.');
       return;
@@ -295,6 +321,14 @@ export class SettingsPanel {
     const count = this.segmentList.children.length;
     const countNode = document.querySelector('#segmentCount');
     if (countNode) countNode.textContent = count + ' polí';
+
+    if (this.addX2Button) {
+      const hasMultiplier = this.hasMultiplierRow();
+      this.addX2Button.disabled = hasMultiplier;
+      this.addX2Button.title = hasMultiplier
+        ? 'x2 už na kole je'
+        : 'Přidat x2';
+    }
   }
 
   collect() {
