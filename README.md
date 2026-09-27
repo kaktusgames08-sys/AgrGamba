@@ -1,6 +1,15 @@
-# KOLO NEŠTĚSTÍ v4.4.2
+# KOLO NEŠTĚSTÍ v4.4.3
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.4.3
+
+- výsledek spinu používá místo `Math.random()` browserové `crypto.getRandomValues()`,
+- z Web Crypto se skládá plných **53 bitů náhodnosti** pro hodnotu v rozsahu `[0, 1)`,
+- crypto RNG určuje náhodnou fyzickou pozici dopadu, počet extra otoček i drobný duration jitter,
+- pravděpodobnosti polí se nemění: stejně velká fyzická pole mají stále stejnou šanci,
+- žádné vlastní seedy, pity systém ani skryté váhy nebyly přidány,
+- `Math.random()` zůstává jen jako fallback v prostředí bez Web Crypto.
 
 ## v4.4.2
 
