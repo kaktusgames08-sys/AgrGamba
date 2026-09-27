@@ -1,5 +1,6 @@
 import {
   randomLandingRotation,
+  secureRandom,
   segmentAngle,
 } from '../core/WheelEngine.js';
 import { SPIN_DURATION_MS } from '../core/WheelConfig.js';
@@ -376,7 +377,7 @@ export class WheelRenderer {
     });
   }
 
-  spinRandom(rng = Math.random) {
+  spinRandom(rng = secureRandom) {
     this.clearWinner();
 
     const startRotation = this.rotation;

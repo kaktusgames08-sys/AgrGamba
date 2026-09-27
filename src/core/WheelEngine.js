@@ -1,5 +1,26 @@
 import { MAX_EXTRA_TURNS, MIN_FULL_TURNS } from './WheelConfig.js';
 
+const UINT53_RANGE = 9007199254740992; // 2^53
+const UINT26_RANGE = 67108864; // 2^26
+
+export function secureRandom(cryptoSource = globalThis.crypto) {
+  if (cryptoSource?.getRandomValues) {
+    // Build one uniform 53-bit integer, matching the precision JavaScript
+    // can safely represent. This gives a value in [0, 1) without a custom seed.
+    const values = new Uint32Array(2);
+    cryptoSource.getRandomValues(values);
+
+    const high27 = values[0] >>> 5;
+    const low26 = values[1] >>> 6;
+
+    return (high27 * UINT26_RANGE + low26) / UINT53_RANGE;
+  }
+
+  // GitHub Pages/modern browsers expose Web Crypto. The fallback only keeps
+  // the game usable in unusual/non-secure environments.
+  return Math.random();
+}
+
 function clampRandom(value) {
   return Math.min(0.999999999999, Math.max(0, Number(value) || 0));
 }
@@ -12,7 +33,7 @@ function normalizeIndex(index, count) {
   return ((index % count) + count) % count;
 }
 
-export function pickSegmentIndex(segments, rng = Math.random) {
+export function pickSegmentIndex(segments, rng = secureRandom) {
   if (!Array.isArray(segments) || segments.length === 0) {
     throw new Error('Wheel requires at least one segment.');
   }
@@ -36,7 +57,7 @@ export function segmentIndexForRotation(rotation, segmentCount) {
 export function randomLandingRotation(
   currentRotation,
   segmentCount,
-  rng = Math.random,
+  rng = secureRandom,
   borderMarginRatio = 0.025,
 ) {
   const slice = segmentAngle(segmentCount);
@@ -80,7 +101,7 @@ export function landingRotation(
   currentRotation,
   index,
   segmentCount,
-  rng = Math.random,
+  rng = secureRandom,
 ) {
   const slice = segmentAngle(segmentCount);
   const normalized = normalizeDegrees(currentRotation);
