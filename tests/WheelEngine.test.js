@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   pickSegmentIndex,
   randomLandingRotation,
+  secureRandom,
   segmentAngle,
   segmentIndexForRotation,
 } from '../src/core/WheelEngine.js';
@@ -66,4 +67,40 @@ test('random landing allows very close calls while keeping a tiny border gap', (
 
   assert.ok(distanceToBorder > 0);
   assert.ok(distanceToBorder < slice * 0.03);
+});
+
+
+test('secureRandom maps Web Crypto entropy into the full [0, 1) range', () => {
+  let calls = 0;
+  const zeroCrypto = {
+    getRandomValues(values) {
+      calls += 1;
+      values[0] = 0;
+      values[1] = 0;
+      return values;
+    },
+  };
+
+  assert.equal(secureRandom(zeroCrypto), 0);
+  assert.equal(calls, 1);
+
+  const maxCrypto = {
+    getRandomValues(values) {
+      values[0] = 0xffffffff;
+      values[1] = 0xffffffff;
+      return values;
+    },
+  };
+
+  const max = secureRandom(maxCrypto);
+  assert.ok(max < 1);
+  assert.ok(max > 0.999999999999999);
+});
+
+test('wheel helpers still accept injected deterministic RNG for repeatable tests', () => {
+  const values = [0.25, 0.75];
+  const landing = randomLandingRotation(0, 18, () => values.shift());
+
+  assert.equal(landing.index, 4);
+  assert.ok(landing.turns >= 7 && landing.turns <= 10);
 });
