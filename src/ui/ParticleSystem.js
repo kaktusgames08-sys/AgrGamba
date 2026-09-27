@@ -9,18 +9,42 @@ export class ParticleSystem {
     this.layer = layer;
     this.flash = flash;
     this.effectLevel = 'high';
+    this.pool = [];
+    this.flashToken = 0;
   }
 
   setEffectLevel(level) {
     this.effectLevel = EFFECT_MULTIPLIERS[level] ? level : 'high';
   }
 
+  createParticle() {
+    const particle = document.createElement('i');
+
+    particle.addEventListener('animationend', () => {
+      if (!particle.isConnected) return;
+      particle.remove();
+      particle.className = 'particle';
+      particle.removeAttribute('style');
+
+      if (this.pool.length < 96) {
+        this.pool.push(particle);
+      }
+    });
+
+    return particle;
+  }
+
+  acquireParticle() {
+    return this.pool.pop() ?? this.createParticle();
+  }
+
   burst({ count = 30, intense = false, variant = 'reward' } = {}) {
     const multiplier = EFFECT_MULTIPLIERS[this.effectLevel] ?? 1;
     const amount = Math.max(4, Math.min(90, Math.round(count * multiplier)));
+    const fragment = document.createDocumentFragment();
 
     for (let i = 0; i < amount; i += 1) {
-      const particle = document.createElement('i');
+      const particle = this.acquireParticle();
       particle.className = 'particle particle--' + variant;
 
       const angle = Math.random() * Math.PI * 2;
@@ -36,9 +60,10 @@ export class ParticleSystem {
       particle.style.left = (47 + Math.random() * 6) + '%';
       particle.style.top = (44 + Math.random() * 7) + '%';
 
-      this.layer.appendChild(particle);
-      particle.addEventListener('animationend', () => particle.remove(), { once: true });
+      fragment.appendChild(particle);
     }
+
+    this.layer.appendChild(fragment);
   }
 
   screenFlash(strength = 'normal', variant = 'reward') {
@@ -46,8 +71,14 @@ export class ParticleSystem {
 
     this.flash.dataset.strength = strength;
     this.flash.dataset.variant = variant;
+
+    const token = ++this.flashToken;
     this.flash.classList.remove('is-active');
-    void this.flash.offsetWidth;
-    this.flash.classList.add('is-active');
+
+    requestAnimationFrame(() => {
+      if (token === this.flashToken) {
+        this.flash.classList.add('is-active');
+      }
+    });
   }
 }

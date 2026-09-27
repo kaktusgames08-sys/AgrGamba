@@ -1,6 +1,18 @@
-# KOLO NEŠTĚSTÍ v4.3.2
+# KOLO NEŠTĚSTÍ v4.4.0
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.4.0
+
+Performance pass bez záměrné změny vzhledu nebo gameplaye:
+
+- LED ring už nepřepisuje všech 48 žárovek každý animation frame,
+- coin animace prasátka zpracovává jen právě aktivní mince místo celé dávky,
+- particle burst používá pool/reuse DOM částic místo neustálého vytváření nových elementů,
+- odstraněné synchronní forced-reflow restarty UI animací,
+- historie se nepřerenderuje, pokud se její data nezměnila,
+- normal/Hardcore/multiplier SVG kola se cachují a znovu používají,
+- formátování Kč používá sdílené `Intl.NumberFormat` instance.
 
 ## v4.3.2
 

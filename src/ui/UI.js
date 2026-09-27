@@ -1,5 +1,31 @@
 import { RollingCounter } from './RollingCounter.js';
 
+const MONEY_FORMATTER = new Intl.NumberFormat('cs-CZ', {
+  maximumFractionDigits: 0,
+});
+
+const animationRestartTokens = new WeakMap();
+
+function restartAnimationClass(element, className) {
+  if (!element) return;
+
+  let tokens = animationRestartTokens.get(element);
+  if (!tokens) {
+    tokens = new Map();
+    animationRestartTokens.set(element, tokens);
+  }
+
+  const token = (tokens.get(className) ?? 0) + 1;
+  tokens.set(className, token);
+  element.classList.remove(className);
+
+  requestAnimationFrame(() => {
+    if (tokens.get(className) === token && element.isConnected) {
+      element.classList.add(className);
+    }
+  });
+}
+
 export class UI {
   constructor() {
     this.app = document.querySelector('#app');
@@ -38,19 +64,15 @@ export class UI {
     this.lastSpins = null;
     this.lastSpinCount = null;
     this.hideTimer = null;
+    this.lastHistorySignature = null;
   }
 
   formatMoney(value) {
-    return new Intl.NumberFormat('cs-CZ', {
-      maximumFractionDigits: 0,
-    }).format(Math.round(value)) + ' Kč';
+    return MONEY_FORMATTER.format(Math.round(value)) + ' Kč';
   }
 
   bump(element, className = 'is-bumping') {
-    if (!element) return;
-    element.classList.remove(className);
-    void element.offsetWidth;
-    element.classList.add(className);
+    restartAnimationClass(element, className);
   }
 
   renderState(state, { animateTotalFrom = null } = {}) {
@@ -91,6 +113,19 @@ export class UI {
   }
 
   renderHistory(records) {
+    const signature = records.map((record) => [
+      record.type,
+      record.value ?? '',
+      record.multiplier ?? '',
+      record.extraSpins ?? 0,
+      record.after ?? '',
+      record.hardcore ? 1 : 0,
+      record.hardcoreFinal ? 1 : 0,
+    ].join(':')).join('|');
+
+    if (signature === this.lastHistorySignature) return;
+    this.lastHistorySignature = signature;
+
     if (!records.length) {
       this.history.innerHTML = '<div class="history-empty">Zatím nic</div>';
       return;
@@ -125,9 +160,7 @@ export class UI {
   setStatus(text, tone = 'ready') {
     this.gameStatusText.textContent = text;
     this.gameStatus.dataset.tone = tone;
-    this.gameStatus.classList.remove('is-pulsing');
-    void this.gameStatus.offsetWidth;
-    this.gameStatus.classList.add('is-pulsing');
+    restartAnimationClass(this.gameStatus, 'is-pulsing');
   }
 
   setSpinPhase(phase) {
@@ -307,20 +340,27 @@ export class UI {
   }
 
   cameraPunchClass(strength = 'normal') {
-    this.machineStage.classList.remove('camera-punch-soft', 'camera-punch-normal', 'camera-punch-heavy');
-    void this.machineStage.offsetWidth;
-    this.machineStage.classList.add(
-      strength === 'heavy'
-        ? 'camera-punch-heavy'
-        : strength === 'soft'
-          ? 'camera-punch-soft'
-          : 'camera-punch-normal',
+    this.machineStage.classList.remove(
+      'camera-punch-soft',
+      'camera-punch-normal',
+      'camera-punch-heavy',
     );
+
+    const className = strength === 'heavy'
+      ? 'camera-punch-heavy'
+      : strength === 'soft'
+        ? 'camera-punch-soft'
+        : 'camera-punch-normal';
+
+    restartAnimationClass(this.machineStage, className);
   }
 
   shake(strength = 'normal') {
-    this.wheelShell.classList.remove('shake-soft', 'shake-normal', 'shake-heavy');
-    void this.wheelShell.offsetWidth;
+    this.wheelShell.classList.remove(
+      'shake-soft',
+      'shake-normal',
+      'shake-heavy',
+    );
 
     const className = strength === 'heavy'
       ? 'shake-heavy'
@@ -328,7 +368,7 @@ export class UI {
         ? 'shake-soft'
         : 'shake-normal';
 
-    this.wheelShell.classList.add(className);
+    restartAnimationClass(this.wheelShell, className);
   }
 
   setMuted(muted) {
@@ -386,6 +426,7 @@ export class UI {
     this.lastSpins = state.spins;
     this.lastSpinCount = state.spinCount;
     this.moneyRoller.value = state.total;
+    this.lastHistorySignature = null;
     this.setCenterMode('idle', { spins: state.spins });
     this.setSpinPhase('idle');
   }

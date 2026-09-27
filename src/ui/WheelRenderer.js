@@ -94,6 +94,7 @@ export class WheelRenderer {
     this.lastPointerTickAt = 0;
     this.hotIndex = null;
     this.phase = 'idle';
+    this.renderCache = new WeakMap();
 
     this.render();
   }
@@ -121,6 +122,25 @@ export class WheelRenderer {
   }
 
   render() {
+    const cached = this.renderCache.get(this.segments);
+
+    if (cached) {
+      this.svg = cached.svg;
+      this.rotor = cached.rotor;
+      this.segmentNodes = cached.segmentNodes;
+
+      this.rotor.style.transform = 'rotate(0deg)';
+      this.segmentNodes.forEach((node) => {
+        node.classList.remove('is-winner', 'is-under-pointer');
+      });
+
+      if (this.mount.firstChild !== this.svg) {
+        this.mount.replaceChildren(this.svg);
+      }
+
+      return;
+    }
+
     this.segmentNodes = [];
 
     const size = 760;
@@ -270,6 +290,11 @@ export class WheelRenderer {
     this.mount.replaceChildren(svg);
     this.svg = svg;
     this.rotor = rotor;
+    this.renderCache.set(this.segments, {
+      svg,
+      rotor,
+      segmentNodes: this.segmentNodes,
+    });
   }
 
   setWinner(index) {
@@ -346,8 +371,9 @@ export class WheelRenderer {
     }
 
     this.pointer.classList.remove('is-ticking');
-    void this.pointer.offsetWidth;
-    this.pointer.classList.add('is-ticking');
+    requestAnimationFrame(() => {
+      this.pointer?.classList.add('is-ticking');
+    });
   }
 
   spinRandom(rng = Math.random) {

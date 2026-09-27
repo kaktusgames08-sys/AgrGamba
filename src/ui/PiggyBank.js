@@ -1,3 +1,29 @@
+const MONEY_FORMATTER = new Intl.NumberFormat('cs-CZ', {
+  maximumFractionDigits: 0,
+});
+
+const animationRestartTokens = new WeakMap();
+
+function restartAnimationClass(element, className) {
+  if (!element) return;
+
+  let tokens = animationRestartTokens.get(element);
+  if (!tokens) {
+    tokens = new Map();
+    animationRestartTokens.set(element, tokens);
+  }
+
+  const token = (tokens.get(className) ?? 0) + 1;
+  tokens.set(className, token);
+  element.classList.remove(className);
+
+  requestAnimationFrame(() => {
+    if (tokens.get(className) === token && element.isConnected) {
+      element.classList.add(className);
+    }
+  });
+}
+
 export class PiggyBank {
   constructor({
     pig = document.querySelector('#piggyBank'),
@@ -33,9 +59,7 @@ export class PiggyBank {
   }
 
   formatMoney(value) {
-    return new Intl.NumberFormat('cs-CZ', {
-      maximumFractionDigits: 0,
-    }).format(Math.round(Number(value) || 0)) + ' Kč';
+    return MONEY_FORMATTER.format(Math.round(Number(value) || 0)) + ' Kč';
   }
 
   resizeCanvas() {
@@ -123,9 +147,7 @@ export class PiggyBank {
   bumpPig() {
     if (!this.pig || this.pig.classList.contains('is-exploding')) return;
 
-    this.pig.classList.remove('is-fed');
-    void this.pig.offsetWidth;
-    this.pig.classList.add('is-fed');
+    restartAnimationClass(this.pig, 'is-fed');
 
     setTimeout(() => {
       this.pig?.classList.remove('is-fed');
@@ -195,9 +217,9 @@ export class PiggyBank {
     });
 
     const startAt = performance.now();
-    const totalDuration = Math.max(...particles.map((particle) =>
-      particle.delay + particle.duration
-    ));
+    let nextPendingIndex = 0;
+    let arrived = 0;
+    const activeParticles = [];
 
     this.pig.classList.add('is-glowing');
 
@@ -209,25 +231,33 @@ export class PiggyBank {
           return;
         }
 
+        const elapsed = now - startAt;
+
+        while (
+          nextPendingIndex < particles.length
+          && elapsed >= particles[nextPendingIndex].delay
+        ) {
+          activeParticles.push(particles[nextPendingIndex]);
+          nextPendingIndex += 1;
+        }
+
         this.clearCanvas();
-        let active = 0;
-        let arrived = 0;
 
-        for (const particle of particles) {
-          const local = (now - startAt - particle.delay) / particle.duration;
-
-          if (local < 0) {
-            active += 1;
-            continue;
-          }
+        for (let index = activeParticles.length - 1; index >= 0; index -= 1) {
+          const particle = activeParticles[index];
+          const local = (elapsed - particle.delay) / particle.duration;
 
           if (local >= 1) {
-            particle.arrived = true;
-            arrived += 1;
+            if (!particle.arrived) {
+              particle.arrived = true;
+              arrived += 1;
+              if (particle.bump) this.bumpPig();
+            }
+
+            activeParticles.splice(index, 1);
             continue;
           }
 
-          active += 1;
           const t = Math.max(0, Math.min(1, local));
           const eased = 1 - Math.pow(1 - t, 3);
           const oneMinus = 1 - eased;
@@ -250,23 +280,26 @@ export class PiggyBank {
 
           if (!particle.arrived && t > 0.93) {
             particle.arrived = true;
+            arrived += 1;
             if (particle.bump) this.bumpPig();
           }
-
-          if (particle.arrived) arrived += 1;
         }
 
         const visibleTotal = Math.min(
           startTotal + arrived,
           resultingTotal ?? (startTotal + coinCount),
         );
+
         if (visibleTotal !== this.currentTotal) {
           this.currentTotal = visibleTotal;
           if (this.total) this.total.textContent = this.formatMoney(visibleTotal);
           this.updatePigScale(visibleTotal);
         }
 
-        if (active > 0 && now - startAt <= totalDuration + 40) {
+        if (
+          nextPendingIndex < particles.length
+          || activeParticles.length > 0
+        ) {
           requestAnimationFrame(frame);
         } else {
           this.clearCanvas();
@@ -286,9 +319,7 @@ export class PiggyBank {
 
   pulseMultiplier(total) {
     this.setTotal(total, { pulse: true });
-    this.pig?.classList.remove('is-multiplied');
-    void this.pig?.offsetWidth;
-    this.pig?.classList.add('is-multiplied');
+    restartAnimationClass(this.pig, 'is-multiplied');
 
     setTimeout(() => {
       this.pig?.classList.remove('is-multiplied');

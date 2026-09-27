@@ -1,3 +1,7 @@
+const MONEY_FORMATTER = new Intl.NumberFormat('cs-CZ', {
+  maximumFractionDigits: 0,
+});
+
 function digitsOnly(value) {
   return String(Math.max(0, Math.round(Number(value) || 0)));
 }
@@ -31,9 +35,7 @@ export class RollingCounter {
   renderStatic(value) {
     if (!this.root) return;
 
-    const formatted = new Intl.NumberFormat('cs-CZ', {
-      maximumFractionDigits: 0,
-    }).format(value);
+    const formatted = MONEY_FORMATTER.format(value);
 
     this.root.textContent = formatted + this.suffix;
   }

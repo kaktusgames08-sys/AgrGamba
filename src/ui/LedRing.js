@@ -5,6 +5,9 @@ export class LedRing {
     this.mode = 'idle';
     this.progress = 0;
     this.activeIndex = 0;
+    this.lastRenderedMode = null;
+    this.lastRenderedActiveIndex = null;
+    this.bulbStates = [];
     this.render();
   }
 
@@ -27,29 +30,45 @@ export class LedRing {
 
     this.root.replaceChildren(fragment);
     this.bulbs = [...this.root.children];
-    this.setMode('idle');
+    this.bulbStates = new Array(this.bulbs.length).fill('');
+    this.lastRenderedMode = null;
+    this.lastRenderedActiveIndex = null;
+    this.setMode('idle', { force: true });
   }
 
-  setMode(mode) {
+  setMode(mode, { force = false } = {}) {
+    if (!force && mode === this.mode && this.lastRenderedMode === mode) return;
+
     this.mode = mode;
     if (!this.root) return;
+
     this.root.dataset.mode = mode;
-    this.update();
+    this.update({ force });
   }
 
   setProgress(progress, wheelRotation = 0) {
     this.progress = Math.max(0, Math.min(1, progress));
 
-    if (this.mode === 'spinning' || this.mode === 'anticipating' || this.mode === 'settling') {
-      const normalized = ((wheelRotation % 360) + 360) % 360;
-      this.activeIndex = Math.round((normalized / 360) * this.count) % this.count;
+    if (this.mode !== 'spinning') {
+      // Anticipation / settling uses a fixed pointer-focused pattern, so
+      // repainting 48 bulbs every animation frame would produce no visual
+      // difference. Mode changes already trigger the required repaint.
+      return;
     }
 
+    const normalized = ((wheelRotation % 360) + 360) % 360;
+    const nextIndex = Math.round((normalized / 360) * this.count) % this.count;
+
+    if (nextIndex === this.activeIndex && this.lastRenderedMode === this.mode) {
+      return;
+    }
+
+    this.activeIndex = nextIndex;
     this.update();
   }
 
   flashWinner() {
-    this.setMode('winner');
+    this.setMode('winner', { force: true });
 
     if (typeof this.root?.animate === 'function') {
       this.root.animate(
@@ -63,46 +82,61 @@ export class LedRing {
     }
   }
 
-  update() {
+  stateFor(index, mode) {
+    const anticipation = mode === 'anticipating' || mode === 'settling';
+
+    if (mode === 'idle') {
+      const pulse = (index + Math.floor(performance.now() / 240)) % 8;
+      if (pulse === 0) return 'hot';
+      if (pulse === 1 || pulse === 7) return 'warm';
+      return '';
+    }
+
+    if (mode === 'winner') return 'hot';
+
+    if (anticipation) {
+      const pointerDistance = Math.min(index, this.count - index);
+      const tighten = mode === 'settling' ? 5 : 9;
+
+      if (pointerDistance <= 1) return 'hot';
+      if (pointerDistance <= tighten) return 'warm';
+      return 'cold';
+    }
+
+    const distance = Math.min(
+      Math.abs(index - this.activeIndex),
+      this.count - Math.abs(index - this.activeIndex),
+    );
+
+    if (distance <= 1) return 'hot';
+    if (distance <= 4) return 'warm';
+    return 'cold';
+  }
+
+  update({ force = false } = {}) {
     if (!this.bulbs?.length) return;
 
     const mode = this.mode;
-    const anticipation = mode === 'anticipating' || mode === 'settling';
+
+    if (
+      !force
+      && mode === this.lastRenderedMode
+      && mode !== 'spinning'
+    ) {
+      return;
+    }
 
     this.bulbs.forEach((bulb, index) => {
-      bulb.classList.remove('is-hot', 'is-warm', 'is-cold');
+      const nextState = this.stateFor(index, mode);
 
-      if (mode === 'idle') {
-        const pulse = (index + Math.floor(performance.now() / 240)) % 8;
-        if (pulse === 0) bulb.classList.add('is-hot');
-        else if (pulse === 1 || pulse === 7) bulb.classList.add('is-warm');
-        return;
-      }
+      if (!force && this.bulbStates[index] === nextState) return;
 
-      if (mode === 'winner') {
-        bulb.classList.add('is-hot');
-        return;
-      }
-
-      const distance = Math.min(
-        Math.abs(index - this.activeIndex),
-        this.count - Math.abs(index - this.activeIndex),
-      );
-
-      if (anticipation) {
-        const pointerIndex = 0;
-        const pointerDistance = Math.min(index, this.count - index);
-        const tighten = mode === 'settling' ? 5 : 9;
-
-        if (pointerDistance <= 1) bulb.classList.add('is-hot');
-        else if (pointerDistance <= tighten) bulb.classList.add('is-warm');
-        else bulb.classList.add('is-cold');
-        return;
-      }
-
-      if (distance <= 1) bulb.classList.add('is-hot');
-      else if (distance <= 4) bulb.classList.add('is-warm');
-      else bulb.classList.add('is-cold');
+      this.bulbStates[index] = nextState;
+      bulb.className = 'led-ring__bulb'
+        + (nextState ? ' is-' + nextState : '');
     });
+
+    this.lastRenderedMode = mode;
+    this.lastRenderedActiveIndex = this.activeIndex;
   }
 }
