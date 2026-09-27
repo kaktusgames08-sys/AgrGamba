@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.4.0",
-  "description": "Kolo neštěstí — same visuals and gameplay with optimized LED, particle, piggy and wheel rendering.",
+  "version": "4.4.1",
+  "description": "Kolo neštěstí — optimized normal wheel with one ending field plus capped Hardcore mode.",
   "type": "module",
   "scripts": {
     "dev": "vite",

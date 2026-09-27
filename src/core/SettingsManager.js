@@ -4,8 +4,9 @@ import {
   SPIN_DURATION_MS,
 } from './WheelConfig.js';
 
-const STORAGE_KEY = 'kolo-nestesti-settings-v4.6';
+const STORAGE_KEY = 'kolo-nestesti-settings-v4.7';
 const LEGACY_STORAGE_KEYS = [
+  'kolo-nestesti-settings-v4.6',
   'kolo-nestesti-settings-v4.5',
   'kolo-nestesti-settings-v4.4',
   'kolo-nestesti-settings-v4.3',
@@ -15,7 +16,7 @@ const LEGACY_STORAGE_KEYS = [
   'kolo-nestesti-settings-v3',
 ];
 
-const TARGET_TERMINAL_EXITS = 2;
+const TARGET_TERMINAL_EXITS = 1;
 const EXTRA_MULTIPLIER_REPLACEMENTS = [40, 50, 60, 75, 80, 40];
 const EXTRA_EXIT_REPLACEMENTS = [60, 75, 80, 50, 40];
 
@@ -194,9 +195,8 @@ export function migrateBalancedExits(input = {}) {
     .map((segment, index) => isTerminalHundred(segment) ? index : -1)
     .filter((index) => index >= 0);
 
-  // Older builds had three END fields. Keep the first one, turn the
-  // remaining END fields back into +SPIN money fields, then add one
-  // balanced END opposite it. That gives the normal wheel exactly two ends.
+  // Older builds could have multiple END fields. Keep the first one and
+  // turn every additional END field back into a +SPIN money field.
   if (exitIndices.length > TARGET_TERMINAL_EXITS) {
     const keepIndex = exitIndices[0];
 

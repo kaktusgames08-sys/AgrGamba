@@ -103,17 +103,17 @@ test('normalizeSettings keeps explicit v4 presentation preset', () => {
 });
 
 
-test('default wheel has two 100 Kč exit segments', () => {
+test('default wheel has one 100 Kč exit segment', () => {
   const exits = DEFAULT_SETTINGS.segments.filter((segment) =>
     segment.type === 'money'
       && segment.value === 100
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 2);
+  assert.equal(exits.length, 1);
 });
 
-test('legacy normal wheel is migrated to two balanced 100 Kč exits', () => {
+test('legacy normal wheel is migrated to one 100 Kč exit', () => {
   const oldSegments = DEFAULT_SETTINGS.segments.map((segment, index) => {
     if (index === 3) {
       return {
@@ -149,14 +149,14 @@ test('legacy normal wheel is migrated to two balanced 100 Kč exits', () => {
       && Number(segment.extraSpins) === 0
   );
 
-  assert.equal(exits.length, 2);
+  assert.equal(exits.length, 1);
   assert.equal(
     migrated.segments.filter((segment) =>
       segment.type === 'money'
         && Number(segment.value) === 100
         && Number(segment.extraSpins) === 0
     ).length,
-    2,
+    1,
   );
 });
 
@@ -186,8 +186,8 @@ test('SettingsManager automatically migrates stored v4.1 balance once', () => {
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 2);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.6'));
+  assert.equal(exits.length, 1);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.7'));
 });
 
 
@@ -275,7 +275,7 @@ test('stored v4.3 wheel with duplicate x2 fields migrates to one x2', () => {
   );
 
   assert.equal(multipliers.length, 1);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.6'));
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.7'));
 });
 
 
@@ -312,7 +312,7 @@ test('spin duration can be reduced to one second', () => {
 });
 
 
-test('stored v4.5 wheel with three exits migrates down to two', () => {
+test('stored v4.5 wheel with extra exits migrates down to one', () => {
   const storage = new MemoryStorage();
   const legacy = {
     ...DEFAULT_SETTINGS,
@@ -337,6 +337,36 @@ test('stored v4.5 wheel with three exits migrates down to two', () => {
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 2);
-  assert.ok(storage.getItem('kolo-nestesti-settings-v4.6'));
+  assert.equal(exits.length, 1);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.7'));
+});
+
+
+test('stored v4.6 wheel with two exits migrates down to one', () => {
+  const storage = new MemoryStorage();
+  const legacy = {
+    ...DEFAULT_SETTINGS,
+    segments: DEFAULT_SETTINGS.segments.map((segment) => ({ ...segment })),
+  };
+
+  legacy.segments[12] = {
+    label: '100 Kč',
+    type: 'money',
+    value: 100,
+    extraSpins: 0,
+    tone: 'final',
+    finale: true,
+  };
+
+  storage.setItem('kolo-nestesti-settings-v4.6', JSON.stringify(legacy));
+
+  const loaded = new SettingsManager(storage).get();
+  const exits = loaded.segments.filter((segment) =>
+    segment.type === 'money'
+      && segment.value === 100
+      && segment.extraSpins === 0
+  );
+
+  assert.equal(exits.length, 1);
+  assert.ok(storage.getItem('kolo-nestesti-settings-v4.7'));
 });
