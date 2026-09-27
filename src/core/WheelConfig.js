@@ -11,7 +11,7 @@ export const WHEEL_SEGMENTS = [
   { label: '60 Kč + SPIN', type: 'money', value: 60, extraSpins: 1, tone: 'amber' },
   { label: '40 Kč + SPIN', type: 'money', value: 40, extraSpins: 1, tone: 'violet' },
   { label: '60 Kč + SPIN', type: 'money', value: 60, extraSpins: 1, tone: 'blue' },
-  { label: '100 Kč', type: 'money', value: 100, extraSpins: 0, tone: 'final', finale: true },
+  { label: '60 Kč + SPIN', type: 'money', value: 60, extraSpins: 1, tone: 'red' },
   { label: '75 Kč + SPIN', type: 'money', value: 75, extraSpins: 1, tone: 'green' },
   { label: '40 Kč + SPIN', type: 'money', value: 40, extraSpins: 1, tone: 'red' },
   { label: '75 Kč + SPIN', type: 'money', value: 75, extraSpins: 1, tone: 'orange' },
