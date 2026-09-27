@@ -1633,3 +1633,41 @@ body {
     display: none;
   }
 }
+
+
+/* ----- v4.4.2 leaderboard expansion ----- */
+
+.leaderboard__list {
+  max-height: min(44vh, calc(385px * var(--ui-scale)));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: calc(3px * var(--ui-scale));
+  scrollbar-width: thin;
+  scrollbar-color:
+    rgba(255, 214, 132, .34)
+    rgba(28, 8, 13, .24);
+}
+
+.leaderboard__list::-webkit-scrollbar {
+  width: calc(7px * var(--ui-scale));
+}
+
+.leaderboard__list::-webkit-scrollbar-track {
+  background: rgba(28, 8, 13, .24);
+  border-radius: 999px;
+}
+
+.leaderboard__list::-webkit-scrollbar-thumb {
+  background: rgba(255, 214, 132, .34);
+  border-radius: 999px;
+}
+
+.leaderboard__list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 214, 132, .5);
+}
+
+@media (max-height: 900px) and (min-width: 1081px) {
+  .leaderboard__list {
+    max-height: min(31vh, calc(275px * var(--ui-scale)));
+  }
+}
