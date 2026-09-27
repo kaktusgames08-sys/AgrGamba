@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.4.1",
-  "description": "Kolo neštěstí — optimized normal wheel with one ending field plus capped Hardcore mode.",
+  "version": "4.4.2",
+  "description": "Kolo neštěstí — expanded loss leaderboard with all recorded results, plus optimized normal and Hardcore wheels.",
   "type": "module",
   "scripts": {
     "dev": "vite",
