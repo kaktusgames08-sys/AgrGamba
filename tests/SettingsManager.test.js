@@ -337,7 +337,7 @@ test('stored v4.5 wheel with extra exits migrates down to one', () => {
       && segment.extraSpins === 0
   );
 
-  assert.equal(exits.length, 2);
+  assert.equal(exits.length, 1);
   assert.ok(storage.getItem('kolo-nestesti-settings-v4.7'));
 });
 
