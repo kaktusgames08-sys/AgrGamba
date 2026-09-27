@@ -1,6 +1,14 @@
-# KOLO NEŠTĚSTÍ v4.4.1
+# KOLO NEŠTĚSTÍ v4.4.2
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.4.2
+
+- leaderboard doplněný o nové výsledky,
+- limit zvednutý z 10 na 30 záznamů, takže se žádný z dodaných výsledků nezahodí,
+- leaderboard se řadí podle prohrané částky od nejvyšší,
+- seznam je scrollovatelný uvnitř panelu, aby se nerozbila single-screen verze,
+- leaderboard storage key posunutý na v3, aby se nové seed výsledky ukázaly i lidem se starým localStorage.
 
 ## v4.4.1
 
@@ -47,12 +55,24 @@ Performance pass bez záměrné změny vzhledu nebo gameplaye:
 
 ## Leaderboard seed
 
+- potisengage — 4658 Kč — 44 série
 - jerusalemcrusader — 1975 Kč — 18 série
+- Zasr_nyCartman — 1430 Kč — 18 série
+- jerusalemcrusader — 1250 Kč — 13 série
+- JimmySliipek — 1170 Kč — 14 série
 - potisengage — 1145 Kč — 40 série
+- hodneholoube — 990 Kč — 20 série
+- pan_m — 840 Kč — 11 série
 - jerusalemcrusadser — 705 Kč — 15 série
+- MinimWinter — 470 Kč — 8 série
+- potisengage — 460 Kč — 8 série
+- Manhttn — 300 Kč — 5 série
+- potisengage — 250 Kč — 5 série
 - fkroupic — 180 Kč — 8 série
 - JimmySiipek — 180 Kč — 4 série
 - Aizeens — 100 Kč — 1 série
+- pan_m — 100 Kč — 1 série
+- potisengage — 100 Kč — 1 série
 
 ## Ovládání
 
