@@ -162,7 +162,9 @@ export class PiggyBank {
   }
 
   async feed(amount, resultingTotal = null) {
-    const coinCount = Math.max(0, Math.round(Number(amount) || 0));
+    const actualAmount = Math.max(0, Math.round(Number(amount) || 0));
+    const coinCount = Math.min(1000, actualAmount);
+    const coinValue = actualAmount / Math.max(1, coinCount);
 
     if (!coinCount || !this.pig || !this.source || !this.ctx) {
       if (resultingTotal !== null) this.setTotal(resultingTotal, { pulse: true });
@@ -173,7 +175,7 @@ export class PiggyBank {
     const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
     if (reducedMotion) {
-      this.setTotal(resultingTotal ?? (this.currentTotal + coinCount), { pulse: true });
+      this.setTotal(resultingTotal ?? (this.currentTotal + actualAmount), { pulse: true });
       return;
     }
 
@@ -186,7 +188,7 @@ export class PiggyBank {
     const targetY = pigRect.top + pigRect.height * 0.28;
     const startTotal = resultingTotal === null
       ? this.currentTotal
-      : Math.max(0, Math.round(resultingTotal - coinCount));
+      : Math.max(0, Math.round(resultingTotal - actualAmount));
 
     const stagger = Math.max(1.2, Math.min(7, 260 / Math.max(1, coinCount)));
     const baseDuration = 470;
@@ -286,8 +288,8 @@ export class PiggyBank {
         }
 
         const visibleTotal = Math.min(
-          startTotal + arrived,
-          resultingTotal ?? (startTotal + coinCount),
+          startTotal + Math.round(arrived * coinValue),
+          resultingTotal ?? (startTotal + actualAmount),
         );
 
         if (visibleTotal !== this.currentTotal) {
@@ -383,3 +385,4 @@ export class PiggyBank {
     if (this.finalAmount) this.finalAmount.textContent = '0 Kč';
   }
 }
+

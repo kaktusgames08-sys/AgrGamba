@@ -258,6 +258,8 @@ export function normalizeSettings(input = {}) {
     startingSpins: Math.max(1, Math.min(10, Math.round(Number(input.startingSpins) || STARTING_SPINS))),
     spinDurationMs: Math.max(1000, Math.min(8000, Math.round(Number(input.spinDurationMs) || SPIN_DURATION_MS))),
     masterVolume: Math.max(0, Math.min(1, Number.isFinite(Number(input.masterVolume)) ? Number(input.masterVolume) : 0.82)),
+    ambienceVolume: Math.max(0, Math.min(1, Number(input.ambienceVolume) || 0)),
+    semanticColors: input.semanticColors !== false,
     effects: EFFECT_LEVELS.has(input.effects) ? input.effects : 'high',
     ambientMotion: input.ambientMotion !== false,
     showHistory: input.showHistory !== false,

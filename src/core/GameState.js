@@ -63,7 +63,6 @@ export class GameState {
     };
 
     this.history.unshift(record);
-    this.history = this.history.slice(0, 7);
     this.phase = this.spins > 0 ? 'ready' : 'ended';
     return record;
   }

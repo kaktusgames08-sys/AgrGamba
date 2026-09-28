@@ -50,6 +50,9 @@ export class SettingsPanel {
     this.spinDurationValue = document.querySelector('#settingSpinDurationValue');
     this.volume = document.querySelector('#settingVolume');
     this.volumeValue = document.querySelector('#settingVolumeValue');
+    this.ambience = document.querySelector('#settingAmbience');
+    this.ambienceValue = document.querySelector('#settingAmbienceValue');
+    this.semanticColors = document.querySelector('#settingSemanticColors');
     this.effects = document.querySelector('#settingEffects');
     this.presetButtons = [...document.querySelectorAll('.preset-card[data-preset]')];
     this.ambientMotion = document.querySelector('#settingAmbientMotion');
@@ -78,6 +81,9 @@ export class SettingsPanel {
 
     this.volume?.addEventListener('input', () => {
       this.volumeValue.textContent = Math.round(Number(this.volume.value) * 100) + ' %';
+    });
+    this.ambience?.addEventListener('input', () => {
+      this.ambienceValue.textContent = Math.round(Number(this.ambience.value) * 100) + ' %';
     });
 
     this.addMoneyButton?.addEventListener('click', () => this.addSegment('money', 40));
@@ -118,6 +124,12 @@ export class SettingsPanel {
     });
 
     document.addEventListener('keydown', (event) => {
+      if (event.key === 'Tab' && this.isOpen()) {
+        const nodes = [...this.modal.querySelectorAll('button,input,select,[tabindex="0"]')].filter(el => !el.disabled && el.getClientRects().length);
+        const first = nodes[0], last = nodes.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+      }
       if (event.key === 'Escape' && this.isOpen()) {
         this.close();
       }
@@ -152,6 +164,9 @@ export class SettingsPanel {
     this.spinDuration.value = settings.spinDurationMs;
     this.spinDurationValue.textContent = (settings.spinDurationMs / 1000).toFixed(1) + ' s';
     this.volume.value = settings.masterVolume;
+    this.ambience.value = settings.ambienceVolume ?? 0;
+    this.ambienceValue.textContent = Math.round((settings.ambienceVolume ?? 0) * 100) + ' %';
+    this.semanticColors.checked = settings.semanticColors !== false;
     this.volumeValue.textContent = Math.round(settings.masterVolume * 100) + ' %';
     this.effects.value = settings.effects;
     this.ambientMotion.checked = settings.ambientMotion;
@@ -354,6 +369,8 @@ export class SettingsPanel {
       startingSpins: Number(this.startingSpins.value),
       spinDurationMs: Number(this.spinDuration.value),
       masterVolume: Number(this.volume.value),
+      ambienceVolume: Number(this.ambience.value),
+      semanticColors: this.semanticColors.checked,
       effects: this.effects.value,
       ambientMotion: this.ambientMotion.checked,
       showHistory: this.showHistory.checked,
@@ -371,9 +388,9 @@ export class SettingsPanel {
       return;
     }
 
-    const settings = this.manager.save(draft);
+    if (this.onApply?.(draft) === false) return;
+    this.manager.save(draft);
     this.showError('');
-    this.onApply?.(settings);
     this.close();
   }
 

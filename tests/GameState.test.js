@@ -2,6 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GameState } from '../src/core/GameState.js';
 
+test('history keeps the entire run for export', () => {
+  const state = new GameState();
+  for(let i=0;i<20;i++) {
+    state.beginSpin();
+    state.resolve({label:'40 Kč + SPIN',type:'money',value:40,extraSpins:1});
+  }
+  assert.equal(state.history.length, 20);
+  assert.equal(state.history.at(-1).spinNumber, 1);
+});
+
 test('money + spin continues the game', () => {
   const state = new GameState();
   assert.equal(state.beginSpin(), true);

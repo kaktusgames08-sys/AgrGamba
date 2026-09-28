@@ -1,163 +1,59 @@
 <!doctype html>
 <html lang="cs">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#11030f" />
-    <meta name="description" content="Kolo neštěstí — arkádové kolo s částkami, násobiči, +SPIN a plně nastavitelnými poli." />
-    <title>Kolo neštěstí</title>
-  </head>
-  <body>
-    <div id="app" data-effects="high" data-motion="on" data-preset="max">
-      <div class="stage-glow stage-glow--left"></div>
-      <div class="stage-glow stage-glow--right"></div>
-      <div class="starfield" aria-hidden="true"></div>
-      <div class="casino-grid" aria-hidden="true"></div>
-      <div class="ambient-orb ambient-orb--a" aria-hidden="true"></div>
-      <div class="ambient-orb ambient-orb--b" aria-hidden="true"></div>
-
-      <header class="topbar">
-        <div class="brand" aria-label="Kolo neštěstí">
-          <span class="brand__eyebrow">VELKÁ PROHRA</span>
-          <h1>KOLO NEŠTĚSTÍ</h1>
-          <div class="brand__subtitle">KAŽDÝ SPIN TĚ MŮŽE ZASTAVIT</div>
+<head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="theme-color" content="#160d16"/><meta name="description" content="Kolo neštěstí. Velké série, násobiče a prasátko plné příběhů. Casino edice pro stream."/><title>Kolo neštěstí · Casino Edition</title></head>
+<body>
+<div id="app" data-effects="high" data-motion="on" data-preset="max">
+  <div class="casino-backdrop" aria-hidden="true"><div class="ambient-orb ambient-orb--a"></div><div class="ambient-orb ambient-orb--b"></div><div class="casino-grid"></div></div>
+  <header class="topbar" data-obs-panel="hud">
+    <a class="brand" href="#" aria-label="Kolo neštěstí"><span class="brand__mark" aria-hidden="true">♠</span><span><span class="brand__eyebrow">AGRGAMBA · CASINO EDITION</span><h1>KOLO <em>NEŠTĚSTÍ</em></h1></span></a>
+    <div class="hud">
+      <div class="hud-card hud-card--money"><span class="hud-card__label">AKTUÁLNÍ ČÁSTKA</span><div class="hud-card__money-row"><span class="hud-card__emote"><img id="amountEmote" src="https://cdn.7tv.app/emote/01J9VXJ6TG0009Y31ZJEZ3K972/2x.webp" alt=""/><span class="hud-card__emote-fallback">♠</span></span><strong id="moneyCounter">0 Kč</strong></div></div>
+      <div class="hud-divider"></div><div class="hud-card hud-card--spins"><span class="hud-card__label">ODEHRÁNO</span><strong><span id="spinRunCounter">0</span><small> spinů</small></strong></div>
+    </div>
+    <nav class="top-actions" aria-label="Ovládání hry">
+      <button id="archiveButton" class="icon-button" type="button" aria-label="Archiv a záloha" title="Archiv a záloha"><span aria-hidden="true">▤</span></button>
+      <button id="obsButton" class="icon-button" type="button" aria-label="Režim pro OBS" title="Režim pro OBS"><span aria-hidden="true">▣</span></button>
+      <button id="muteButton" class="icon-button" type="button" aria-label="Vypnout zvuk" title="Zvuk (M)">♫</button>
+      <button id="fullscreenButton" class="icon-button" type="button" aria-label="Celá obrazovka" title="Celá obrazovka (F)">⛶</button>
+      <button id="settingsButton" class="icon-button" type="button" aria-label="Nastavení kola" title="Nastavení (S)">⚙</button>
+    </nav>
+  </header>
+  <main class="game-layout">
+    <aside class="left-rail" data-obs-panel="left">
+      <section class="player-panel panel">
+        <div class="panel-heading"><span class="eyebrow">U STOLU</span><span class="live-indicator">PŘIPRAVEN</span></div>
+        <label class="player-field"><span class="player-avatar" aria-hidden="true">♟</span><input id="playerName" maxlength="32" aria-label="Jméno hráče" placeholder="Jméno hráče" autocomplete="off" value="Host"/></label>
+        <div class="queue-summary"><span id="queueSummary">Další hráč? Přidej ho do fronty.</span><button id="queueButton" class="text-button" type="button" aria-label="Spravovat frontu hráčů">+ FRONTA</button></div>
+      </section>
+      <section class="leaderboard panel">
+        <div class="panel-heading"><span class="eyebrow">SÍŇ SLÁVY</span><span aria-hidden="true" class="gold">♛</span></div>
+        <h2>Nejvíc projebali.</h2>
+        <div id="boardTabs" class="board-tabs" role="group" aria-label="Režim žebříčku"><button data-board="normal" class="is-active" aria-pressed="true">Klasika</button><button data-board="hardcore" aria-pressed="false">Hardcore</button><button data-board="custom" aria-pressed="false">Vlastní</button></div>
+        <div id="leaderboardList" class="leaderboard__list"></div>
+        <button id="allResultsButton" class="panel-link" type="button">Všechny výsledky <span>↗</span></button>
+      </section>
+    </aside>
+    <section id="machineStage" class="machine" aria-label="Kolo neštěstí">
+      <div class="mode-picker" role="group" aria-label="Herní režim"><button id="normalButton" type="button" class="is-active" aria-pressed="true">♠ <span>KLASIKA</span></button><button id="hardcoreButton" type="button" aria-pressed="false">♦ <span>HARDCORE</span></button></div>
+      <div id="modeCaption" class="mode-caption">Padá +SPIN? Série pokračuje.</div>
+      <div id="hardcoreSteps" class="hardcore-steps" hidden><span data-step="1">1 <b>ČÁSTKA</b></span><i></i><span data-step="2">2 <b>ČÁSTKA</b></span><i></i><span data-step="3">3 <b>NÁSOBIČ</b></span></div>
+      <div class="wheel-stage">
+        <div class="wheel-aura" aria-hidden="true"></div>
+        <div class="pointer-wrap" aria-hidden="true"><div id="pointer" class="pointer"><div class="pointer__cap"></div><div class="pointer__arrow"></div></div></div>
+        <div id="wheelShell" class="wheel-shell"><div class="wheel-rim wheel-rim--outer" aria-hidden="true"></div><div id="ledRing" class="led-ring" aria-hidden="true"></div><div id="wheelMount" class="wheel-mount"></div><div class="wheel-rim wheel-rim--inner" aria-hidden="true"></div>
+          <div id="centerMedallion" class="center-medallion" aria-hidden="true" data-mode="idle"><span id="centerTop">SPINY</span><strong id="centerValue">1</strong><span id="centerBottom">ZBÝVÁ</span></div>
         </div>
-
-        <div class="hud" aria-live="polite">
-          <div class="hud-card hud-card--money">
-            <div class="hud-card__glint" aria-hidden="true"></div>
-            <span class="hud-card__label">ČÁSTKA</span>
-            <div class="hud-card__money-row">
-              <span class="hud-card__emote" aria-hidden="true">
-                <span class="hud-card__emote-fallback">🎰</span>
-                <img
-                  id="amountEmote"
-                  src="https://cdn.7tv.app/emote/01J9VXJ6TG0009Y31ZJEZ3K972/4x.webp"
-                  alt=""
-                  loading="eager"
-                  decoding="async"
-                />
-              </span>
-              <strong id="moneyCounter">0 Kč</strong>
-            </div>
-          </div>
-
-          <div class="hud-card hud-card--spins">
-            <div class="hud-card__glint" aria-hidden="true"></div>
-            <span class="hud-card__label">SPINY</span>
-            <strong id="spinCounter">1</strong>
-          </div>
-        </div>
-
-        <div class="top-actions">
-          <button id="settingsButton" class="icon-button" type="button" aria-label="Nastavení kola" title="Nastavení kola">⚙</button>
-          <button id="muteButton" class="icon-button" type="button" aria-label="Vypnout zvuk" title="Zvuk (M)">🔊</button>
-          <button id="fullscreenButton" class="icon-button" type="button" aria-label="Celá obrazovka" title="Fullscreen (F)">⛶</button>
-        </div>
-      </header>
-
-      <main class="game-layout">
-        <aside id="historyPanel" class="history-panel" aria-label="Poslední výsledky">
-          <div class="side-panel__cap"></div>
-          <div class="history-panel__title">HISTORIE</div>
-          <div id="history" class="history-list">
-            <div class="history-empty">Zatím nic</div>
-          </div>
-
-          <div class="leaderboard">
-            <div class="leaderboard__title">NEJVÍC PROJEBALI</div>
-            <div id="leaderboardList" class="leaderboard__list"></div>
-          </div>
-        </aside>
-
-        <section id="machineStage" class="machine" aria-label="Kolo neštěstí">
-          <div class="machine__arch machine__arch--back" aria-hidden="true"></div>
-          <div class="wheel-aura" aria-hidden="true"></div>
-          <div class="marquee-sparks" aria-hidden="true">
-            <i></i><i></i><i></i><i></i><i></i><i></i>
-          </div>
-
-          <div class="pointer-wrap" aria-hidden="true">
-            <div id="pointer" class="pointer">
-              <div class="pointer__cap"></div>
-              <div class="pointer__arrow"></div>
-            </div>
-          </div>
-
-          <div id="wheelShell" class="wheel-shell">
-            <div class="wheel-sheen" aria-hidden="true"></div>
-            <div id="ledRing" class="led-ring" aria-hidden="true"></div>
-            <div class="bulb-ring bulb-ring--legacy" aria-hidden="true"></div>
-            <div class="wheel-rim wheel-rim--outer" aria-hidden="true"></div>
-            <div class="wheel-rim wheel-rim--inner" aria-hidden="true"></div>
-            <div id="wheelMount" class="wheel-mount" aria-label="Herní kolo"></div>
-
-            <div id="centerMedallion" class="center-medallion" aria-hidden="true" data-mode="idle">
-              <div class="center-medallion__pulse"></div>
-              <span id="centerTop" class="center-medallion__small">SPINY</span>
-              <strong id="centerValue">1</strong>
-              <span id="centerBottom" class="center-medallion__small">ZBÝVÁ</span>
-            </div>
-          </div>
-
-          <div id="resultBurst" class="result-burst result-burst--stage" aria-live="assertive">
-            <div class="result-burst__rays" aria-hidden="true"></div>
-            <div class="result-burst__eyebrow" id="resultEyebrow">VÝSLEDEK</div>
-            <div id="resultMain" class="result-burst__main"></div>
-            <div id="resultSub" class="result-burst__sub"></div>
-          </div>
-
-          <div id="gameStatus" class="game-status" aria-live="polite">
-            <span class="game-status__dot"></span>
-            <span id="gameStatusText">PŘIPRAVENO</span>
-          </div>
-
-          <div class="controls">
-            <button id="spinButton" class="spin-button" type="button">
-              <span class="spin-button__halo"></span>
-              <span class="spin-button__shine"></span>
-              <span class="spin-button__text">ROZTOČIT</span>
-              <span class="spin-button__hint">SPACE</span>
-            </button>
-
-            <button id="hardcoreButton" class="hardcore-button" type="button" aria-pressed="false">
-              <span class="hardcore-button__icon">🔥</span>
-              <span class="hardcore-button__copy">
-                <strong>HARDCORE TOČKA</strong>
-                <small>3 SPINY · 150 Kč+ · POSLEDNÍ = NÁSOBIČ</small>
-              </span>
-            </button>
-          </div>
-
-          <div class="key-hints" aria-hidden="true">
-            <span><kbd>SPACE</kbd> spin</span>
-            <span><kbd>F</kbd> fullscreen</span>
-            <span><kbd>M</kbd> zvuk</span>
-            <span><kbd>H</kbd> hardcore</span>
-          </div>
-        </section>
-
-        <aside class="session-panel" aria-label="Průběh hry">
-          <div class="side-panel__cap"></div>
-          <div class="session-panel__eyebrow">SÉRIE</div>
-          <strong id="spinRunCounter" class="session-panel__count">0</strong>
-          <div class="session-panel__label">odehraných spinů</div>
-
-          <div class="session-rules">
-            <div><span class="rule-chip rule-chip--x2">x2</span><b>zdvojnásobí částku</b></div>
-            <div><span class="rule-chip rule-chip--end">END</span><b>pole bez +SPIN končí hru</b></div>
-          </div>
-
-          <div id="hardcoreRule" class="hardcore-rule" hidden>
-            <strong>HARDCORE</strong>
-            <span>3 spiny bez respinu · první 2 kola 150–1000 Kč · poslední spin násobič · max 5000 Kč</span>
-          </div>
-
-          <div class="piggy-panel" aria-label="Prasátko s vytočenými penězi">
-            <div class="piggy-panel__label">PRASÁTKO PROJEBU</div>
-
-            <div id="piggyBank" class="piggy-bank" aria-hidden="true">
-              <svg class="piggy-svg" viewBox="0 0 240 150" role="img" aria-label="Růžové keramické prasátko">
+        <div id="resultBurst" class="result-burst result-burst--stage" aria-live="polite"><div id="resultEyebrow" class="result-burst__eyebrow">PADLO</div><div id="resultMain" class="result-burst__main"></div><div id="resultSub" class="result-burst__sub"></div></div>
+      </div>
+      <div class="control-deck"><div id="gameStatus" class="game-status"><span class="game-status__dot"></span><span id="gameStatusText">PŘIPRAVENO</span></div>
+        <button id="spinButton" class="spin-button" type="button"><span class="spin-button__shine" aria-hidden="true"></span><span class="spin-button__icon" aria-hidden="true">↻</span><span class="spin-button__text">ROZTOČIT</span><kbd>SPACE</kbd></button>
+        <div class="deck-details"><span><b id="spinCounter">1</b> <span id="remainingLabel">spin zbývá</span></span><span class="deck-divider">·</span><span id="chanceBadge">18 polí · stejná šance</span></div>
+      </div>
+      <div id="milestoneBanner" class="milestone-banner" role="status"></div>
+    </section>
+    <aside class="right-rail" data-obs-panel="right">
+      <section class="piggy-panel panel"><div class="panel-heading"><span class="eyebrow">PRASÁTKO PROJEBU</span><span id="piggyCrown" class="piggy-crown" hidden aria-label="Nový rekord">♛</span></div>
+        <div id="piggyBank" class="piggy-bank" aria-hidden="true"><svg class="piggy-svg" viewBox="0 0 240 150" role="img" aria-label="Růžové keramické prasátko">
                 <defs>
                   <linearGradient id="pigBody" x1="0" y1="0" x2="1" y2="1">
                     <stop offset="0" stop-color="#ffdce6"/>
@@ -203,44 +99,26 @@
                   <path d="M153 71l-9 10 9 8-6 13"/>
                   <path d="M106 82l12 4-6 12"/>
                 </g>
-              </svg>
-              <div id="piggyExplosion" class="piggy-bank__explosion"></div>
-            </div>
-
-            <div class="piggy-total">
-              <span>UVNITŘ</span>
-              <strong id="piggyTotal">0 Kč</strong>
-            </div>
-
-            <div id="piggyFinal" class="piggy-final" aria-hidden="true">
-              <span>FINÁLNÍ ČÁSTKA</span>
-              <strong id="piggyFinalAmount">0 Kč</strong>
-              <button id="restartButton" class="piggy-restart-button" type="button">HRÁT ZNOVU <b>R</b></button>
-            </div>
-          </div>
-        </aside>
-      </main>
-
-      <div id="overlay" class="final-overlay" aria-hidden="true">
-        <div class="final-card final-card--loss">
-          <div class="final-card__eyebrow">KONEC HRY</div>
-          <div class="final-card__title">PROHRÁL JSI</div>
-          <div class="final-card__label">VÝSLEDNÁ ČÁSTKA</div>
-          <div id="finalAmount" class="final-card__amount">0 Kč</div>
-          <div class="final-card__message">Kolo neštěstí tě dostalo.</div>
-          <div class="final-card__sparkline" aria-hidden="true">✦ ★ ✦ ★ ✦</div>
-        </div>
-      </div>
-
-      <div id="settingsModal" class="settings-modal" aria-hidden="true">
+              </svg><div id="piggyExplosion" class="piggy-bank__explosion"></div></div>
+        <div class="piggy-total"><span>UVNITŘ PRASÁTKA</span><strong id="piggyTotal">0 Kč</strong></div>
+        <div id="piggyFinal" class="piggy-final" aria-hidden="true"><span>SÉRIE UZAVŘENA</span><strong id="piggyFinalAmount">0 Kč</strong><button id="openResultButton" class="quiet-button" type="button">Zobrazit výsledek ↗</button></div>
+        <div id="recordProgress" class="record-progress"><div><span>REKORD KLASIKY</span><strong id="recordTarget">4 658 Kč</strong></div><div class="progress-track"><i id="recordProgressFill"></i></div></div>
+      </section>
+      <section id="historyPanel" class="history-panel panel"><div class="panel-heading"><span class="eyebrow">POSLEDNÍ SPINY</span><span id="historyCount" class="muted">0</span></div><div id="history" class="history-list"><div class="history-empty">První spin píše příběh.</div></div></section>
+      <section class="rules-card"><div><span class="rule-chip rule-chip--x2">×2</span><span>Zdvojnásobí celou částku.</span></div><div><span class="rule-chip rule-chip--end">END</span><span id="endRule">Bez +SPIN ubude jeden spin.</span></div><p id="oddsText">KONEC: 1 z 18 polí · 5,56 %</p><p id="hardcoreRule" hidden>2 částky + 1 násobič · max. 5 000 Kč</p></section>
+    </aside>
+  </main>
+  <footer class="app-footer"><span>♠ KAŽDÁ SÉRIE MÁ SVŮJ PŘÍBĚH.</span><span class="key-hints"><kbd>F</kbd> celá obrazovka <kbd>M</kbd> zvuk <kbd>S</kbd> nastavení</span><button id="profilesButton" class="text-button" type="button">PROFILY KOLA ↗</button></footer>
+  <dialog id="overlay" class="final-overlay"><article class="final-card"><button id="closeResultButton" class="modal-close" aria-label="Zavřít výsledek">×</button><div class="final-suits" aria-hidden="true">♠ ♦ ♣ ♥</div><div id="resultTitle" class="eyebrow">SÉRIE JE U KONCE</div><h2 id="resultPlayer">Host</h2><p class="muted">FINÁLNÍ ČÁSTKA</p><div id="finalAmount" class="final-card__amount">0 Kč</div><div id="resultRank" class="result-rank"></div><div class="final-stats"><div><b id="resultSpins">0</b><span>SPINŮ</span></div><div><b id="resultMultipliers">0</b><span>NÁSOBIČŮ</span></div><div><b id="resultMode">KLASIKA</b><span>REŽIM</span></div></div><p id="resultSaved" class="saved-label">✓ Výsledek uložen do archivu</p><div class="final-actions"><button id="restartButton" type="button" class="primary-button">DALŠÍ SÉRIE <kbd>R</kbd></button><button id="nextPlayerButton" type="button" class="quiet-button">DALŠÍ HRÁČ →</button></div><div class="share-actions"><button id="copyResultButton" class="text-button" type="button">Kopírovat výsledek</button><button id="downloadResultButton" class="text-button" type="button">Uložit obrázek ↗</button></div></article></dialog>
+  <div id="settingsModal" class="settings-modal" aria-hidden="true">
         <div id="settingsBackdrop" class="settings-backdrop"></div>
 
         <section class="settings-sheet" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
           <header class="settings-sheet__header">
             <div>
-              <span class="settings-kicker">CUSTOMIZE</span>
+              <span class="settings-kicker">TVŮJ STŮL · TVOJE PRAVIDLA</span>
               <h2 id="settingsTitle">NASTAVENÍ KOLA</h2>
-              <p>Každé viditelné políčko má stejnou šanci. Měníš přímo obsah kola.</p>
+              <p>Zvuk a vzhled můžeš měnit během série. Pravidla kola až mezi sériemi.</p>
             </div>
             <button id="settingsCloseButton" class="settings-close" type="button" aria-label="Zavřít nastavení">×</button>
           </header>
@@ -250,21 +128,21 @@
               <div class="settings-block__heading">
                 <div>
                   <span>HRA</span>
-                  <h3>Průběh a prezentace</h3>
+                  <h3>Zvuk a atmosféra</h3>
                 </div>
               </div>
 
               <div class="preset-picker" role="group" aria-label="Preset prezentace">
                 <button type="button" class="preset-card" data-preset="clean">
-                  <span class="preset-card__name">CLEAN</span>
+                  <span class="preset-card__name">KLIDNÝ</span>
                   <span class="preset-card__desc">Minimum pohybu, čistý stream look</span>
                 </button>
                 <button type="button" class="preset-card" data-preset="arcade">
-                  <span class="preset-card__name">ARCADE</span>
+                  <span class="preset-card__name">CASINO</span>
                   <span class="preset-card__desc">Vyvážené světla, punch a animace</span>
                 </button>
                 <button type="button" class="preset-card" data-preset="max">
-                  <span class="preset-card__name">MAX FX</span>
+                  <span class="preset-card__name">SHOWTIME</span>
                   <span class="preset-card__desc">Plný game-show režim</span>
                 </button>
               </div>
@@ -294,16 +172,19 @@
                   </select>
                 </label>
 
-                <label class="setting-switch">
+                <label class="setting-field setting-field--range"><span>Atmosféra <b id="settingAmbienceValue">0 %</b></span><input id="settingAmbience" type="range" min="0" max="1" step="0.01" /></label>
+              <div class="setting-field"><span>Zvukový doprovod</span><button id="previewSound" type="button" class="quiet-button">♫ Vyzkoušet zvuky</button></div>
+              <label class="setting-switch"><input id="settingSemanticColors" type="checkbox" checked/><span class="switch"></span><span>Barvy podle hodnot polí</span></label>
+              <label class="setting-switch">
                   <input id="settingAmbientMotion" type="checkbox" />
                   <span class="switch"></span>
-                  <span>Ambient animace</span>
+                  <span>Pohyb pozadí a světel</span>
                 </label>
 
                 <label class="setting-switch">
                   <input id="settingShowHistory" type="checkbox" />
                   <span class="switch"></span>
-                  <span>Zobrazit historii</span>
+                  <span>Zobrazit poslední spiny</span>
                 </label>
               </div>
             </section>
@@ -317,7 +198,7 @@
                 <strong id="segmentCount" class="segment-count">18 polí</strong>
               </div>
 
-              <div id="segmentEditorList" class="segment-editor-list"></div>
+              <p class="help-text">Při zapnutých barvách podle hodnot se vlastní barva pole nepoužije.</p><div id="segmentEditorList" class="segment-editor-list"></div>
 
               <div class="segment-actions">
                 <button id="addMoneySegment" type="button">+ PENÍZE</button>
@@ -335,11 +216,7 @@
         </section>
       </div>
 
-      <div id="rewardFlightLayer" class="reward-flight-layer" aria-hidden="true"></div>
-      <div id="particleLayer" class="particle-layer" aria-hidden="true"></div>
-      <div id="flash" class="screen-flash" aria-hidden="true"></div>
-    </div>
-
-    <script type="module" src="/src/main.js"></script>
-  </body>
-</html>
+      
+  <dialog id="studioDialog" class="studio-dialog"><header><div><span class="eyebrow">CASINO CONTROL ROOM</span><h2 id="studioTitle">Správa hry</h2></div><button id="studioClose" class="modal-close" aria-label="Zavřít panel" type="button">×</button></header><div id="studioContent" class="studio-content"></div></dialog>
+  <div id="rewardFlightLayer" class="reward-flight-layer" aria-hidden="true"></div><div id="particleLayer" class="particle-layer" aria-hidden="true"></div><div id="flash" class="screen-flash" aria-hidden="true"></div><div id="toast" class="toast" role="status" aria-live="polite"></div>
+</div><script type="module" src="/src/main.js"></script></body></html>

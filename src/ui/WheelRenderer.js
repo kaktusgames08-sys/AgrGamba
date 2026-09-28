@@ -8,16 +8,16 @@ import { SPIN_DURATION_MS } from '../core/WheelConfig.js';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const TONES = {
-  amber: ['#ffbf3c', '#db6d11'],
-  violet: ['#8f4cff', '#5a1fd0'],
-  blue: ['#35b9ff', '#1361d5'],
+  amber: ['#dba653', '#96632c'],
+  violet: ['#745591', '#493457'],
+  blue: ['#356781', '#203e56'],
   red: ['#ff5269', '#b81738'],
-  purple: ['#d54cff', '#7b1ab4'],
-  green: ['#5ce66f', '#168d46'],
+  purple: ['#a159b0', '#643772'],
+  green: ['#347366', '#214b43'],
   orange: ['#ff8e2e', '#d34016'],
   cyan: ['#3ee7df', '#158d9b'],
   pink: ['#ff60bd', '#bc267f'],
-  final: ['#fff08b', '#e33b1c'],
+  final: ['#d05563', '#83283b'],
 };
 
 function polar(cx, cy, radius, angleDeg) {
@@ -182,10 +182,15 @@ export class WheelRenderer {
       const startAngle = centerAngle - slice / 2;
       const endAngle = centerAngle + slice / 2;
 
+      const tone = this.semanticColors === false ? segment.tone
+        : segment.type === 'multiplier' ? 'purple'
+        : segment.finale || (!segment.extraSpins && !segment.subLabel) ? 'final'
+        : segment.subLabel === 'HARDCORE' ? (segment.value >= 750 ? 'amber' : segment.value >= 400 ? 'blue' : 'green')
+        : segment.value >= 75 ? 'amber' : segment.value >= 60 ? 'green' : segment.value >= 50 ? 'blue' : 'violet';
       const group = document.createElementNS(SVG_NS, 'g');
       group.setAttribute(
         'class',
-        'wheel-segment wheel-segment--' + segment.tone,
+        'wheel-segment wheel-segment--' + tone,
       );
       group.dataset.index = String(index);
 
@@ -195,10 +200,10 @@ export class WheelRenderer {
         wedgePath(center, center, radius, startAngle, endAngle),
       );
       path.setAttribute('fill', 'url(#grad-' + index + ')');
-      path.setAttribute('stroke', 'rgba(255,244,199,.7)');
+      path.setAttribute('stroke', 'rgba(255,230,187,.3)');
       path.setAttribute('stroke-width', '2');
 
-      const colors = TONES[segment.tone] ?? TONES.amber;
+      const colors = TONES[tone] ?? TONES.amber;
       const grad = document.createElementNS(SVG_NS, 'linearGradient');
       grad.setAttribute('id', 'grad-' + index);
       grad.setAttribute('x1', '0%');
@@ -243,37 +248,25 @@ export class WheelRenderer {
           + ')',
       );
 
-      if (segment.type === 'multiplier') {
-        const big = document.createElementNS(SVG_NS, 'tspan');
-        big.setAttribute('x', labelPoint.x);
-        big.setAttribute('dy', '-5');
-        big.setAttribute('class', 'wheel-label__big');
-        big.textContent = 'x' + segment.multiplier;
-
-        const sub = document.createElementNS(SVG_NS, 'tspan');
-        sub.setAttribute('x', labelPoint.x);
-        sub.setAttribute('dy', '27');
-        sub.setAttribute('class', 'wheel-label__sub');
-        sub.textContent = segment.subLabel
-          ?? (segment.extraSpins ? '+ SPIN' : 'KONEC');
-
-        text.append(big, sub);
-      } else {
-        const big = document.createElementNS(SVG_NS, 'tspan');
-        big.setAttribute('x', labelPoint.x);
-        big.setAttribute('dy', '-5');
-        big.setAttribute('class', 'wheel-label__big');
-        big.textContent = segment.value + ' Kč';
-
-        const sub = document.createElementNS(SVG_NS, 'tspan');
-        sub.setAttribute('x', labelPoint.x);
-        sub.setAttribute('dy', '27');
-        sub.setAttribute('class', 'wheel-label__sub');
-        sub.textContent = segment.subLabel
-          ?? (segment.extraSpins ? '+ SPIN' : 'KONEC');
-
-        text.append(big, sub);
-      }
+      const value = segment.type === 'multiplier' ? '×' + segment.multiplier : String(segment.value);
+      const big = document.createElementNS(SVG_NS, 'tspan');
+      big.setAttribute('x', labelPoint.x);
+      big.setAttribute('dy', '-18');
+      big.setAttribute('class', 'wheel-label__big');
+      const available = 2 * labelRadius * Math.sin(Math.PI / this.segments.length) * 0.86;
+      big.style.fontSize = Math.min(43, available / (value.length * 0.62)) + 'px';
+      big.textContent = value;
+      const currency = document.createElementNS(SVG_NS, 'tspan');
+      currency.setAttribute('x', labelPoint.x);
+      currency.setAttribute('dy', '28');
+      currency.setAttribute('class', 'wheel-label__currency');
+      currency.textContent = segment.type === 'money' ? 'Kč' : 'NÁSOBIČ';
+      const sub = document.createElementNS(SVG_NS, 'tspan');
+      sub.setAttribute('x', labelPoint.x);
+      sub.setAttribute('dy', '24');
+      sub.setAttribute('class', 'wheel-label__sub');
+      sub.textContent = segment.subLabel ?? (segment.extraSpins ? '+ SPIN' : 'KONEC');
+      text.append(big, currency, sub);
 
       group.appendChild(text);
       rotor.appendChild(group);
@@ -333,6 +326,18 @@ export class WheelRenderer {
     this.setPhase('idle');
   }
 
+  planLanding(rng = secureRandom) {
+    return randomLandingRotation(this.rotation, this.segments.length, rng);
+  }
+
+  setPalette(semanticColors = true) {
+    if (this.semanticColors === semanticColors) return;
+    this.semanticColors = semanticColors;
+    this.renderCache = new WeakMap();
+    this.render();
+    this.rotor.style.transform = 'rotate(' + this.rotation + 'deg)';
+  }
+
   updatePointerHighlight(rotation) {
     const slice = segmentAngle(this.segments.length);
     const index = normalizeIndex(
@@ -377,11 +382,11 @@ export class WheelRenderer {
     });
   }
 
-  spinRandom(rng = secureRandom) {
+  spinRandom(rng = secureRandom, planned = null) {
     this.clearWinner();
 
     const startRotation = this.rotation;
-    const landing = randomLandingRotation(
+    const landing = planned ?? randomLandingRotation(
       startRotation,
       this.segments.length,
       rng,

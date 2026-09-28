@@ -1,6 +1,6 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.4.3",
+  "version": "5.0.0",
   "description": "Kolo neštěstí — Web Crypto powered wheel randomness with equal physical segment odds.",
   "type": "module",
   "scripts": {

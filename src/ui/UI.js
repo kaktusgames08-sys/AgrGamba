@@ -127,11 +127,11 @@ export class UI {
     this.lastHistorySignature = signature;
 
     if (!records.length) {
-      this.history.innerHTML = '<div class="history-empty">Zatím nic</div>';
+      this.history.innerHTML = '<div class="history-empty">První spin píše příběh.</div>';
       return;
     }
 
-    this.history.innerHTML = records.map((record, index) => {
+    this.history.innerHTML = records.slice(0, 6).map((record, index) => {
       const label = record.type === 'multiplier'
         ? 'x' + record.multiplier
         : '+' + record.value + ' Kč';
@@ -372,7 +372,8 @@ export class UI {
   }
 
   setMuted(muted) {
-    this.muteButton.textContent = muted ? '🔇' : '🔊';
+    this.muteButton.textContent = muted ? '♪̸' : '♫';
+    this.muteButton.classList.toggle('is-muted', muted);
     this.muteButton.setAttribute('aria-label', muted ? 'Zapnout zvuk' : 'Vypnout zvuk');
   }
 
@@ -389,6 +390,7 @@ export class UI {
   }
 
   async showFinal(total) {
+    if (!this.overlay.open) this.overlay.showModal();
     this.overlay.setAttribute('aria-hidden', 'false');
     this.overlay.classList.add('is-visible');
     this.finalAmount.textContent = '0 Kč';
@@ -415,6 +417,7 @@ export class UI {
   }
 
   hideFinal() {
+    if (this.overlay.open) this.overlay.close();
     this.overlay.classList.remove('is-visible');
     this.overlay.setAttribute('aria-hidden', 'true');
     this.finalAmount.classList.remove('is-final-settled');
@@ -431,3 +434,4 @@ export class UI {
     this.setSpinPhase('idle');
   }
 }
+

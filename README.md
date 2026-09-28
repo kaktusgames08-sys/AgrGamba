@@ -1,6 +1,30 @@
-# KOLO NEŠTĚSTÍ v4.4.3
+# KOLO NEŠTĚSTÍ v5.0.0
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v5.0.0 — Casino Edition
+
+- Nové vínové a zlaté UI, čitelnější kolo, barvy podle typu odměny a oddělené režimy Normál / Hardcore.
+- Zvuky žetonů a karet od Kenney (CC0), nové motivy pro násobič, rekord a finále; volitelný ambient, okamžitý mute a limit současných hlasů. Zdroj a licence: [AUDIO-CREDITS.md](AUDIO-CREDITS.md).
+- Roztočení nejdřív uloží přesně vylosovaný výsledek. Refresh obnoví částku, zbývající spiny, hráče i kompletní historii.
+- Automatický zápis ukončené série do archivu a samostatné žebříčky pro Normál, Hardcore a vlastní pravidla. Původní výsledky zůstávají zachované.
+- Fronta hráčů, výsledková karta s pořadím, text pro sdílení a export obrázku PNG.
+- Pojmenované profily kola a JSON export/import archivu a profilů. Opakovaný import stejné zálohy neduplikuje výsledky.
+- Úprava hlasitosti, rychlosti a efektů zachová rozjetou sérii. Pravidla a hráč se zamknou do jejího konce.
+- OBS režim s průhledným pozadím a výběrem panelů, responzivní rozložení, podpora omezeného pohybu a klávesnice.
+- Pravděpodobnosti polí a Web Crypto RNG zůstávají stejné. Hra se sama neroztáčí.
+
+### Použití
+
+Před začátkem napiš přezdívku do pole hráče. V **Frontě hráčů** zadej jedno jméno na řádek. Po finále můžeš spustit novou sérii stejného hráče nebo ručně posunout frontu.
+
+**Archiv** obsahuje dokončené série a jejich jednotlivé spiny. Export zálohy ukládá výsledky a profily do JSON. Data jsou lokální pro daný prohlížeč a zařízení; online synchronizace není součástí hry. Rozehraná série se obnovuje samostatně z místního úložiště. Pokud prohlížeč ukládání blokuje, hra dál funguje, ale před zavřením si stáhni zálohu dokončených výsledků.
+
+**Profily kola** uloží současné nastavení pod názvem. Pravidla vlastního kola upravíš v nastavení; Hardcore má vždy své pevné tři spiny.
+
+V **OBS** vyber viditelné panely a zkopíruj odkaz do Browser Source. Průhledný režim zapíná `?obs=1`; parametr `panels=left,right,hud` určuje viditelné skupiny. Ovládání se ukáže po najetí na horní lištu.
+
+V nastavení je hlasitost efektů, volitelný tichý ambient a tlačítko pro poslech. Presety **Klidný**, **Casino** a **Showtime** mění intenzitu prezentace.
 
 ## v4.4.3
 

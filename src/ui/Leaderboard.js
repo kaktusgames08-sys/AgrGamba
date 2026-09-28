@@ -149,9 +149,9 @@ export class Leaderboard {
   }
 
   medal(rank) {
-    if (rank === 0) return '🥇';
-    if (rank === 1) return '🥈';
-    if (rank === 2) return '🥉';
+    if (rank === 0) return '♛';
+    if (rank === 1) return '02';
+    if (rank === 2) return '03';
     return String(rank + 1);
   }
 
@@ -171,11 +171,12 @@ export class Leaderboard {
         '<span class="leaderboard__rank" aria-label="Pořadí ' + (index + 1) + '">' + this.medal(index) + '</span>',
         '<div class="leaderboard__copy">',
         '<strong>' + safeName + '</strong>',
-        '<span>' + entry.streak + ' série zatočení</span>',
+        '<span>' + entry.streak + (entry.streak === 1 ? ' spin' : ' spinů') + '</span>',
         '</div>',
-        '<b>' + entry.loss + ' Kč</b>',
+        '<b>' + entry.loss.toLocaleString('cs-CZ') + ' Kč</b>',
         '</div>',
       ].join('');
     }).join('');
   }
 }
+
