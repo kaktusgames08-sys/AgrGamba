@@ -1,11 +1,7 @@
 // Local CC0 foley + original synthesized wheel/casino cues. See AUDIO-CREDITS.md.
 const SAMPLES = {
-  tick: 'click_001',
-  foley: 'dice-shake-1',
   chips: 'chips-handle-2',
   drop: 'chips-stack-1',
-  impact: 'chips-collide-1',
-  slide: 'card-slide-1',
   click: 'click_001',
   confirm: 'confirmation_001',
   end: 'bong_001',
@@ -395,19 +391,25 @@ export class AudioManager {
     const s = Math.max(0, Math.min(1, speed));
     const slowWeight = 1 - s;
 
-    const played = this.playSample('tick', {
-      volume: 0.12 + slowWeight * 0.13,
-      playbackRate: 0.88 + s * 0.34,
+    // Pointer-on-peg ratchet: a tiny sharp click plus a lower wooden clack.
+    // Both are synthesized so the wheel never sounds like chips, cards or dice.
+    this.tone({
+      frequency: 1650 + s * 420,
+      slideTo: 860 + s * 260,
+      duration: 0.014 + slowWeight * 0.006,
+      gain: 0.007 + slowWeight * 0.006,
+      type: 'triangle',
+      attack: 0.001,
     });
 
-    if (!played || slowWeight > 0.42) {
+    if (slowWeight > 0.28) {
       this.tone({
-        frequency: 980 + s * 520,
-        slideTo: 620 + s * 180,
-        duration: 0.018 + slowWeight * 0.01,
-        gain: 0.0045 + slowWeight * 0.006,
-        type: 'triangle',
-        attack: 0.0015,
+        frequency: 520 + s * 110,
+        slideTo: 290 + s * 80,
+        duration: 0.022,
+        gain: 0.004 + slowWeight * 0.004,
+        type: 'square',
+        attack: 0.001,
       });
     }
   }
@@ -416,26 +418,35 @@ export class AudioManager {
     this.stopSpinBed(true);
     this.startSpinBed();
 
-    // Low mechanical kick + a tiny layer of local CC0 foley. The foley is
-    // intentionally quiet so the wheel does not sound like cards/chips.
-    this.playSample('foley', { volume: 0.12, playbackRate: 0.72 });
-
+    // Physical wheel launch: cabinet/body thump + a short axle/air lift.
+    // No casino prop samples are used here.
     this.tone({
-      frequency: 86,
-      slideTo: 48,
-      duration: 0.24,
-      gain: 0.072,
+      frequency: 78,
+      slideTo: 43,
+      duration: 0.2,
+      gain: 0.065,
       type: 'sine',
-      attack: 0.003,
+      attack: 0.002,
     });
 
     this.tone({
-      frequency: 310,
-      slideTo: 720,
-      duration: 0.19,
-      gain: 0.018,
+      frequency: 230,
+      slideTo: 520,
+      duration: 0.13,
+      gain: 0.013,
       type: 'triangle',
-      attack: 0.002,
+      attack: 0.0015,
+      delay: 0.015,
+    });
+
+    this.tone({
+      frequency: 980,
+      slideTo: 460,
+      duration: 0.055,
+      gain: 0.006,
+      type: 'triangle',
+      attack: 0.001,
+      delay: 0.02,
     });
   }
 
@@ -466,27 +477,34 @@ export class AudioManager {
   impact(strength = 'normal') {
     const heavy = strength === 'heavy';
 
-    this.playSample('impact', {
-      volume: heavy ? 0.48 : 0.28,
-      playbackRate: heavy ? 0.82 : 0.96,
+    // Final pointer clack + wheel/cabinet body hit. Fully synthesized.
+    this.tone({
+      frequency: heavy ? 1280 : 1460,
+      slideTo: heavy ? 520 : 650,
+      duration: heavy ? 0.055 : 0.042,
+      gain: heavy ? 0.027 : 0.019,
+      type: 'triangle',
+      attack: 0.001,
     });
 
     this.tone({
-      frequency: heavy ? 74 : 105,
-      slideTo: heavy ? 38 : 56,
-      duration: heavy ? 0.28 : 0.19,
-      gain: heavy ? 0.09 : 0.06,
+      frequency: heavy ? 88 : 112,
+      slideTo: heavy ? 42 : 58,
+      duration: heavy ? 0.25 : 0.17,
+      gain: heavy ? 0.082 : 0.052,
       type: 'sine',
       attack: 0.002,
+      delay: 0.008,
     });
 
     this.tone({
-      frequency: heavy ? 520 : 640,
-      slideTo: heavy ? 270 : 390,
-      duration: 0.09,
-      gain: heavy ? 0.028 : 0.018,
-      type: 'triangle',
-      attack: 0.0015,
+      frequency: heavy ? 390 : 470,
+      slideTo: heavy ? 210 : 280,
+      duration: 0.075,
+      gain: heavy ? 0.014 : 0.009,
+      type: 'square',
+      attack: 0.001,
+      delay: 0.004,
     });
   }
 
@@ -552,6 +570,28 @@ export class AudioManager {
     });
   }
 
+  wheelSwitch() {
+    // Quick mechanical sweep used when Hardcore swaps to its multiplier wheel.
+    this.tone({
+      frequency: 180,
+      slideTo: 620,
+      duration: 0.16,
+      gain: 0.018,
+      type: 'triangle',
+      attack: 0.002,
+    });
+
+    this.tone({
+      frequency: 72,
+      slideTo: 50,
+      duration: 0.18,
+      gain: 0.032,
+      type: 'sine',
+      attack: 0.003,
+      delay: 0.05,
+    });
+  }
+
   cashOut() {
     this.playSample('confirm', {
       volume: 0.55,
@@ -609,17 +649,22 @@ export class AudioManager {
 
   preview() {
     this.spinStart();
-    this.spinMotion(0.7);
+    this.spinMotion(0.82);
 
     setTimeout(() => {
-      this.spinMotion(0.2, 0.7);
-    }, 260);
+      this.spinMotion(0.38, 0.35);
+      this.tick(0.38);
+    }, 220);
+
+    setTimeout(() => {
+      this.spinMotion(0.12, 0.8);
+      this.tick(0.12);
+    }, 430);
 
     setTimeout(() => {
       this.stopSpinBed();
       this.impact('normal');
-      this.money(75, 'big');
-    }, 520);
+    }, 650);
   }
 
   setAmbience(value) {

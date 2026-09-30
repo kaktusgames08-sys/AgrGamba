@@ -227,7 +227,7 @@ async function spin() {
       ui.setCenterMode('loss');leds.setMode('idle');
     } else {
       if(session.mode==='hardcore'&&session.state.spinCount===2){
-        app.classList.add('is-wheel-switching');audio.playSample('slide',{volume:0.6});
+        app.classList.add('is-wheel-switching');audio.wheelSwitch();
         await wait(150);wheel.setSegments(session.segments());app.classList.remove('is-wheel-switching');
       }
       ui.setCenterMode('idle',{spins:session.state.spins});ui.setSpinPhase('idle');leds.setMode('idle');
