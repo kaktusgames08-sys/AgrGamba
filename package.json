@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.5.1",
-  "description": "Kolo neštěstí — pure synthesized fortune-wheel mechanics, richer visuals and voluntary series cash-out.",
+  "version": "4.5.2",
+  "description": "Kolo neštěstí — authentic wheel mechanics with stronger slot-style anticipation and reward feedback.",
   "type": "module",
   "scripts": {
     "dev": "vite",
