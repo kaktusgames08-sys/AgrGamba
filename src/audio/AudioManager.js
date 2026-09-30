@@ -657,16 +657,17 @@ export class AudioManager {
     });
   }
 
-  extraSpin() {
-    // Distinct "free spin awarded" cue.
+  extraSpin(delay = 0) {
+    // Distinct "free spin awarded" cue, layered just after the payout reveal.
     this.chimeSequence([1046.5, 1318.51, 1567.98, 2093], {
       duration: 0.12,
       gain: 0.019,
       gap: 0.055,
+      delay,
     });
 
     this.jackpotSparkle({
-      delay: 0.1,
+      delay: delay + 0.1,
       gain: 0.009,
       count: 3,
     });
