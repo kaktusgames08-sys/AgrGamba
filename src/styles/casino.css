@@ -254,3 +254,20 @@ html.obs-mode,body.obs-mode,body.obs-mode #app{background:transparent!important}
     grid-template-columns: 1fr;
   }
 }
+
+
+@media (min-width:981px) and (max-height:860px) {
+  .cashout-button {
+    min-height: 32px;
+    margin-top: 6px;
+    padding-block: 5px;
+  }
+}
+
+@media (min-width:981px) and (max-height:700px) {
+  .cashout-button {
+    min-height: 29px;
+    margin-top: 4px;
+    padding-block: 4px;
+  }
+}
