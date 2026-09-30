@@ -53,3 +53,20 @@ test('starting spins can be configured and survive reset', () => {
   assert.equal(state.spins, 2);
   assert.equal(state.spinCount, 0);
 });
+
+
+test('endEarly closes a resolved live series without adding a fake spin', () => {
+  const state = new GameState(1);
+
+  assert.equal(state.endEarly(), false);
+  state.beginSpin();
+  state.resolve({ type: 'money', value: 40, extraSpins: 1, label: '40 Kč + SPIN' });
+
+  assert.equal(state.spinCount, 1);
+  assert.equal(state.spins, 1);
+  assert.equal(state.endEarly(), true);
+  assert.equal(state.isEnded(), true);
+  assert.equal(state.spins, 0);
+  assert.equal(state.history.length, 1);
+  assert.equal(state.endEarly(), false);
+});
