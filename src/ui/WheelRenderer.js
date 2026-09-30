@@ -8,16 +8,16 @@ import { SPIN_DURATION_MS } from '../core/WheelConfig.js';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const TONES = {
-  amber: ['#dba653', '#96632c'],
-  violet: ['#745591', '#493457'],
-  blue: ['#356781', '#203e56'],
-  red: ['#ff5269', '#b81738'],
-  purple: ['#a159b0', '#643772'],
-  green: ['#347366', '#214b43'],
-  orange: ['#ff8e2e', '#d34016'],
-  cyan: ['#3ee7df', '#158d9b'],
-  pink: ['#ff60bd', '#bc267f'],
-  final: ['#d05563', '#83283b'],
+  amber: ['#f2b64e', '#a76022'],
+  violet: ['#8d5bc6', '#4d2f72'],
+  blue: ['#3d8fc2', '#1e4e72'],
+  red: ['#f35a70', '#a92543'],
+  purple: ['#b65dd1', '#6d347f'],
+  green: ['#3b9f78', '#205d49'],
+  orange: ['#f27b2f', '#a83b1e'],
+  cyan: ['#39c9c5', '#176f7a'],
+  pink: ['#e95aa9', '#94266b'],
+  final: ['#e45a68', '#8d2438'],
 };
 
 function polar(cx, cy, radius, angleDeg) {
