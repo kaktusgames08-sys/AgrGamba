@@ -42,9 +42,9 @@ const wheel=new WheelRenderer({
     ui.microFreeze(phase==='freeze');
   },
 });
-const settingsPanel=new SettingsPanel({manager:settingsManager,onApply:applySettings,canOpen:()=>!busy&&!$('overlay').open&&!$('studioDialog').open});
+const settingsPanel=new SettingsPanel({manager:settingsManager,onApply:applySettings,canOpen:()=>!busy&&!$('overlay').open&&!$('studioDialog').open&&!$('cashoutDialog').open});
 const studio=new StudioPanel(session,{
-  isBusy:()=>busy,canOpen:()=>!busy&&!settingsPanel.isOpen(),onRefresh:renderExtras,
+  isBusy:()=>busy,canOpen:()=>!busy&&!settingsPanel.isOpen()&&!$('cashoutDialog').open,onRefresh:renderExtras,
   onRestart:restart,onNext:nextPlayer,onApply:applySettings,onResult:showResult,onCloseResult:()=>ui.hideFinal(),
 });
 
@@ -79,6 +79,11 @@ function renderExtras() {
   $('spinButton').disabled=busy;
   $('spinButton').classList.toggle('is-busy',busy);
   $('spinButton').querySelector('.spin-button__text').textContent=busy?'TOČÍME…':session.state.isEnded()?'VÝSLEDEK SÉRIE':'ROZTOČIT';
+  const canCashOut=!hardcore&&session.state.spinCount>0&&!session.state.isEnded();
+  $('cashoutButton').hidden=!canCashOut;
+  $('cashoutButton').disabled=busy||!canCashOut;
+  $('cashoutAmount').textContent=ui.formatMoney(session.state.total);
+  $('cashoutConfirmAmount').textContent=ui.formatMoney(session.state.total);
   $('nextPlayerButton').disabled=busy;
   $('restartButton').disabled=busy;
 }
@@ -108,6 +113,58 @@ function syncNewRun() {
 function restart() {if(busy||!session.restart())return;audio.click();syncNewRun();}
 function nextPlayer() {if(busy||!session.nextPlayer())return;audio.click();syncNewRun();}
 function setMode(mode) {if(busy)return;if(!session.setMode(mode)){toast('Režim přepneš po dokončení série.');return;}audio.click();syncNewRun();}
+
+function canCashOut() {
+  return !busy
+    && session.mode !== 'hardcore'
+    && session.state.spinCount > 0
+    && !session.state.isEnded()
+    && session.state.phase === 'ready';
+}
+
+function openCashOut() {
+  if (!canCashOut()) return;
+  audio.click();
+  $('cashoutConfirmAmount').textContent=ui.formatMoney(session.state.total);
+  if(!$('cashoutDialog').open)$('cashoutDialog').showModal();
+  $('confirmCashoutButton').focus({preventScroll:true});
+}
+
+async function confirmCashOut() {
+  if (!canCashOut()) {
+    if($('cashoutDialog').open)$('cashoutDialog').close();
+    return;
+  }
+
+  if($('cashoutDialog').open)$('cashoutDialog').close();
+  const run=session.manualFinish();
+  if(!run)return;
+
+  busy=true;ui.setBusy(true);renderExtras();
+  ui.hideResult();ui.microFreeze(false);ui.renderState(session.state);
+  ui.setStatus('SÉRIE UKONČENA HRÁČEM','ready');
+  ui.setCenterMode('loss');leds.setMode('idle');
+  audio.cashOut();
+
+  if(!reduced.matches){
+    particles.screenFlash('normal');
+    particles.burst({count:38,intense:false});
+    await piggy.explode(session.state.total);
+  } else {
+    piggy.setTotal(session.state.total);
+    $('piggyFinal').classList.add('is-visible');
+    $('piggyFinal').setAttribute('aria-hidden','false');
+    $('piggyFinalAmount').textContent=ui.formatMoney(session.state.total);
+    app.classList.add('is-piggy-finale');
+  }
+
+  busy=false;ui.setBusy(false);renderExtras();
+  if(session.rank(run)===1)audio.milestone();
+  await showResult({animate:true});
+
+  if(!session.storageAvailable)toast('Prohlížeč nepovolil uložení. Stáhni si zálohu v archivu.');
+}
+
 async function showResult({animate=false}={}) {
   const run=session.result();if(!run||busy)return;
   studio.fillResult(run);
@@ -125,7 +182,7 @@ function milestone(before,after,previousRecord) {
   audio.milestone();clearTimeout(milestoneTimer);milestoneTimer=setTimeout(()=>$('milestoneBanner').classList.remove('is-visible'),2700);
 }
 async function spin() {
-  if(busy||settingsPanel.isOpen()||$('studioDialog').open||$('overlay').open)return;
+  if(busy||settingsPanel.isOpen()||$('studioDialog').open||$('overlay').open||$('cashoutDialog').open)return;
   if(session.state.isEnded()){showResult();return;}
   let record;
   const token=++spinToken;
@@ -195,6 +252,9 @@ async function spin() {
 }
 
 $('spinButton').addEventListener('click',spin);
+$('cashoutButton').addEventListener('click',openCashOut);
+$('cancelCashoutButton').addEventListener('click',()=>$('cashoutDialog').close());
+$('confirmCashoutButton').addEventListener('click',confirmCashOut);
 $('restartButton').addEventListener('click',restart);
 $('normalButton').addEventListener('click',()=>setMode('normal'));
 $('hardcoreButton').addEventListener('click',()=>setMode('hardcore'));
@@ -219,6 +279,7 @@ document.addEventListener('keydown',event=>{
     if(event.target.closest('button')&&event.target!==$('spinButton'))return;
     event.preventDefault();spin();
   }else if(key==='r'&&session.state.isEnded())restart();
+  else if(key==='e'&&canCashOut())openCashOut();
   else if(key==='h')setMode(session.mode==='hardcore'?'normal':'hardcore');
   else if(key==='m')ui.setMuted(audio.toggle());
   else if(key==='s')settingsPanel.open();
