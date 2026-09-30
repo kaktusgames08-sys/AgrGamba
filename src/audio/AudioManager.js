@@ -182,7 +182,7 @@ export class AudioManager {
   }
 
   track(source, gain) {
-    while (this.voices.size >= 16) {
+    while (this.voices.size >= 24) {
       const oldest = this.voices.values().next().value;
       this.voices.delete(oldest);
 
@@ -372,6 +372,44 @@ export class AudioManager {
     }
   }
 
+  chimeSequence(notes, {
+    duration = 0.16,
+    gain = 0.025,
+    gap = 0.055,
+    type = 'triangle',
+    delay = 0,
+  } = {}) {
+    notes.forEach((frequency, index) => {
+      this.tone({
+        frequency,
+        duration,
+        gain,
+        delay: delay + index * gap,
+        type,
+        attack: 0.0015,
+      });
+    });
+  }
+
+  jackpotSparkle({
+    delay = 0,
+    gain = 0.018,
+    count = 5,
+  } = {}) {
+    const notes = [1046.5, 1318.51, 1567.98, 2093, 2637.02, 3135.96];
+
+    for (let i = 0; i < count; i += 1) {
+      this.tone({
+        frequency: notes[i % notes.length],
+        duration: 0.11 + i * 0.012,
+        gain: Math.max(0.006, gain - i * 0.0015),
+        delay: delay + i * 0.055,
+        type: i % 2 ? 'sine' : 'triangle',
+        attack: 0.001,
+      });
+    }
+  }
+
   click() {
     if (!this.playSample('click', { volume: 0.32 })) {
       this.tone({
@@ -418,8 +456,8 @@ export class AudioManager {
     this.stopSpinBed(true);
     this.startSpinBed();
 
-    // Physical wheel launch: cabinet/body thump + a short axle/air lift.
-    // No casino prop samples are used here.
+    // Physical wheel launch stays present, but a very short bright casino cue
+    // gives the button press an immediate "machine started" reward.
     this.tone({
       frequency: 78,
       slideTo: 43,
@@ -439,39 +477,57 @@ export class AudioManager {
       delay: 0.015,
     });
 
+    this.chimeSequence([659.25, 987.77], {
+      duration: 0.09,
+      gain: 0.016,
+      gap: 0.045,
+      delay: 0.015,
+    });
+
     this.tone({
-      frequency: 980,
-      slideTo: 460,
-      duration: 0.055,
-      gain: 0.006,
-      type: 'triangle',
-      attack: 0.001,
-      delay: 0.02,
+      frequency: 132,
+      slideTo: 196,
+      duration: 0.42,
+      gain: 0.018,
+      type: 'sine',
+      attack: 0.01,
+      delay: 0.04,
     });
   }
 
   anticipation(stage = 1) {
     const index = Math.max(0, Math.min(2, stage - 1));
-    const low = [110, 138.59, 164.81][index];
-    const high = [440, 523.25, 659.25][index];
+    const roots = [146.83, 164.81, 196];
+    const root = roots[index];
+    const bright = [
+      [587.33, 698.46],
+      [659.25, 783.99, 987.77],
+      [783.99, 987.77, 1174.66, 1318.51],
+    ][index];
 
     this.tone({
-      frequency: low,
-      slideTo: low * 1.18,
-      duration: 0.34,
-      gain: 0.026 + index * 0.003,
+      frequency: root,
+      slideTo: root * (1.22 + index * 0.04),
+      duration: 0.42,
+      gain: 0.025 + index * 0.004,
       type: 'sine',
-      attack: 0.01,
+      attack: 0.012,
     });
 
-    this.tone({
-      frequency: high,
+    this.chimeSequence(bright, {
       duration: 0.09,
-      gain: 0.009 + index * 0.002,
-      type: 'triangle',
-      delay: 0.06,
-      attack: 0.002,
+      gain: 0.009 + index * 0.0015,
+      gap: Math.max(0.045, 0.07 - index * 0.012),
+      delay: 0.055,
     });
+
+    if (index === 2) {
+      this.jackpotSparkle({
+        delay: 0.17,
+        gain: 0.009,
+        count: 3,
+      });
+    }
   }
 
   impact(strength = 'normal') {
@@ -509,64 +565,110 @@ export class AudioManager {
   }
 
   money(value, tier = 'small') {
+    // Chips stay subtle as payout texture; the dominant layer is now a
+    // bright slot-style credit win motif.
     this.playSample('chips', {
-      volume: tier === 'big' ? 0.72 : tier === 'medium' ? 0.52 : 0.36,
-      playbackRate: tier === 'big' ? 0.96 : 1,
+      volume: tier === 'big' ? 0.34 : tier === 'medium' ? 0.24 : 0.16,
+      playbackRate: tier === 'big' ? 1.04 : 1.08,
     });
 
-    const notes = tier === 'big'
-      ? [523.25, 659.25, 783.99, 1046.5]
-      : tier === 'medium'
-        ? [523.25, 659.25, 783.99]
-        : [523.25, 659.25];
+    if (tier === 'big') {
+      this.chimeSequence(
+        [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98],
+        {
+          duration: 0.24,
+          gain: 0.037,
+          gap: 0.07,
+        },
+      );
 
-    notes.forEach((frequency, index) => {
-      this.tone({
-        frequency,
-        duration: tier === 'big' ? 0.3 : 0.22,
-        gain: tier === 'big' ? 0.038 : 0.028,
-        delay: index * 0.075,
-        type: index % 2 ? 'sine' : 'triangle',
+      this.jackpotSparkle({
+        delay: 0.18,
+        gain: 0.018,
+        count: 6,
       });
-    });
+
+      this.tone({
+        frequency: 98,
+        slideTo: 65,
+        duration: 0.36,
+        gain: 0.047,
+        type: 'sine',
+        attack: 0.003,
+      });
+    } else if (tier === 'medium') {
+      this.chimeSequence([523.25, 659.25, 783.99, 1046.5], {
+        duration: 0.19,
+        gain: 0.03,
+        gap: 0.065,
+      });
+
+      this.jackpotSparkle({
+        delay: 0.13,
+        gain: 0.011,
+        count: 3,
+      });
+    } else {
+      this.chimeSequence([659.25, 987.77, 1318.51], {
+        duration: 0.13,
+        gain: 0.023,
+        gap: 0.055,
+      });
+    }
 
     this.playSample('drop', {
-      volume: tier === 'big' ? 0.42 : 0.3,
-      delay: 0.19,
-      playbackRate: value >= 75 ? 1.04 : 0.98,
+      volume: tier === 'big' ? 0.3 : 0.19,
+      delay: tier === 'big' ? 0.34 : 0.22,
+      playbackRate: value >= 75 ? 1.1 : 1.04,
     });
   }
 
   multiplier(value = 2) {
-    const notes = value >= 2
-      ? [392, 523.25, 659.25, 783.99, 1046.5]
-      : [392, 523.25, 659.25];
+    const huge = value >= 2;
+    const notes = huge
+      ? [392, 523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98]
+      : [392, 493.88, 587.33, 783.99, 987.77];
 
-    notes.forEach((frequency, index) => {
-      this.tone({
-        frequency,
-        duration: 0.38,
-        gain: 0.042,
-        delay: index * 0.095,
-        type: index % 2 ? 'sine' : 'triangle',
-      });
+    this.chimeSequence(notes, {
+      duration: huge ? 0.3 : 0.22,
+      gain: huge ? 0.041 : 0.031,
+      gap: huge ? 0.075 : 0.068,
+    });
+
+    this.tone({
+      frequency: huge ? 82.41 : 110,
+      slideTo: huge ? 55 : 73,
+      duration: 0.42,
+      gain: huge ? 0.058 : 0.036,
+      type: 'sine',
+      attack: 0.003,
+    });
+
+    this.jackpotSparkle({
+      delay: huge ? 0.24 : 0.18,
+      gain: huge ? 0.019 : 0.012,
+      count: huge ? 6 : 4,
     });
 
     this.playSample('confirm', {
-      volume: 0.52,
-      delay: 0.24,
-      playbackRate: value >= 2 ? 1.12 : 0.94,
+      volume: huge ? 0.42 : 0.3,
+      delay: huge ? 0.31 : 0.24,
+      playbackRate: huge ? 1.16 : 1.04,
     });
   }
 
   extraSpin() {
-    this.tone({
-      frequency: 1046.5,
-      slideTo: 1318.5,
-      duration: 0.11,
+    // Distinct "free spin awarded" cue.
+    this.chimeSequence([1046.5, 1318.51, 1567.98, 2093], {
+      duration: 0.12,
       gain: 0.019,
-      type: 'triangle',
-      attack: 0.002,
+      gap: 0.055,
+    });
+
+    this.jackpotSparkle({
+      delay: 0.1,
+      gain: 0.009,
+      count: 3,
     });
   }
 
@@ -637,34 +739,59 @@ export class AudioManager {
   }
 
   milestone() {
-    [523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => {
-      this.tone({
-        frequency,
-        duration: 0.6,
-        gain: 0.038,
-        delay: index * 0.13,
-      });
+    this.tone({
+      frequency: 73.42,
+      slideTo: 49,
+      duration: 0.52,
+      gain: 0.067,
+      type: 'sine',
+      attack: 0.003,
+    });
+
+    this.chimeSequence(
+      [392, 523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98, 2093],
+      {
+        duration: 0.38,
+        gain: 0.044,
+        gap: 0.085,
+      },
+    );
+
+    this.jackpotSparkle({
+      delay: 0.26,
+      gain: 0.023,
+      count: 6,
     });
   }
 
   preview() {
     this.spinStart();
-    this.spinMotion(0.82);
+    this.spinMotion(0.88);
 
     setTimeout(() => {
-      this.spinMotion(0.38, 0.35);
-      this.tick(0.38);
-    }, 220);
+      this.anticipation(1);
+      this.spinMotion(0.48, 0.3);
+      this.tick(0.48);
+    }, 260);
 
     setTimeout(() => {
-      this.spinMotion(0.12, 0.8);
-      this.tick(0.12);
-    }, 430);
+      this.anticipation(2);
+      this.spinMotion(0.25, 0.62);
+      this.tick(0.25);
+    }, 520);
+
+    setTimeout(() => {
+      this.anticipation(3);
+      this.spinMotion(0.09, 0.95);
+      this.tick(0.09);
+    }, 780);
 
     setTimeout(() => {
       this.stopSpinBed();
-      this.impact('normal');
-    }, 650);
+      this.impact('heavy');
+      this.money(100, 'big');
+      this.extraSpin();
+    }, 1040);
   }
 
   setAmbience(value) {
