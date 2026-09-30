@@ -59,7 +59,11 @@ export class StudioPanel {
     if(!run)return;
     const rank=this.session.rank(run);
     $('resultPlayer').textContent=run.name;
-    $('resultTitle').textContent=rank===1?'NOVÝ VRCHOL ŽEBŘÍČKU':'SÉRIE JE U KONCE';
+    $('resultTitle').textContent=run.endedBy==='manual'
+      ? 'UKONČENO HRÁČEM'
+      : rank===1
+        ? 'NOVÝ VRCHOL ŽEBŘÍČKU'
+        : 'SÉRIE JE U KONCE';
     $('resultRank').textContent=(rank<=3?'♛ ':'')+rank+'. místo · '+MODES[run.mode];
     $('resultSpins').textContent=run.streak;
     $('resultMultipliers').textContent=run.multipliers;
@@ -70,7 +74,8 @@ export class StudioPanel {
   }
   async copyResult() {
     const run=this.session.result();if(!run)return;
-    const text=run.name+' — '+money(run.loss)+' — '+run.streak+' spinů — '+MODES[run.mode]+' | Kolo neštěstí';
+    const ending=run.endedBy==='manual'?' — ukončeno hráčem':'';
+    const text=run.name+' — '+money(run.loss)+' — '+run.streak+' spinů — '+MODES[run.mode]+ending+' | Kolo neštěstí';
     try {await navigator.clipboard.writeText(text);toast('Výsledek zkopírován.');}
     catch {toast('Kopírování není dostupné. Výsledek můžeš uložit jako obrázek.');}
   }

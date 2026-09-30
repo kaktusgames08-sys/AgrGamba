@@ -1,14 +1,32 @@
-// Local CC0 foley + original synthesized musical cues. See AUDIO-CREDITS.md.
+// Local CC0 foley + original synthesized wheel/casino cues. See AUDIO-CREDITS.md.
 const SAMPLES = {
-  tick:'chip-lay-1', chips:'chips-handle-2', drop:'chips-stack-1',
-  impact:'chips-collide-1', sweep:'card-fan-1', slide:'card-slide-1',
-  click:'click_001', confirm:'confirmation_001', end:'bong_001',
+  tick: 'click_001',
+  foley: 'dice-shake-1',
+  chips: 'chips-handle-2',
+  drop: 'chips-stack-1',
+  impact: 'chips-collide-1',
+  slide: 'card-slide-1',
+  click: 'click_001',
+  confirm: 'confirmation_001',
+  end: 'bong_001',
 };
+
 const BASE = import.meta.env?.BASE_URL ?? '/';
-function safeStorage() { try { return globalThis.localStorage; } catch { return null; } }
+
+function safeStorage() {
+  try {
+    return globalThis.localStorage;
+  } catch {
+    return null;
+  }
+}
 
 export class AudioManager {
-  constructor({storage = safeStorage(), contextFactory, fetcher = globalThis.fetch?.bind(globalThis)} = {}) {
+  constructor({
+    storage = safeStorage(),
+    contextFactory,
+    fetcher = globalThis.fetch?.bind(globalThis),
+  } = {}) {
     this.storage = storage;
     this.contextFactory = contextFactory ?? (() => {
       const Context = globalThis.AudioContext ?? globalThis.webkitAudioContext;
@@ -25,173 +43,631 @@ export class AudioManager {
     this.ambient = [];
     this.loading = false;
     this.lastTick = 0;
-    try { this.muted = storage?.getItem('wheel-muted') === '1'; } catch { /* optional storage */ }
+    this.spinNoiseBuffer = null;
+    this.spinBed = null;
+
+    try {
+      this.muted = storage?.getItem('wheel-muted') === '1';
+    } catch {
+      // Optional storage.
+    }
   }
 
   ensure() {
     if (this.muted) return null;
+
     try {
       if (!this.ctx) {
         this.ctx = this.contextFactory();
         if (!this.ctx) return null;
+
         this.master = this.ctx.createGain();
         const compressor = this.ctx.createDynamicsCompressor();
-        compressor.threshold.value = -16;
-        compressor.knee.value = 16;
-        compressor.ratio.value = 5;
-        compressor.attack.value = 0.004;
-        compressor.release.value = 0.15;
+        compressor.threshold.value = -18;
+        compressor.knee.value = 12;
+        compressor.ratio.value = 6;
+        compressor.attack.value = 0.003;
+        compressor.release.value = 0.12;
+
         this.master.gain.value = this.masterVolume;
         this.master.connect(compressor).connect(this.ctx.destination);
+
+        this.spinNoiseBuffer = this.createSpinNoiseBuffer();
         this.loadSamples();
         this.startAmbience();
       }
-      if (this.ctx.state === 'suspended') this.ctx.resume()?.catch?.(() => {});
+
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume()?.catch?.(() => {});
+      }
+
       return this.ctx;
-    } catch { return null; }
+    } catch {
+      return null;
+    }
+  }
+
+  createSpinNoiseBuffer() {
+    if (!this.ctx?.createBuffer) return null;
+
+    try {
+      const sampleRate = Number(this.ctx.sampleRate) || 44100;
+      const length = Math.max(1, Math.floor(sampleRate * 0.8));
+      const buffer = this.ctx.createBuffer(1, length, sampleRate);
+      const data = buffer.getChannelData(0);
+      let previous = 0;
+
+      for (let i = 0; i < data.length; i += 1) {
+        const white = Math.random() * 2 - 1;
+        previous = previous * 0.86 + white * 0.14;
+        data[i] = previous * 0.72;
+      }
+
+      return buffer;
+    } catch {
+      return null;
+    }
   }
 
   async loadSamples() {
     if (this.loading || !this.fetcher || !this.ctx) return;
     this.loading = true;
-    await Promise.allSettled(Object.entries(SAMPLES).map(async ([key,name]) => {
-      const response = await this.fetcher(BASE + 'audio/' + name + '.ogg');
-      if (!response.ok) return;
-      const buffer = await this.ctx.decodeAudioData(await response.arrayBuffer());
-      this.buffers.set(key,buffer);
-    }));
+
+    await Promise.allSettled(
+      Object.entries(SAMPLES).map(async ([key, name]) => {
+        const response = await this.fetcher(BASE + 'audio/' + name + '.ogg');
+        if (!response.ok) return;
+
+        const buffer = await this.ctx.decodeAudioData(await response.arrayBuffer());
+        this.buffers.set(key, buffer);
+      }),
+    );
   }
 
   configure(settings) {
     this.setMasterVolume(settings.masterVolume);
     this.setAmbience(settings.ambienceVolume ?? 0);
   }
+
   setMasterVolume(value) {
-    this.masterVolume = Math.max(0,Math.min(1,Number(value)||0));
-    if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : this.masterVolume,this.ctx.currentTime,0.02);
+    this.masterVolume = Math.max(0, Math.min(1, Number(value) || 0));
+
+    if (this.master) {
+      this.master.gain.setTargetAtTime(
+        this.muted ? 0 : this.masterVolume,
+        this.ctx.currentTime,
+        0.02,
+      );
+    }
+
     return this.masterVolume;
   }
+
   setMuted(value) {
-    this.muted = !!value;
+    this.muted = Boolean(value);
+
     if (this.muted) this.silence();
     else if (this.ctx) this.startAmbience();
-    if (this.master) this.master.gain.setTargetAtTime(this.muted ? 0 : this.masterVolume,this.ctx.currentTime,0.008);
-    try { this.storage?.setItem('wheel-muted',this.muted ? '1' : '0'); } catch { /* optional storage */ }
+
+    if (this.master) {
+      this.master.gain.setTargetAtTime(
+        this.muted ? 0 : this.masterVolume,
+        this.ctx.currentTime,
+        0.008,
+      );
+    }
+
+    try {
+      this.storage?.setItem('wheel-muted', this.muted ? '1' : '0');
+    } catch {
+      // Optional storage.
+    }
+
     return this.muted;
   }
-  toggle() { return this.setMuted(!this.muted); }
+
+  toggle() {
+    return this.setMuted(!this.muted);
+  }
+
   silence() {
-    for (const source of [...this.voices]) { try { source.stop(); } catch { /* already ended */ } }
+    this.stopSpinBed(true);
+
+    for (const source of [...this.voices]) {
+      try {
+        source.stop();
+      } catch {
+        // Already ended.
+      }
+    }
+
     this.voices.clear();
     this.stopAmbience();
   }
+
   track(source, gain) {
     while (this.voices.size >= 16) {
       const oldest = this.voices.values().next().value;
       this.voices.delete(oldest);
-      try { oldest.stop(); } catch { /* already ended */ }
+
+      try {
+        oldest.stop();
+      } catch {
+        // Already ended.
+      }
     }
+
     this.voices.add(source);
-    source.onended = () => { this.voices.delete(source); source.disconnect(); gain.disconnect(); };
+    source.onended = () => {
+      this.voices.delete(source);
+      source.disconnect();
+      gain.disconnect();
+    };
   }
-  tone({frequency=440,duration=0.14,gain=0.05,type='sine',slideTo=null,attack=0.008,delay=0} = {}) {
+
+  tone({
+    frequency = 440,
+    duration = 0.14,
+    gain = 0.05,
+    type = 'sine',
+    slideTo = null,
+    attack = 0.008,
+    delay = 0,
+  } = {}) {
     const ctx = this.ensure();
     if (!ctx || this.masterVolume <= 0) return;
+
     try {
       const osc = ctx.createOscillator();
       const amp = ctx.createGain();
       const now = ctx.currentTime + delay;
+
       osc.type = type;
-      osc.frequency.setValueAtTime(frequency,now);
-      if (slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1,slideTo),now+duration);
-      amp.gain.setValueAtTime(0.0001,now);
-      amp.gain.exponentialRampToValueAtTime(Math.max(0.0001,gain),now+Math.min(attack,duration/2));
-      amp.gain.exponentialRampToValueAtTime(0.0001,now+duration);
+      osc.frequency.setValueAtTime(frequency, now);
+
+      if (slideTo) {
+        osc.frequency.exponentialRampToValueAtTime(
+          Math.max(1, slideTo),
+          now + duration,
+        );
+      }
+
+      amp.gain.setValueAtTime(0.0001, now);
+      amp.gain.exponentialRampToValueAtTime(
+        Math.max(0.0001, gain),
+        now + Math.min(attack, duration / 2),
+      );
+      amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+
       osc.connect(amp).connect(this.master);
-      this.track(osc,amp);
+      this.track(osc, amp);
       osc.start(now);
-      osc.stop(now+duration+0.03);
-    } catch { /* Audio must never interrupt a draw. */ }
+      osc.stop(now + duration + 0.03);
+    } catch {
+      // Audio must never interrupt a draw.
+    }
   }
-  playSample(name,{volume=0.4,playbackRate=1,delay=0} = {}) {
+
+  playSample(name, {
+    volume = 0.4,
+    playbackRate = 1,
+    delay = 0,
+  } = {}) {
     const ctx = this.ensure();
     const buffer = this.buffers.get(name);
+
     if (!ctx || !buffer || this.masterVolume <= 0) return false;
+
     try {
       const source = ctx.createBufferSource();
       const gain = ctx.createGain();
+
       source.buffer = buffer;
       source.playbackRate.value = playbackRate;
       gain.gain.value = volume;
+
       source.connect(gain).connect(this.master);
-      this.track(source,gain);
-      source.start(ctx.currentTime+delay);
+      this.track(source, gain);
+      source.start(ctx.currentTime + delay);
       return true;
-    } catch { return false; }
+    } catch {
+      return false;
+    }
   }
-  click() { if (!this.playSample('click',{volume:0.35})) this.tone({frequency:480,duration:0.035,gain:0.025}); }
-  tick(speed=1) {
+
+  startSpinBed() {
+    const ctx = this.ensure();
+
+    if (
+      !ctx
+      || this.spinBed
+      || !this.spinNoiseBuffer
+      || typeof ctx.createBufferSource !== 'function'
+      || typeof ctx.createBiquadFilter !== 'function'
+    ) {
+      return;
+    }
+
+    try {
+      const source = ctx.createBufferSource();
+      const filter = ctx.createBiquadFilter();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+
+      source.buffer = this.spinNoiseBuffer;
+      source.loop = true;
+      source.playbackRate.value = 0.78;
+
+      filter.type = 'bandpass';
+      filter.frequency.value = 680;
+      filter.Q.value = 0.72;
+
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.012, now + 0.08);
+
+      source.connect(filter).connect(gain).connect(this.master);
+      this.spinBed = { source, filter, gain };
+
+      source.onended = () => {
+        if (this.spinBed?.source === source) this.spinBed = null;
+
+        try {
+          source.disconnect();
+          filter.disconnect();
+          gain.disconnect();
+        } catch {
+          // Already disconnected.
+        }
+      };
+
+      source.start(now);
+    } catch {
+      this.spinBed = null;
+    }
+  }
+
+  spinMotion(speed = 1, anticipation = 0) {
+    const bed = this.spinBed;
+    if (!bed || !this.ctx) return;
+
+    const s = Math.max(0, Math.min(1, Number(speed) || 0));
+    const tension = Math.max(0, Math.min(1, Number(anticipation) || 0));
+    const now = this.ctx.currentTime;
+
+    try {
+      bed.source.playbackRate.setTargetAtTime(0.55 + s * 0.65, now, 0.04);
+      bed.filter.frequency.setTargetAtTime(
+        260 + s * 1450 + tension * 180,
+        now,
+        0.04,
+      );
+      bed.gain.gain.setTargetAtTime(
+        0.0035 + s * 0.015 + tension * 0.002,
+        now,
+        0.045,
+      );
+    } catch {
+      // A browser may dispose the source during visibility changes.
+    }
+  }
+
+  stopSpinBed(immediate = false) {
+    const bed = this.spinBed;
+    if (!bed || !this.ctx) return;
+
+    this.spinBed = null;
+
+    try {
+      const now = this.ctx.currentTime;
+
+      if (immediate) {
+        bed.source.stop();
+      } else {
+        bed.gain.gain.cancelScheduledValues(now);
+        bed.gain.gain.setValueAtTime(
+          Math.max(0.0001, Number(bed.gain.gain.value) || 0.0001),
+          now,
+        );
+        bed.gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.11);
+        bed.source.stop(now + 0.13);
+      }
+    } catch {
+      // Already stopped.
+    }
+  }
+
+  click() {
+    if (!this.playSample('click', { volume: 0.32 })) {
+      this.tone({
+        frequency: 520,
+        duration: 0.035,
+        gain: 0.024,
+        type: 'triangle',
+      });
+    }
+  }
+
+  tick(speed = 1) {
     const now = performance.now();
-    if (now-this.lastTick<38) return;
-    this.lastTick=now;
-    const s=Math.max(0,Math.min(1,speed));
-    if (!this.playSample('tick',{volume:0.12+s*0.05,playbackRate:0.9+s*0.5}))
-      this.tone({frequency:840+s*520,duration:0.025,gain:0.018,type:'triangle',slideTo:510});
+    if (now - this.lastTick < 34) return;
+
+    this.lastTick = now;
+    const s = Math.max(0, Math.min(1, speed));
+    const slowWeight = 1 - s;
+
+    const played = this.playSample('tick', {
+      volume: 0.12 + slowWeight * 0.13,
+      playbackRate: 0.88 + s * 0.34,
+    });
+
+    if (!played || slowWeight > 0.42) {
+      this.tone({
+        frequency: 980 + s * 520,
+        slideTo: 620 + s * 180,
+        duration: 0.018 + slowWeight * 0.01,
+        gain: 0.0045 + slowWeight * 0.006,
+        type: 'triangle',
+        attack: 0.0015,
+      });
+    }
   }
+
   spinStart() {
-    this.playSample('sweep',{volume:0.5});
-    this.tone({frequency:160,slideTo:480,duration:0.28,gain:0.028,type:'triangle'});
+    this.stopSpinBed(true);
+    this.startSpinBed();
+
+    // Low mechanical kick + a tiny layer of local CC0 foley. The foley is
+    // intentionally quiet so the wheel does not sound like cards/chips.
+    this.playSample('foley', { volume: 0.12, playbackRate: 0.72 });
+
+    this.tone({
+      frequency: 86,
+      slideTo: 48,
+      duration: 0.24,
+      gain: 0.072,
+      type: 'sine',
+      attack: 0.003,
+    });
+
+    this.tone({
+      frequency: 310,
+      slideTo: 720,
+      duration: 0.19,
+      gain: 0.018,
+      type: 'triangle',
+      attack: 0.002,
+    });
   }
-  anticipation(stage=1) {
-    const pitch=[196,246.94,293.66][Math.min(2,stage-1)];
-    this.tone({frequency:pitch,duration:0.3,gain:0.018});
-    this.tone({frequency:pitch*2,duration:0.22,gain:0.012,delay:0.08});
+
+  anticipation(stage = 1) {
+    const index = Math.max(0, Math.min(2, stage - 1));
+    const low = [110, 138.59, 164.81][index];
+    const high = [440, 523.25, 659.25][index];
+
+    this.tone({
+      frequency: low,
+      slideTo: low * 1.18,
+      duration: 0.34,
+      gain: 0.026 + index * 0.003,
+      type: 'sine',
+      attack: 0.01,
+    });
+
+    this.tone({
+      frequency: high,
+      duration: 0.09,
+      gain: 0.009 + index * 0.002,
+      type: 'triangle',
+      delay: 0.06,
+      attack: 0.002,
+    });
   }
-  impact(strength='normal') {
-    this.playSample('impact',{volume:strength==='heavy'?0.7:0.4});
-    this.tone({frequency:strength==='heavy'?95:160,slideTo:55,duration:0.16,gain:0.055});
+
+  impact(strength = 'normal') {
+    const heavy = strength === 'heavy';
+
+    this.playSample('impact', {
+      volume: heavy ? 0.48 : 0.28,
+      playbackRate: heavy ? 0.82 : 0.96,
+    });
+
+    this.tone({
+      frequency: heavy ? 74 : 105,
+      slideTo: heavy ? 38 : 56,
+      duration: heavy ? 0.28 : 0.19,
+      gain: heavy ? 0.09 : 0.06,
+      type: 'sine',
+      attack: 0.002,
+    });
+
+    this.tone({
+      frequency: heavy ? 520 : 640,
+      slideTo: heavy ? 270 : 390,
+      duration: 0.09,
+      gain: heavy ? 0.028 : 0.018,
+      type: 'triangle',
+      attack: 0.0015,
+    });
   }
-  money(value,tier='small') {
-    this.playSample('chips',{volume:tier==='big'?0.7:0.4});
-    const notes=tier==='big'?[523.25,659.25,783.99]:tier==='medium'?[523.25,659.25]:[523.25];
-    notes.forEach((frequency,i)=>this.tone({frequency,duration:0.25,gain:0.035,delay:i*0.09}));
-    this.playSample('drop',{volume:0.35,delay:0.23});
+
+  money(value, tier = 'small') {
+    this.playSample('chips', {
+      volume: tier === 'big' ? 0.72 : tier === 'medium' ? 0.52 : 0.36,
+      playbackRate: tier === 'big' ? 0.96 : 1,
+    });
+
+    const notes = tier === 'big'
+      ? [523.25, 659.25, 783.99, 1046.5]
+      : tier === 'medium'
+        ? [523.25, 659.25, 783.99]
+        : [523.25, 659.25];
+
+    notes.forEach((frequency, index) => {
+      this.tone({
+        frequency,
+        duration: tier === 'big' ? 0.3 : 0.22,
+        gain: tier === 'big' ? 0.038 : 0.028,
+        delay: index * 0.075,
+        type: index % 2 ? 'sine' : 'triangle',
+      });
+    });
+
+    this.playSample('drop', {
+      volume: tier === 'big' ? 0.42 : 0.3,
+      delay: 0.19,
+      playbackRate: value >= 75 ? 1.04 : 0.98,
+    });
   }
-  multiplier(value=2) {
-    [392,523.25,659.25,783.99].forEach((frequency,i)=>this.tone({frequency,duration:0.38,gain:0.042,delay:i*0.12,type:'triangle'}));
-    this.playSample('confirm',{volume:0.5,delay:0.3,playbackRate:value>=2?1.1:0.9});
+
+  multiplier(value = 2) {
+    const notes = value >= 2
+      ? [392, 523.25, 659.25, 783.99, 1046.5]
+      : [392, 523.25, 659.25];
+
+    notes.forEach((frequency, index) => {
+      this.tone({
+        frequency,
+        duration: 0.38,
+        gain: 0.042,
+        delay: index * 0.095,
+        type: index % 2 ? 'sine' : 'triangle',
+      });
+    });
+
+    this.playSample('confirm', {
+      volume: 0.52,
+      delay: 0.24,
+      playbackRate: value >= 2 ? 1.12 : 0.94,
+    });
   }
-  extraSpin() { this.tone({frequency:1046.5,duration:0.08,gain:0.015}); }
+
+  extraSpin() {
+    this.tone({
+      frequency: 1046.5,
+      slideTo: 1318.5,
+      duration: 0.11,
+      gain: 0.019,
+      type: 'triangle',
+      attack: 0.002,
+    });
+  }
+
+  cashOut() {
+    this.playSample('confirm', {
+      volume: 0.55,
+      playbackRate: 0.94,
+    });
+
+    [392, 523.25, 659.25].forEach((frequency, index) => {
+      this.tone({
+        frequency,
+        duration: 0.42,
+        gain: 0.035,
+        delay: index * 0.09,
+        type: index === 0 ? 'triangle' : 'sine',
+      });
+    });
+
+    this.tone({
+      frequency: 92,
+      slideTo: 64,
+      duration: 0.32,
+      gain: 0.04,
+      type: 'sine',
+    });
+  }
+
   lossFinale() {
-    this.playSample('end',{volume:0.65});
-    [220,174.61,130.81].forEach((frequency,i)=>this.tone({frequency,duration:0.65,gain:0.045,delay:i*0.16}));
+    this.playSample('end', {
+      volume: 0.72,
+      playbackRate: 0.9,
+    });
+
+    [220, 174.61, 130.81, 98].forEach((frequency, index) => {
+      this.tone({
+        frequency,
+        slideTo: frequency * 0.82,
+        duration: 0.62,
+        gain: 0.045,
+        delay: index * 0.13,
+        type: index === 3 ? 'sine' : 'triangle',
+        attack: 0.01,
+      });
+    });
   }
+
   milestone() {
-    [523.25,659.25,783.99,1046.5].forEach((frequency,i)=>this.tone({frequency,duration:0.6,gain:0.038,delay:i*0.13}));
+    [523.25, 659.25, 783.99, 1046.5].forEach((frequency, index) => {
+      this.tone({
+        frequency,
+        duration: 0.6,
+        gain: 0.038,
+        delay: index * 0.13,
+      });
+    });
   }
-  preview() { this.click(); this.money(75,'big'); }
+
+  preview() {
+    this.spinStart();
+    this.spinMotion(0.7);
+
+    setTimeout(() => {
+      this.spinMotion(0.2, 0.7);
+    }, 260);
+
+    setTimeout(() => {
+      this.stopSpinBed();
+      this.impact('normal');
+      this.money(75, 'big');
+    }, 520);
+  }
+
   setAmbience(value) {
-    this.ambienceVolume=Math.max(0,Math.min(1,Number(value)||0));
+    this.ambienceVolume = Math.max(0, Math.min(1, Number(value) || 0));
     this.stopAmbience();
+
     if (this.ctx && !this.muted) this.startAmbience();
   }
+
   startAmbience() {
-    if (!this.ctx || this.muted || this.ambienceVolume<=0 || this.ambient.length) return;
+    if (
+      !this.ctx
+      || this.muted
+      || this.ambienceVolume <= 0
+      || this.ambient.length
+    ) {
+      return;
+    }
+
     try {
-      [130.81,196,261.63].forEach((frequency,i)=>{
-        const source=this.ctx.createOscillator();
-        const gain=this.ctx.createGain();
-        source.type='sine';
-        source.frequency.value=frequency+(i-1)*0.18;
-        gain.gain.value=this.ambienceVolume*0.014;
+      [130.81, 196, 261.63].forEach((frequency, index) => {
+        const source = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        source.type = 'sine';
+        source.frequency.value = frequency + (index - 1) * 0.18;
+        gain.gain.value = this.ambienceVolume * 0.014;
+
         source.connect(gain).connect(this.master);
         source.start();
-        this.ambient.push({source,gain});
+        this.ambient.push({ source, gain });
       });
-    } catch { this.stopAmbience(); }
+    } catch {
+      this.stopAmbience();
+    }
   }
+
   stopAmbience() {
-    for(const {source,gain} of this.ambient) { try {source.stop();source.disconnect();gain.disconnect();} catch { /* stopped */ } }
-    this.ambient=[];
+    for (const { source, gain } of this.ambient) {
+      try {
+        source.stop();
+        source.disconnect();
+        gain.disconnect();
+      } catch {
+        // Stopped.
+      }
+    }
+
+    this.ambient = [];
   }
 }

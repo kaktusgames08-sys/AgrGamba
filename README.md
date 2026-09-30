@@ -1,6 +1,17 @@
-# KOLO NEŠTĚSTÍ v5.0.0
+# KOLO NEŠTĚSTÍ v4.5.0
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.5.0
+
+- přepracovaný zvuk samotného kola: mechanický start, dynamický vzduch/rotace, výraznější pointer tick a hutnější dopad,
+- během spinu se wheel ambience mění podle skutečné rychlosti zpomalování,
+- money / multiplier / konec sturgery jsou vrstvenější a méně „suché“,
+- přidané **UKONČIT SÉRII** v Klasice/Vlastním režimu po prvním spinu,
+- dobrovolný konec vyžaduje potvrzení, uloží aktuální částku do archivu i leaderboardu a přežije reload/zálohu,
+- Hardcore zůstává pevně tříspinový a dobrovolné ukončení v něm není dostupné,
+- výraznější, sytější wheel paleta, zlato, panely, LED a glow během spin/anticipation/landing fází,
+- klávesa **E** otevře potvrzení ukončení série, když je tato možnost dostupná.
 
 ## v5.0.0 — Casino Edition
 

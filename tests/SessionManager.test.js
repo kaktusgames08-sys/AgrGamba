@@ -230,3 +230,57 @@ test('archives larger than 2000 runs can be exported, imported and restored', ()
   dest.importData(resumed.exportData());
   assert.equal(dest.runs.length, 2001);
 });
+
+
+test('normal series can be ended manually, archived, and restored after reload', () => {
+  const storage = new Storage();
+  const session = create(storage);
+
+  session.setPlayer('Cashout');
+  session.play(0);
+  session.play(4);
+
+  const run = session.manualFinish();
+
+  assert.ok(run);
+  assert.equal(run.endedBy, 'manual');
+  assert.equal(run.loss, 80);
+  assert.equal(run.streak, 2);
+  assert.equal(session.state.isEnded(), true);
+  assert.equal(session.state.spins, 0);
+  assert.equal(session.runs.length, 1);
+
+  const resumed = create(storage);
+  assert.equal(resumed.state.isEnded(), true);
+  assert.equal(resumed.state.total, 80);
+  assert.equal(resumed.result().endedBy, 'manual');
+  assert.equal(resumed.runs.length, 1);
+});
+
+test('manual finish is unavailable before the first spin and in Hardcore', () => {
+  const normal = create();
+  assert.equal(normal.manualFinish(), null);
+  assert.equal(normal.state.isEnded(), false);
+
+  normal.setMode('hardcore');
+  normal.play(0);
+  assert.equal(normal.manualFinish(), null);
+  assert.equal(normal.state.isEnded(), false);
+  assert.equal(normal.runs.length, 0);
+});
+
+test('manual ending survives backup export and import validation', () => {
+  const source = create();
+  source.play(0);
+  source.manualFinish();
+
+  const backup = source.exportData();
+  assert.equal(backup.runs[0].endedBy, 'manual');
+
+  const destination = create();
+  destination.importData(backup);
+
+  assert.equal(destination.runs.length, 1);
+  assert.equal(destination.runs[0].endedBy, 'manual');
+  assert.equal(destination.runs[0].loss, 40);
+});

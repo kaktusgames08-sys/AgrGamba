@@ -36,3 +36,17 @@ test('unavailable audio and blocked persistence do not throw during play', () =>
   const audio=new AudioManager({storage,contextFactory:()=>null,fetcher:null});
   assert.doesNotThrow(()=>{audio.spinStart();audio.tick();audio.money(40,'small');audio.setMuted(true);audio.setMuted(false);});
 });
+
+
+test('new wheel motion and cash-out cues stay safe without optional WebAudio nodes', () => {
+  const ctx=audioContext();
+  const audio=new AudioManager({storage:null,contextFactory:()=>ctx,fetcher:null});
+
+  assert.doesNotThrow(()=>{
+    audio.spinStart();
+    audio.spinMotion(0.8);
+    audio.spinMotion(0.1, 0.75);
+    audio.stopSpinBed();
+    audio.cashOut();
+  });
+});

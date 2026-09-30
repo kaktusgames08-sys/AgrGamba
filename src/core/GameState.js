@@ -67,6 +67,16 @@ export class GameState {
     return record;
   }
 
+  endEarly() {
+    if (this.phase !== 'ready' || this.spinCount <= 0 || this.spins <= 0) {
+      return false;
+    }
+
+    this.spins = 0;
+    this.phase = 'ended';
+    return true;
+  }
+
   isEnded() {
     return this.phase === 'ended';
   }

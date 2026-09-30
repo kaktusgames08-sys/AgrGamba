@@ -10,3 +10,8 @@ The game bundles selected sounds by Kenney under CC0 1.0 Universal.
 Original license files are included in public/audio/. Files were downloaded from the author's official site on 2026-09-28. CC0 permits use and redistribution, including in source repositories. No third-party music track is bundled. Musical stingers and the optional quiet ambient chord are synthesized by this project's AudioManager.
 
 Playback uses a master gain, dynamic compressor and a maximum of 16 concurrent effect voices. Muting stops scheduled effects and ambience immediately. A failed audio load falls back to synthesized cues and does not interrupt gameplay.
+
+
+## v4.5 wheel sound design
+
+The wheel itself now uses the local CC0 `dice-shake-1` only as a quiet mechanical transient. The continuous rotation/air layer, low mechanical kick, pointer accents, anticipation tones and landing punch are synthesized locally with Web Audio. No additional third-party audio files or music were added.
