@@ -1,6 +1,18 @@
-# KOLO NEŠTĚSTÍ v4.5.1
+# KOLO NEŠTĚSTÍ v4.5.2
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.5.2
+
+- mechanické zvuky kola zůstávají wheel-only, ale nad ně přibyla výraznější **casino/automat reward vrstva**,
+- start spinu má okamžitý krátký bright cue, aby klik na SPIN působil živěji,
+- anticipation má tři stupně rostoucího napětí s rychlejšími výškovými pulzy,
+- malé / střední / velké peněžní výsledky mají odlišné slot-style win motivy,
+- velká výhra a násobič dostávají basový punch + ascending fanfare + sparkle,
+- každý **+SPIN** má vlastní jasně rozpoznatelný reward cue,
+- rekord/milestone používá delší jackpot-like flourish,
+- zvukový preview v nastavení nově předvede celý oblouk: spin → napětí → landing → big win → +SPIN,
+- wheel mechanika stále nepoužívá kostky, karty ani žetony; žetony jsou pouze jemná payout textura po výsledku.
 
 ## v4.5.1
 
