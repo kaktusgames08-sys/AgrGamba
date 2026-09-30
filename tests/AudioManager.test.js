@@ -50,3 +50,19 @@ test('new wheel motion and cash-out cues stay safe without optional WebAudio nod
     audio.cashOut();
   });
 });
+
+
+test('wheel mechanics never use casino prop samples', () => {
+  const ctx=audioContext();
+  const audio=new AudioManager({storage:null,contextFactory:()=>ctx,fetcher:null});
+  audio.playSample=()=>{throw Error('wheel mechanics must be synthesized');};
+
+  assert.doesNotThrow(()=>{
+    audio.spinStart();
+    audio.tick(0.9);
+    audio.tick(0.1);
+    audio.impact('normal');
+    audio.impact('heavy');
+    audio.wheelSwitch();
+  });
+});
