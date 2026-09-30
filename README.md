@@ -1,6 +1,15 @@
-# KOLO NEŠTĚSTÍ v4.5.0
+# KOLO NEŠTĚSTÍ v4.5.1
 
 Browserové kolo pro stream, OBS a GitHub Pages.
+
+## v4.5.1
+
+- odstraněný `dice-shake` ze startu kola,
+- pointer tick, roztočení, dojezd i finální mechanický náraz kola jsou nově **100% syntetizované WebAudio zvuky**,
+- samotná mechanika kola už nepoužívá zvuky kostek, karet ani žetonů,
+- Hardcore přepnutí kola už nepoužívá card-slide sample,
+- náhled zvuku v nastavení přehrává jen wheel spin → zpomalování → pointer klik → dopad,
+- žetony zůstávají pouze jako samostatný payout efekt po peněžní výhře, ne jako zvuk rotace kola.
 
 ## v4.5.0
 
