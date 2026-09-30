@@ -47,15 +47,19 @@ function validateRun(raw) {
     || !Number.isInteger(raw.streak) || raw.streak < 0 || raw.streak > 10000
     || !['normal','hardcore','custom'].includes(raw.mode)) throw Error('Záloha obsahuje neplatný výsledek.');
   const legacy = raw.legacy === true;
+  const endedBy = legacy ? 'legacy' : raw.endedBy === 'manual' ? 'manual' : 'wheel';
   const rules = normalizeSettings(raw.rules ?? DEFAULT_SETTINGS);
   if (legacy && (!/^legacy-\d+$/.test(raw.id) || raw.mode !== 'normal' || !Array.isArray(raw.history) || raw.history.length)) throw Error('Neplatný původní výsledek.');
   if (!legacy && raw.mode !== 'hardcore' && (raw.mode === 'normal') !== (gameRulesKey(rules) === gameRulesKey(DEFAULT_SETTINGS))) throw Error('Režim neodpovídá pravidlům kola.');
   const state = legacy ? null : restoreState(raw.mode === 'hardcore' ? 3 : rules.startingSpins, raw.history, rules, raw.mode);
+  if (state && endedBy === 'manual') {
+    if (raw.mode === 'hardcore' || !state.endEarly()) throw Error('Neplatné ruční ukončení série.');
+  }
   if (state && (!state.isEnded() || state.total !== raw.loss || state.spinCount !== raw.streak)) throw Error('Výsledek neodpovídá historii.');
   return {
     id: raw.id, name: nameOf(raw.name), loss: raw.loss, streak: raw.streak, mode: raw.mode,
     endedAt: typeof raw.endedAt === 'string' && Number.isFinite(Date.parse(raw.endedAt)) ? raw.endedAt : null,
-    legacy, history: state ? state.history : [], rules,
+    endedBy, legacy, history: state ? state.history : [], rules,
     multipliers: state ? state.history.filter(r => r.type === 'multiplier').length : 0,
   };
 }
@@ -91,6 +95,9 @@ export class SessionManager {
           const rules = normalizeSettings(current.settings);
           this.settings = {...this.settings, segments:rules.segments, startingSpins:rules.startingSpins};
           this.state = restoreState(this.mode === 'hardcore' ? 3 : this.settings.startingSpins, current.history, this.settings, this.mode);
+          if (current.endedBy === 'manual') {
+            if (this.mode === 'hardcore' || !this.state.endEarly()) throw Error('Neplatná ručně ukončená série');
+          }
           this.runId = current.id;
           this.startedAt = current.startedAt;
           this.resumed = this.state.spinCount > 0;
@@ -111,7 +118,7 @@ export class SessionManager {
   migrate(entries) {
     this.runs = entries.filter(e => validNumber(Number(e.loss))).map((e,index) => ({
       id:'legacy-' + index, name:nameOf(e.name), loss:Number(e.loss), streak:Math.max(0,Math.round(Number(e.streak)||0)),
-      mode:'normal', legacy:true, history:[], rules:copy(DEFAULT_SETTINGS), endedAt:null, multipliers:0,
+      mode:'normal', endedBy:'legacy', legacy:true, history:[], rules:copy(DEFAULT_SETTINGS), endedAt:null, multipliers:0,
     }));
   }
 
@@ -135,13 +142,36 @@ export class SessionManager {
     if (this.state.isEnded() && !this.runs.some(r => r.id === this.runId)) {
       this.runs.push({
         id:this.runId,name:this.player,loss:this.state.total,streak:this.state.spinCount,
-        mode:this.category(),endedAt:new Date().toISOString(),legacy:false,
+        mode:this.category(),endedAt:new Date().toISOString(),endedBy:'wheel',legacy:false,
         history:copy(this.state.history),rules:copy(this.settings),
         multipliers:this.state.history.filter(r => r.type === 'multiplier').length,
       });
     }
     this.persist();
     return record;
+  }
+
+  manualFinish() {
+    if (
+      this.mode === 'hardcore'
+      || this.state.isEnded()
+      || this.state.spinCount <= 0
+      || !this.state.endEarly()
+    ) {
+      return null;
+    }
+
+    if (!this.runs.some(r => r.id === this.runId)) {
+      this.runs.push({
+        id:this.runId,name:this.player,loss:this.state.total,streak:this.state.spinCount,
+        mode:this.category(),endedAt:new Date().toISOString(),endedBy:'manual',legacy:false,
+        history:copy(this.state.history),rules:copy(this.settings),
+        multipliers:this.state.history.filter(r => r.type === 'multiplier').length,
+      });
+    }
+
+    this.persist();
+    return this.result();
   }
 
   restart() {
@@ -234,6 +264,7 @@ export class SessionManager {
     try {
       this.storage?.setItem(KEY, JSON.stringify({...this.exportData(),player:this.player,queue:this.queue,current:{
         id:this.runId,startedAt:this.startedAt,mode:this.mode,settings:this.settings,history:this.state.history,
+        endedBy:this.result()?.endedBy ?? null,
       }}));
       this.storageAvailable = !!this.storage;
     } catch { this.storageAvailable = false; }
