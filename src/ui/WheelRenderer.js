@@ -312,6 +312,8 @@ export class WheelRenderer {
   }
 
   clearWinner() {
+    this.audio.stopSpinBed?.(true);
+
     this.segmentNodes.forEach((node) => {
       node.classList.remove('is-winner', 'is-under-pointer');
     });
@@ -424,11 +426,16 @@ export class WheelRenderer {
           targetIndex: index,
         });
 
+        const remaining = 1 - t;
+        const speed = Math.max(
+          0.02,
+          Math.min(1, Math.pow(remaining, 2) * 1.9),
+        );
+        this.audio.spinMotion?.(speed, suspenseStage / 4);
+
         const boundary = Math.floor(current / slice);
 
         if (boundary !== lastBoundary) {
-          const remaining = 1 - t;
-          const speed = Math.max(0.05, Math.min(1, remaining * 1.35));
           this.audio.tick(speed);
           this.bouncePointer();
           lastBoundary = boundary;
@@ -465,6 +472,7 @@ export class WheelRenderer {
 
         this.rotation = targetRotation;
         this.rotor.style.transform = 'rotate(' + targetRotation + 'deg)';
+        this.audio.stopSpinBed?.();
         this.shell?.classList.remove(
           'is-spinning',
           'is-anticipating',
