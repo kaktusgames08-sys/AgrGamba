@@ -20,3 +20,8 @@ The wheel itself now uses the local CC0 `dice-shake-1` only as a quiet mechanica
 ## v4.5.1 wheel mechanics
 
 The physical wheel path no longer uses `dice-shake-1`, card-slide, chip collision, or interface click samples. Spin launch, continuous rotation air, pointer ratchet, Hardcore wheel transition, and landing impact are synthesized locally with Web Audio. Chip sounds remain only for the separate money payout celebration after a result.
+
+
+## v4.5.2 reward layer
+
+The fortune-wheel mechanics remain fully synthesized. v4.5.2 adds a separate synthesized casino reward layer: spin-start confirmation tones, staged anticipation, tiered money win motifs, multiplier fanfares, extra-spin cues and milestone/jackpot flourishes. Existing chip samples remain only as quiet post-result payout texture.
