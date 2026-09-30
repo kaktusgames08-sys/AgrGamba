@@ -2,7 +2,6 @@
 const SAMPLES = {
   chips: 'chips-handle-2',
   drop: 'chips-stack-1',
-  slide: 'card-slide-1',
   click: 'click_001',
   confirm: 'confirmation_001',
   end: 'bong_001',
@@ -571,6 +570,28 @@ export class AudioManager {
     });
   }
 
+  wheelSwitch() {
+    // Quick mechanical sweep used when Hardcore swaps to its multiplier wheel.
+    this.tone({
+      frequency: 180,
+      slideTo: 620,
+      duration: 0.16,
+      gain: 0.018,
+      type: 'triangle',
+      attack: 0.002,
+    });
+
+    this.tone({
+      frequency: 72,
+      slideTo: 50,
+      duration: 0.18,
+      gain: 0.032,
+      type: 'sine',
+      attack: 0.003,
+      delay: 0.05,
+    });
+  }
+
   cashOut() {
     this.playSample('confirm', {
       volume: 0.55,
@@ -628,17 +649,22 @@ export class AudioManager {
 
   preview() {
     this.spinStart();
-    this.spinMotion(0.7);
+    this.spinMotion(0.82);
 
     setTimeout(() => {
-      this.spinMotion(0.2, 0.7);
-    }, 260);
+      this.spinMotion(0.38, 0.35);
+      this.tick(0.38);
+    }, 220);
+
+    setTimeout(() => {
+      this.spinMotion(0.12, 0.8);
+      this.tick(0.12);
+    }, 430);
 
     setTimeout(() => {
       this.stopSpinBed();
       this.impact('normal');
-      this.money(75, 'big');
-    }, 520);
+    }, 650);
   }
 
   setAmbience(value) {
