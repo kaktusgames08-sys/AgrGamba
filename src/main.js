@@ -208,6 +208,7 @@ async function spin() {
     let feeding=Promise.resolve();
     if(record.type==='multiplier') {audio.multiplier(record.multiplier);piggy.pulseMultiplier(record.after);}
     else {audio.money(record.value,tier);feeding=piggy.feed(record.value,record.after);}
+    if(record.extraSpins>0)audio.extraSpin(0.22);
     if(!reduced.matches){
       particles.burst({count:tier==='big'||record.type==='multiplier'?55:tier==='medium'?24:10,intense:tier==='big'});
       if(tier==='big'||record.type==='multiplier')particles.screenFlash('normal');

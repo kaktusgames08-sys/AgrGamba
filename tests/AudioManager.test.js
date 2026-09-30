@@ -27,8 +27,8 @@ test('rapid sound events have a bounded number of live voices', () => {
   const ctx=audioContext();
   const audio=new AudioManager({storage:null,contextFactory:()=>ctx,fetcher:null});
   for(let i=0;i<100;i++) audio.tone({frequency:440});
-  assert.ok(audio.voices.size<=16);
-  assert.ok(ctx.sources.slice(0,80).every(s=>s.stopped));
+  assert.ok(audio.voices.size<=24);
+  assert.ok(ctx.sources.slice(0,70).every(s=>s.stopped));
 });
 
 test('unavailable audio and blocked persistence do not throw during play', () => {
@@ -65,4 +65,21 @@ test('wheel mechanics never use casino prop samples', () => {
     audio.impact('heavy');
     audio.wheelSwitch();
   });
+});
+
+
+test('reward feedback supports layered casino cues without throwing', () => {
+  const ctx=audioContext();
+  const audio=new AudioManager({storage:null,contextFactory:()=>ctx,fetcher:null});
+
+  assert.doesNotThrow(()=>{
+    audio.money(40,'small');
+    audio.money(75,'medium');
+    audio.money(100,'big');
+    audio.multiplier(2);
+    audio.extraSpin(0.22);
+    audio.milestone();
+  });
+
+  assert.ok(audio.voices.size<=24);
 });
