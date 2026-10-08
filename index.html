@@ -4,7 +4,7 @@
 <body>
 <div id="app" data-effects="high" data-motion="on" data-preset="max">
   <div class="casino-backdrop" aria-hidden="true"><div class="ambient-orb ambient-orb--a"></div><div class="ambient-orb ambient-orb--b"></div><div class="casino-grid"></div></div>
-  <header class="topbar" data-obs-panel="hud">
+  <header class="topbar">
     <a class="brand" href="#" aria-label="Kolo neštěstí"><span class="brand__mark" aria-hidden="true">♠</span><span><span class="brand__eyebrow">AGRGAMBA · CASINO EDITION</span><h1>KOLO <em>NEŠTĚSTÍ</em></h1></span></a>
     <div class="hud">
       <div class="hud-card hud-card--money"><span class="hud-card__label">AKTUÁLNÍ ČÁSTKA</span><div class="hud-card__money-row"><span class="hud-card__emote"><img id="amountEmote" src="https://cdn.7tv.app/emote/01J9VXJ6TG0009Y31ZJEZ3K972/2x.webp" alt=""/><span class="hud-card__emote-fallback">♠</span></span><strong id="moneyCounter">0 Kč</strong></div></div>
@@ -12,14 +12,13 @@
     </div>
     <nav class="top-actions" aria-label="Ovládání hry">
       <button id="archiveButton" class="icon-button" type="button" aria-label="Archiv a záloha" title="Archiv a záloha"><span aria-hidden="true">▤</span></button>
-      <button id="obsButton" class="icon-button" type="button" aria-label="Režim pro OBS" title="Režim pro OBS"><span aria-hidden="true">▣</span></button>
       <button id="muteButton" class="icon-button" type="button" aria-label="Vypnout zvuk" title="Zvuk (M)">♫</button>
       <button id="fullscreenButton" class="icon-button" type="button" aria-label="Celá obrazovka" title="Celá obrazovka (F)">⛶</button>
       <button id="settingsButton" class="icon-button" type="button" aria-label="Nastavení kola" title="Nastavení (S)">⚙</button>
     </nav>
   </header>
   <main class="game-layout">
-    <aside class="left-rail" data-obs-panel="left">
+    <aside class="left-rail">
       <section class="player-panel panel">
         <div class="panel-heading"><span class="eyebrow">U STOLU</span><span class="live-indicator">PŘIPRAVEN</span></div>
         <label class="player-field"><span class="player-avatar" aria-hidden="true">♟</span><input id="playerName" maxlength="32" aria-label="Jméno hráče" placeholder="Jméno hráče" autocomplete="off" value="Host"/></label>
@@ -52,7 +51,7 @@
       </div>
       <div id="milestoneBanner" class="milestone-banner" role="status"></div>
     </section>
-    <aside class="right-rail" data-obs-panel="right">
+    <aside class="right-rail">
       <section class="piggy-panel panel"><div class="panel-heading"><span class="eyebrow">PRASÁTKO PROJEBU</span><span id="piggyCrown" class="piggy-crown" hidden aria-label="Nový rekord">♛</span></div>
         <div id="piggyBank" class="piggy-bank" aria-hidden="true"><svg class="piggy-svg" viewBox="0 0 240 150" role="img" aria-label="Růžové keramické prasátko">
                 <defs>

@@ -1,6 +1,13 @@
-# KOLO NEŠTĚSTÍ v4.5.2
+# KOLO NEŠTĚSTÍ v4.6.0
 
-Browserové kolo pro stream, OBS a GitHub Pages.
+Browserové kolo pro stream a GitHub Pages.
+
+## v4.6.0 — Dev Showtime
+
+- Odstraněn samostatný OBS režim a jeho ovládání.
+- Nový scénický vzhled je zatím dostupný pouze přes zvláštní dev odkaz; hlavní stránka má stávající vzhled.
+- Dev náhled ukládá výsledky, nastavení a zvuk odděleně od hlavní hry.
+- Nová grafika prasátka se čtyřmi výrazy, nasvícená scéna, kovové kolo a výraznější výsledky.
 
 ## v4.5.2
 
@@ -43,7 +50,7 @@ Browserové kolo pro stream, OBS a GitHub Pages.
 - Fronta hráčů, výsledková karta s pořadím, text pro sdílení a export obrázku PNG.
 - Pojmenované profily kola a JSON export/import archivu a profilů. Opakovaný import stejné zálohy neduplikuje výsledky.
 - Úprava hlasitosti, rychlosti a efektů zachová rozjetou sérii. Pravidla a hráč se zamknou do jejího konce.
-- OBS režim s průhledným pozadím a výběrem panelů, responzivní rozložení, podpora omezeného pohybu a klávesnice.
+- Responzivní rozložení, podpora omezeného pohybu a klávesnice.
 - Pravděpodobnosti polí a Web Crypto RNG zůstávají stejné. Hra se sama neroztáčí.
 
 ### Použití
@@ -53,8 +60,6 @@ Před začátkem napiš přezdívku do pole hráče. V **Frontě hráčů** zade
 **Archiv** obsahuje dokončené série a jejich jednotlivé spiny. Export zálohy ukládá výsledky a profily do JSON. Data jsou lokální pro daný prohlížeč a zařízení; online synchronizace není součástí hry. Rozehraná série se obnovuje samostatně z místního úložiště. Pokud prohlížeč ukládání blokuje, hra dál funguje, ale před zavřením si stáhni zálohu dokončených výsledků.
 
 **Profily kola** uloží současné nastavení pod názvem. Pravidla vlastního kola upravíš v nastavení; Hardcore má vždy své pevné tři spiny.
-
-V **OBS** vyber viditelné panely a zkopíruj odkaz do Browser Source. Průhledný režim zapíná `?obs=1`; parametr `panels=left,right,hud` určuje viditelné skupiny. Ovládání se ukáže po najetí na horní lištu.
 
 V nastavení je hlasitost efektů, volitelný tichý ambient a tlačítko pro poslech. Presety **Klidný**, **Casino** a **Showtime** mění intenzitu prezentace.
 

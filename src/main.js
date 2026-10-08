@@ -11,11 +11,16 @@ import { UI } from './ui/UI.js';
 import { PiggyBank } from './ui/PiggyBank.js';
 import { Leaderboard } from './ui/Leaderboard.js';
 import { StudioPanel, toast } from './ui/StudioPanel.js';
+import { isDevPreview, previewStorage } from './dev/PreviewMode.js';
 
 const $ = id => document.getElementById(id);
 const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
 let storage=null;
 try { storage=globalThis.localStorage; } catch { /* private/embedded browsers */ }
+const development=isDevPreview(location.search);
+if(development)storage=previewStorage(storage);
+let previewReady=!development;
+let showtime=null;
 const settingsManager=new SettingsManager(storage);
 const leaderboard=new Leaderboard({storage});
 const session=new SessionManager(settingsManager.get(),storage,leaderboard.entries);
@@ -65,6 +70,7 @@ function renderBoard() {
 }
 function renderExtras() {
   studio.render();renderBoard();
+  showtime?.render(session,{busy});
   const hardcore=session.mode==='hardcore';
   app.dataset.gameMode=session.mode;
   $('normalButton').classList.toggle('is-active',!hardcore);
@@ -76,9 +82,9 @@ function renderExtras() {
   document.querySelectorAll('[data-step]').forEach(node=>{const n=Number(node.dataset.step);node.classList.toggle('is-done',session.state.spinCount>=n);node.classList.toggle('is-current',session.state.spinCount+1===n);});
   $('normalButton').disabled=busy||session.active();$('hardcoreButton').disabled=busy||session.active();
   $('settingsButton').disabled=busy;$('playerName').disabled=busy||session.active()||session.state.isEnded();
-  $('spinButton').disabled=busy;
+  $('spinButton').disabled=busy||!previewReady;
   $('spinButton').classList.toggle('is-busy',busy);
-  $('spinButton').querySelector('.spin-button__text').textContent=busy?'TOČÍME…':session.state.isEnded()?'VÝSLEDEK SÉRIE':'ROZTOČIT';
+  $('spinButton').querySelector('.spin-button__text').textContent=!previewReady?'NAČÍTÁM DEV…':busy?'TOČÍME…':session.state.isEnded()?'VÝSLEDEK SÉRIE':'ROZTOČIT';
   const canCashOut=!hardcore&&session.state.spinCount>0&&!session.state.isEnded();
   $('cashoutButton').hidden=!canCashOut;
   $('cashoutButton').disabled=busy||!canCashOut;
@@ -103,6 +109,7 @@ function applySettings(draft) {
   toast('Nastavení uloženo.');return true;
 }
 function syncNewRun() {
+  showtime?.reset();
   clearTimeout(milestoneTimer);$('milestoneBanner').classList.remove('is-visible');
   ui.hideFinal();ui.hideResult();ui.setGameOverVisual(false);ui.microFreeze(false);
   piggy.reset();wheel.setSegments(session.segments());wheel.setSpinDuration(reduced.matches?1000:settings.spinDurationMs);
@@ -182,7 +189,7 @@ function milestone(before,after,previousRecord) {
   audio.milestone();clearTimeout(milestoneTimer);milestoneTimer=setTimeout(()=>$('milestoneBanner').classList.remove('is-visible'),2700);
 }
 async function spin() {
-  if(busy||settingsPanel.isOpen()||$('studioDialog').open||$('overlay').open||$('cashoutDialog').open)return;
+  if(!previewReady||busy||settingsPanel.isOpen()||$('studioDialog').open||$('overlay').open||$('cashoutDialog').open)return;
   if(session.state.isEnded()){showResult();return;}
   let record;
   const token=++spinToken;
@@ -191,9 +198,11 @@ async function spin() {
     const landing=wheel.planLanding();
     const previousRecord=Math.max(0,...session.board().map(r=>r.loss));
     busy=true;ui.setBusy(true);renderExtras();
+    showtime?.hideResult();
     ui.hideResult();ui.setGameOverVisual(false);ui.setStatus('ROZTÁČÍM…','spinning');
     // Commit exactly the selected result before animation. Reload cannot reroll it.
     record=session.play(landing.index);
+    showtime?.render(session,{busy});
     ui.spins.textContent=Math.max(0,record.remainingSpins-(record.extraSpins??0));
     ui.spinRun.textContent=session.state.spinCount;
     await wheel.spinRandom(undefined,landing);
@@ -205,6 +214,7 @@ async function spin() {
     if(!reduced.matches&&settings.effects!=='low')parallax.punch(tier==='big'?'normal':'soft');
     ui.setCenterMode('result',{record,isEnding:session.state.isEnded()});
     ui.showResult(record,session.state.isEnded()?'final':tier);
+    showtime?.reveal(record,{ending:session.state.isEnded(),tier});
     let feeding=Promise.resolve();
     if(record.type==='multiplier') {audio.multiplier(record.multiplier);piggy.pulseMultiplier(record.after);}
     else {audio.money(record.value,tier);feeding=piggy.feed(record.value,record.after);}
@@ -218,8 +228,9 @@ async function spin() {
     await feeding;
     renderExtras();
     if(!session.state.isEnded())milestone(record.before,record.after,previousRecord);
-    await wait(reduced.matches?80:650);
+    await wait(reduced.matches?80:development&&record.type==='multiplier'?1250:650);
     ui.hideResult();
+    showtime?.hideResult();
     if(session.state.isEnded()) {
       if(session.mode==='normal')audio.lossFinale();else audio.multiplier(1);
       ui.setStatus('SÉRIE UZAVŘENA','ready');
@@ -238,6 +249,7 @@ async function spin() {
     console.error('Spin presentation failed',error);
     // A resolved draw remains committed even if its visual/audio reveal fails.
     ui.microFreeze(false);ui.hideResult();
+    showtime?.reset();
     wheel.setSegments(session.segments());ui.renderState(session.state);piggy.setTotal(session.state.total);leds.setMode('idle');
     ui.setStatus('VÝSLEDEK ZACHOVÁN','ready');
     toast(record?'Výsledek je uložený. Animaci se nepodařilo dokončit.':error.message);
@@ -297,3 +309,16 @@ if(session.resumed){
     ui.setCenterMode('loss');showResult();
   }
 }else ui.setStatus('PŘIPRAVENO','ready');
+
+if(development){
+  import('./dev/Showtime.js').then(({Showtime})=>{
+    showtime=new Showtime();
+    previewReady=true;
+    renderExtras();
+  }).catch(error=>{
+    console.error('Development presentation failed to load',error);
+    previewReady=true;
+    renderExtras();
+    toast('Dev vzhled se nepodařilo načíst. Obnov stránku.');
+  });
+}
