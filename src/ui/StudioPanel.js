@@ -18,10 +18,10 @@ export function toast(text) {
 export class StudioPanel {
   constructor(session, callbacks) {
     this.session=session;this.callbacks=callbacks;this.dialog=$('studioDialog');this.content=$('studioContent');
-    this.filter='all';this.view='';this.obs={enabled:false,panels:['left','right','hud']};
+    this.filter='all';this.view='';
     $('studioClose').addEventListener('click',()=>this.dialog.close());
     this.dialog.addEventListener('click',e=>{if(e.target===this.dialog){const r=this.dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)this.dialog.close();}});
-    for(const [id,view] of [['archiveButton','archive'],['allResultsButton','archive'],['queueButton','queue'],['profilesButton','profiles'],['obsButton','obs']]) $(id).addEventListener('click',()=>this.open(view));
+    for(const [id,view] of [['archiveButton','archive'],['allResultsButton','archive'],['queueButton','queue'],['profilesButton','profiles']]) $(id).addEventListener('click',()=>this.open(view));
     $('playerName').addEventListener('change',e=>{if(!session.setPlayer(e.target.value))toast('Jméno lze změnit před první otočkou.');this.callbacks.onRefresh();});
     $('nextPlayerButton').addEventListener('click',()=>this.callbacks.onNext());
     $('closeResultButton').addEventListener('click',()=>this.callbacks.onCloseResult());
@@ -31,9 +31,6 @@ export class StudioPanel {
     this.content.addEventListener('click',e=>this.click(e));
     this.content.addEventListener('submit',e=>this.submit(e));
     this.content.addEventListener('change',e=>this.change(e));
-    const params=new URLSearchParams(location.search);
-    if(params.get('obs')==='1') {this.obs.enabled=true;this.obs.panels=(params.get('panels')??'left,right,hud').split(',').filter(p=>['left','right','hud'].includes(p));}
-    this.applyObs();
   }
   render() {
     const s=this.session;
@@ -101,17 +98,15 @@ export class StudioPanel {
   }
   renderDialog() {
     const s=this.session;
-    const titles={archive:'Archiv sérií',queue:'Fronta hráčů',profiles:'Profily kola',obs:'Režim pro OBS'};
+    const titles={archive:'Archiv sérií',queue:'Fronta hráčů',profiles:'Profily kola'};
     $('studioTitle').textContent=titles[this.view]??'Detail série';
     if(this.view==='queue'){
       this.content.innerHTML='<p class="help-text">Aktuálně hraje <b>'+esc(s.player)+'</b>. Fronta se posune až po stisknutí „Další hráč“.</p><form id="queueForm" class="queue-form"><label class="form-label">Každého hráče napiš na nový řádek<textarea id="queueNames" maxlength="3300" placeholder="Kaktus&#10;Agraelus&#10;Další hráč">'+esc(s.queue.join('\n'))+'</textarea></label><button type="submit" class="primary-button">ULOŽIT FRONTU</button></form><p class="help-text" style="margin-top:18px">Jméno aktuálního hráče měníš v panelu U stolu před prvním spinem. Fronta pojme 100 hráčů.</p>';
     } else if(this.view==='archive'){
       const runs=[...s.runs].filter(r=>this.filter==='all'||r.mode===this.filter).reverse();
-      this.content.innerHTML='<p class="help-text">Výsledky jsou uložené v tomto prohlížeči. Pro přenos do jiného počítače nebo OBS stáhni zálohu.</p><div class="studio-toolbar"><select id="archiveFilter" aria-label="Filtrovat archiv">'+[['all','Všechny režimy'],...Object.entries(MODES)].map(([v,t])=>'<option value="'+v+'" '+(this.filter===v?'selected':'')+'>'+t+'</option>').join('')+'</select><span class="spacer"></span><button data-action="export" class="quiet-button">↓ Záloha JSON</button><button data-action="import" class="quiet-button">↑ Importovat</button><input id="backupFile" type="file" accept="application/json,.json" hidden/></div>'+(runs.length?'<table class="archive-table"><thead><tr><th>HRÁČ / DATUM</th><th>ČÁSTKA</th><th>SPINY</th><th>REŽIM</th><th></th></tr></thead><tbody>'+runs.map(r=>'<tr><td>'+esc(r.name)+'<small>'+esc(date(r.endedAt))+'</small></td><td>'+money(r.loss)+'</td><td>'+r.streak+'</td><td><span class="mode-tag">'+MODES[r.mode]+'</span></td><td><button data-detail="'+esc(r.id)+'">Detail ↗</button></td></tr>').join('')+'</tbody></table>':'<div class="empty-state">Tady začíná historie.<br>Dokonči první sérii v tomto režimu.</div>');
+      this.content.innerHTML='<p class="help-text">Výsledky jsou uložené v tomto prohlížeči. Pro přenos do jiného počítače stáhni zálohu.</p><div class="studio-toolbar"><select id="archiveFilter" aria-label="Filtrovat archiv">'+[['all','Všechny režimy'],...Object.entries(MODES)].map(([v,t])=>'<option value="'+v+'" '+(this.filter===v?'selected':'')+'>'+t+'</option>').join('')+'</select><span class="spacer"></span><button data-action="export" class="quiet-button">↓ Záloha JSON</button><button data-action="import" class="quiet-button">↑ Importovat</button><input id="backupFile" type="file" accept="application/json,.json" hidden/></div>'+(runs.length?'<table class="archive-table"><thead><tr><th>HRÁČ / DATUM</th><th>ČÁSTKA</th><th>SPINY</th><th>REŽIM</th><th></th></tr></thead><tbody>'+runs.map(r=>'<tr><td>'+esc(r.name)+'<small>'+esc(date(r.endedAt))+'</small></td><td>'+money(r.loss)+'</td><td>'+r.streak+'</td><td><span class="mode-tag">'+MODES[r.mode]+'</span></td><td><button data-detail="'+esc(r.id)+'">Detail ↗</button></td></tr>').join('')+'</tbody></table>':'<div class="empty-state">Tady začíná historie.<br>Dokonči první sérii v tomto režimu.</div>');
     } else if(this.view==='profiles'){
       this.content.innerHTML='<p class="help-text">Profil uloží políčka, počáteční spiny, rychlost i prezentaci. Herní pravidla můžeš načíst mezi sériemi.</p><form id="profileForm" class="profile-form"><input id="profileName" maxlength="40" required placeholder="Např. Páteční stream" aria-label="Název profilu"/><button class="primary-button" type="submit">ULOŽIT AKTUÁLNÍ</button></form><div class="profile-list">'+(s.profiles.length?s.profiles.map(p=>'<div class="profile-item"><span>'+esc(p.name)+'<small>'+p.settings.segments.length+' polí · '+(p.settings.spinDurationMs/1000).toFixed(1)+' s</small></span><button data-profile="'+esc(p.id)+'" class="quiet-button">Načíst</button></div>').join(''):'<div class="empty-state">Zatím nemáš uložený profil.</div>')+'</div><p class="help-text" style="margin-top:20px">Stejný název aktualizuje existující profil. Profily jsou součástí JSON zálohy v archivu.</p>';
-    } else if(this.view==='obs'){
-      this.content.innerHTML='<p class="help-text">Průhledné pozadí pro OBS Browser Source. Doporučená velikost 1920 × 1080. Horní ovládání se ukáže po najetí myší; fungují také klávesové zkratky.</p><div class="obs-options"><label><input id="obsEnabled" type="checkbox" '+(this.obs.enabled?'checked':'')+'/> Průhledné pozadí</label>'+[['hud','Horní částka a hlavička'],['left','Hráč a žebříček'],['right','Prasátko a historie']].map(([id,label])=>'<label><input type="checkbox" data-obs-option="'+id+'" '+(this.obs.panels.includes(id)?'checked':'')+'/> '+label+'</label>').join('')+'</div><button class="primary-button" data-action="copy-obs">KOPÍROVAT ODKAZ PRO OBS</button><p class="help-text" style="margin-top:20px">OBS používá vlastní úložiště. Archiv a profily přeneseš zálohou JSON. Roztočení ovládáš přes Interakci se zdrojem v OBS.</p>';
     }
   }
   async change(e) {
@@ -122,10 +117,6 @@ export class StudioPanel {
         const data=JSON.parse(await file.text());
         this.session.importData(data);this.callbacks.onRefresh();this.renderDialog();toast('Záloha připojena. Stejné série se neduplikují.');
       } catch(error){toast(error instanceof SyntaxError?'Soubor není platný JSON.':error.message);}
-    }
-    if(e.target.id==='obsEnabled'||e.target.matches('[data-obs-option]')){
-      this.obs.enabled=$('obsEnabled').checked;
-      this.obs.panels=[...this.content.querySelectorAll('[data-obs-option]:checked')].map(n=>n.dataset.obsOption);this.applyObs();
     }
   }
   submit(e) {
@@ -147,10 +138,5 @@ export class StudioPanel {
     if(button.dataset.action==='back')this.renderDialog();
     if(button.dataset.action==='export')downloadBlob(new Blob([JSON.stringify(this.session.exportData(),null,2)],{type:'application/json'}),'Kolo-nestesti-zaloha-'+new Date().toISOString().slice(0,10)+'.json');
     if(button.dataset.action==='import')$('backupFile').click();
-    if(button.dataset.action==='copy-obs'){
-      const url=new URL(location.href);url.hash='';url.search='';url.searchParams.set('obs','1');url.searchParams.set('panels',this.obs.panels.join(','));
-      try{await navigator.clipboard.writeText(url.href);toast('Odkaz pro OBS zkopírován.');}catch{toast('Kopírování není dostupné. Přidej k adrese ?obs=1.');}
-    }
   }
-  applyObs(){document.documentElement.classList.toggle('obs-mode',this.obs.enabled);document.body.classList.toggle('obs-mode',this.obs.enabled);document.querySelectorAll('[data-obs-panel]').forEach(n=>n.dataset.obsHidden=String(!this.obs.panels.includes(n.dataset.obsPanel)));}
 }

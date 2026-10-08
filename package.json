@@ -1,7 +1,7 @@
 {
   "name": "kolo-nestesti",
-  "version": "4.5.2",
-  "description": "Kolo neštěstí — authentic wheel mechanics with stronger slot-style anticipation and reward feedback.",
+  "version": "4.6.0",
+  "description": "Kolo neštěstí — classic wheel with an isolated Showtime development preview.",
   "type": "module",
   "scripts": {
     "dev": "vite",
