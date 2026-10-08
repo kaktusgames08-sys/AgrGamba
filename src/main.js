@@ -2,6 +2,7 @@ import './styles/casino.css';
 import { SettingsManager } from './core/SettingsManager.js';
 import { SessionManager, rewardTier } from './core/SessionManager.js';
 import { AudioManager } from './audio/AudioManager.js';
+import { ShowtimeAudio } from './audio/ShowtimeAudio.js';
 import { LedRing } from './ui/LedRing.js';
 import { ParallaxController } from './ui/ParallaxController.js';
 import { WheelRenderer } from './ui/WheelRenderer.js';
@@ -25,7 +26,7 @@ const settingsManager=new SettingsManager(storage);
 const leaderboard=new Leaderboard({storage});
 const session=new SessionManager(settingsManager.get(),storage,leaderboard.entries);
 let settings=session.settings;
-const audio=new AudioManager({storage});
+const audio=new (development?ShowtimeAudio:AudioManager)({storage});
 const ui=new UI();
 const piggy=new PiggyBank();
 const leds=new LedRing($('ledRing'));
@@ -232,7 +233,7 @@ async function spin() {
     ui.hideResult();
     showtime?.hideResult();
     if(session.state.isEnded()) {
-      if(session.mode==='normal')audio.lossFinale();else audio.multiplier(1);
+      if(session.mode==='normal')audio.lossFinale();else if(development)audio.finale();else audio.multiplier(1);
       ui.setStatus('SÉRIE UZAVŘENA','ready');
       if(!reduced.matches)await piggy.explode(session.state.total);
       else {piggy.setTotal(session.state.total);$('piggyFinal').classList.add('is-visible');$('piggyFinalAmount').textContent=ui.formatMoney(session.state.total);app.classList.add('is-piggy-finale');}
@@ -272,7 +273,14 @@ $('restartButton').addEventListener('click',restart);
 $('normalButton').addEventListener('click',()=>setMode('normal'));
 $('hardcoreButton').addEventListener('click',()=>setMode('hardcore'));
 $('muteButton').addEventListener('click',()=>ui.setMuted(audio.toggle()));
-$('previewSound').addEventListener('click',()=>{audio.ensure();audio.preview();});
+$('previewSound').addEventListener('click',()=>{
+  audio.ensure();
+  if(audio.preview()===false&&development)toast('Pro ukázku zapni zvuk a zvyš hlasitost efektů.');
+});
+if(development){
+  $('previewSound').textContent='POSLECHNOUT DEV UKÁZKU';
+  $('previewSound').title='Rozjezd · tikání · výhra · násobič ×2 · finále (cca 7 sekund)';
+}
 $('fullscreenButton').addEventListener('click',async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch{toast('Tento prohlížeč nepodporuje celou obrazovku.');}});
 $('boardTabs').addEventListener('click',e=>{const button=e.target.closest('[data-board]');if(button){boardMode=button.dataset.board;renderBoard();audio.click();}});
 $('amountEmote').addEventListener('error',()=>$('amountEmote').parentElement.classList.add('is-fallback'),{once:true});

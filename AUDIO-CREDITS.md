@@ -9,7 +9,7 @@ The game bundles selected sounds by Kenney under CC0 1.0 Universal.
 
 Original license files are included in public/audio/. Files were downloaded from the author's official site on 2026-09-28. CC0 permits use and redistribution, including in source repositories. No third-party music track is bundled. Musical stingers and the optional quiet ambient chord are synthesized by this project's AudioManager.
 
-Playback uses a master gain, dynamic compressor and a maximum of 16 concurrent effect voices. Muting stops scheduled effects and ambience immediately. A failed audio load falls back to synthesized cues and does not interrupt gameplay.
+Playback uses a master gain, dynamic compressor and a maximum of 24 concurrent effect voices. Muting stops scheduled effects and ambience immediately. A failed audio load falls back to synthesized cues and does not interrupt gameplay.
 
 
 ## v4.5 wheel sound design
@@ -25,3 +25,10 @@ The physical wheel path no longer uses `dice-shake-1`, card-slide, chip collisio
 ## v4.5.2 reward layer
 
 The fortune-wheel mechanics remain fully synthesized. v4.5.2 adds a separate synthesized casino reward layer: spin-start confirmation tones, staged anticipation, tiered money win motifs, multiplier fanfares, extra-spin cues and milestone/jackpot flourishes. Existing chip samples remain only as quiet post-result payout texture.
+
+
+## v4.6.1 development sound profile
+
+Only the unlisted Showtime development route uses `ShowtimeAudio`. Its stereo struck bells, pointer pegs, coin pings, cabinet body hit, air sweep and ceramic finale are original procedurally generated PCM. They are cached locally in Web Audio; no new third-party recordings, music, motor loops, dice or card sounds are used. Each bell occupies one voice, keeping reward tails within the existing 24-voice budget. The default route retains AudioManager and its existing sound design.
+
+The roughly seven-second audition in development settings demonstrates the spin, pointer, money reward, ×2 and Hardcore closing cadence. Mute, page hiding and a real spin cancel queued audition events. All development sounds use the existing master volume, mute and compressor.
