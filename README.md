@@ -1,6 +1,14 @@
-# KOLO NEŠTĚSTÍ v4.6.0
+# KOLO NEŠTĚSTÍ v4.6.1
 
 Browserové kolo pro stream a GitHub Pages.
+
+## v4.6.1 — Zvuk pouze pro dev náhled
+
+- Vlastní zvukový profil dev verze: mechanické tikání, krátké napětí, odstupňované výhry, násobič a keramické finále.
+- V dev nastavení je přibližně sedmisekundová ukázka celého zvukového designu. Ztišení nebo nový spin ji okamžitě přeruší.
+- Zvuky hlavní stránky zůstávají stejné.
+
+[Poslechnout ukázku dev zvuků](docs/previews/showtime-audio.ogg) — skutečný výstup Web Audio (rozjezd, výhra, ×2, finále).
 
 ## v4.6.0 — Dev Showtime
 
